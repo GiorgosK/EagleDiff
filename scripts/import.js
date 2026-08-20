@@ -1,0 +1,463 @@
+const fsp = require('fs/promises');
+const path = require('path');
+
+const { getConfigPath, helperDir, rootDir } = require('./config-path');
+
+const defaultConfigPath = path.join(helperDir, 'config-default.json');
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const backstopPath = resolveBackstopManifestPath(args.backstop);
+  const backstopConfig = await readJson(backstopPath);
+  const configPath = getConfigPath();
+  const templateConfig = await readJson(defaultConfigPath);
+  const existingConfig = await readJsonIfExists(configPath);
+  const baseConfig = mergeDeep(templateConfig, existingConfig || {});
+  const importedConfig = buildImportedConfig(baseConfig, templateConfig, backstopConfig, backstopPath);
+
+  await fsp.mkdir(path.dirname(configPath), { recursive: true });
+  await fsp.writeFile(configPath, `${JSON.stringify(importedConfig, null, 2)}\n`);
+  await ensureGitignore(path.dirname(configPath));
+
+  const scenarioCount = Array.isArray(importedConfig.scenarios) ? importedConfig.scenarios.length : 0;
+  console.log(`[reg-suit] Imported ${scenarioCount} scenarios from ${backstopPath}`);
+  console.log(`[reg-suit] Wrote ${path.relative(rootDir, configPath)}`);
+}
+
+function buildImportedConfig(baseConfig, templateConfig, backstopConfig, backstopPath) {
+  const scenarios = Array.isArray(backstopConfig.scenarios) ? backstopConfig.scenarios : [];
+  const referenceBaseURL = deriveBaseUrl(scenarios, 'referenceUrl')
+    || baseConfig.referenceBaseURL
+    || baseConfig.testBaseURL;
+  const testBaseURL = deriveBaseUrl(scenarios, 'url')
+    || baseConfig.testBaseURL
+    || baseConfig.referenceBaseURL;
+
+  if (!referenceBaseURL || !testBaseURL) {
+    throw new Error(`Unable to derive base URLs from ${path.relative(rootDir, backstopPath)}. Add absolute scenario URLs or create the config with the existing \`config\` command first.`);
+  }
+
+  const sharedDefaults = buildSharedDefaults(scenarios, {
+    delay: baseConfig.defaults?.delay,
+    readySelector: baseConfig.defaults?.readySelector,
+    readyVisible: baseConfig.defaults?.readyVisible,
+    readyTimeout: baseConfig.defaults?.readyTimeout,
+    waitUntil: baseConfig.defaults?.waitUntil,
+    waitUntilGone: baseConfig.defaults?.waitUntilGone,
+    waitUntilGoneTimeout: baseConfig.defaults?.waitUntilGoneTimeout,
+    fullPage: baseConfig.defaults?.fullPage,
+    carouselSelectors: baseConfig.defaults?.carouselSelectors,
+    carouselSettleDelayMs: baseConfig.defaults?.carouselSettleDelayMs,
+    keepSelectors: baseConfig.defaults?.keepSelectors,
+    hideSelectors: baseConfig.defaults?.hideSelectors,
+    hideDynamicSelectors: baseConfig.defaults?.hideDynamicSelectors,
+    removeSelectors: baseConfig.defaults?.removeSelectors
+  });
+  const thresholdRate = deriveThresholdRate(scenarios, baseConfig.core?.thresholdRate);
+  const translatedScenarios = normalizeScenarios(scenarios, referenceBaseURL, testBaseURL, sharedDefaults);
+
+  return {
+    ...baseConfig,
+    referenceBaseURL,
+    testBaseURL,
+    core: {
+      ...baseConfig.core,
+      ...(thresholdRate === null ? {} : { thresholdRate })
+    },
+    defaults: {
+      ...baseConfig.defaults,
+      ...sharedDefaults
+    },
+    onBeforeScript: translateScriptConfig(backstopConfig.onBeforeScript, templateConfig.onBeforeScript),
+    onReadyScript: translateScriptConfig(backstopConfig.onReadyScript, templateConfig.onReadyScript),
+    viewports: Array.isArray(backstopConfig.viewports) ? backstopConfig.viewports : baseConfig.viewports,
+    scenarios: translatedScenarios
+  };
+}
+
+function normalizeScenarios(scenarios, referenceBaseURL, testBaseURL, defaults = {}) {
+  const seen = new Set();
+  const normalized = [];
+
+  for (const scenario of scenarios) {
+    if (!scenario || typeof scenario !== 'object') {
+      continue;
+    }
+
+    const referenceUrl = normalizeScenarioUrl(scenario.referenceUrl || scenario.url, referenceBaseURL);
+    const url = normalizeScenarioUrl(scenario.url || scenario.referenceUrl, testBaseURL);
+    const key = `${referenceUrl || ''}::${url || ''}::${scenario.label || ''}`;
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    normalized.push(stripScenarioToRunnerShape({
+      label: scenario.label,
+      url,
+      ...pickScenarioOverrides(scenario, defaults)
+    }));
+  }
+
+  return normalized;
+}
+
+function stripScenarioToRunnerShape(scenario) {
+  const keepKeys = new Set([
+    'label',
+    'url',
+    'delay',
+    'readySelector',
+    'readyTimeout',
+    'readyVisible',
+    'waitUntil',
+    'waitUntilGone',
+    'waitUntilGoneTimeout',
+    'fullPage',
+    'carouselSelectors',
+    'carouselSettleDelayMs',
+    'keepSelectors',
+    'hideSelectors',
+    'hideDynamicSelectors',
+    'removeSelectors',
+    'addParagraph',
+    'addParagraphText',
+    'addParagraphSelector',
+    'addParagraphTarget'
+  ]);
+
+  return Object.fromEntries(
+    Object.entries(scenario).filter(([key, value]) => keepKeys.has(key) && value !== undefined)
+  );
+}
+
+function pickScenarioOverrides(scenario, defaults) {
+  const candidateKeys = [
+    'delay',
+    'readySelector',
+    'readyTimeout',
+    'readyVisible',
+    'waitUntil',
+    'waitUntilGone',
+    'waitUntilGoneTimeout',
+    'fullPage',
+    'carouselSelectors',
+    'carouselSettleDelayMs',
+    'keepSelectors',
+    'hideSelectors',
+    'hideDynamicSelectors',
+    'removeSelectors',
+    'addParagraph',
+    'addParagraphText',
+    'addParagraphSelector',
+    'addParagraphTarget'
+  ];
+
+  const overrides = {};
+  for (const key of candidateKeys) {
+    if (!Object.prototype.hasOwnProperty.call(scenario, key)) {
+      continue;
+    }
+
+    const value = scenario[key];
+    if (!isMeaningfulValue(value)) {
+      continue;
+    }
+
+    if (key in defaults && valuesEqual(value, defaults[key])) {
+      continue;
+    }
+
+    overrides[key] = value;
+  }
+
+  return overrides;
+}
+
+function buildSharedDefaults(scenarios, fallbackDefaults) {
+  const defaults = { ...fallbackDefaults };
+  const sharedFields = [
+    'delay',
+    'readySelector',
+    'readyVisible',
+    'readyTimeout',
+    'waitUntil',
+    'waitUntilGone',
+    'waitUntilGoneTimeout',
+    'fullPage',
+    'carouselSelectors',
+    'carouselSettleDelayMs',
+    'keepSelectors',
+    'hideSelectors',
+    'hideDynamicSelectors',
+    'removeSelectors'
+  ];
+
+  for (const field of sharedFields) {
+    const value = commonScenarioValue(scenarios, field);
+    if (isMeaningfulValue(value)) {
+      defaults[field] = value;
+    }
+  }
+
+  return defaults;
+}
+
+function deriveThresholdRate(scenarios, fallbackThresholdRate) {
+  const value = commonScenarioValue(scenarios, 'misMatchThreshold');
+  if (value === undefined || value === null || value === '') {
+    return fallbackThresholdRate ?? null;
+  }
+
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return fallbackThresholdRate ?? null;
+  }
+
+  return numericValue / 100;
+}
+
+function commonScenarioValue(scenarios, key) {
+  let found = false;
+  let firstValue;
+
+  for (const scenario of scenarios) {
+    if (!scenario || typeof scenario !== 'object') {
+      return undefined;
+    }
+
+    const value = scenario[key];
+    if (!isMeaningfulValue(value)) {
+      return undefined;
+    }
+
+    if (!found) {
+      found = true;
+      firstValue = value;
+      continue;
+    }
+
+    if (!valuesEqual(value, firstValue)) {
+      return undefined;
+    }
+  }
+
+  return found ? firstValue : undefined;
+}
+
+function isMeaningfulValue(value) {
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  if (typeof value === 'string') {
+    return value.trim() !== '';
+  }
+
+  return true;
+}
+
+function valuesEqual(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+async function ensureGitignore(projectDir) {
+  const gitignorePath = path.join(projectDir, '.gitignore');
+  const desiredContent = [
+    '# Generated by reg-suit-runner',
+    '.reg/',
+    'results.json',
+    ''
+  ].join('\n');
+
+  try {
+    await fsp.access(gitignorePath);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      throw error;
+    }
+
+    await fsp.writeFile(gitignorePath, desiredContent);
+  }
+}
+
+function translateScriptConfig(value, fallback) {
+  const scripts = normalizeScriptList(value)
+    .map((script) => String(script || '').trim())
+    .filter(Boolean)
+    .filter(isSupportedRunnerScript);
+
+  if (!scripts.length) {
+    return fallback;
+  }
+
+  return scripts;
+}
+
+function normalizeScriptList(value) {
+  if (!value) {
+    return [];
+  }
+
+  return Array.isArray(value) ? value : [value];
+}
+
+function isSupportedRunnerScript(script) {
+  return /^hooks\/[a-z0-9-_]+(?:\.js)?$/i.test(script) || /^scripts\/hooks\/[a-z0-9-_]+(?:\.js)?$/i.test(script);
+}
+
+function normalizeScenarioUrl(rawUrl, baseUrl) {
+  const value = String(rawUrl || '').trim();
+  if (!value) {
+    return '';
+  }
+
+  if (!/^https?:\/\//i.test(value)) {
+    return value.startsWith('/') ? value : `/${value}`;
+  }
+
+  if (!baseUrl || !/^https?:\/\//i.test(baseUrl)) {
+    return value;
+  }
+
+  try {
+    const urlObject = new URL(value);
+    const baseObject = new URL(baseUrl);
+    if (urlObject.origin !== baseObject.origin) {
+      return value;
+    }
+
+    return `${normalizePath(urlObject.pathname)}${urlObject.search || ''}${urlObject.hash || ''}`;
+  } catch (error) {
+    return value;
+  }
+}
+
+function normalizePath(pathname) {
+  const trimmed = String(pathname || '').replace(/\/+$/, '').trim();
+  return trimmed ? (trimmed.startsWith('/') ? trimmed : `/${trimmed}`) : '/';
+}
+
+function deriveBaseUrl(scenarios, key) {
+  const values = scenarios
+    .map((scenario) => scenario && scenario[key])
+    .map((value) => String(value || '').trim())
+    .filter((value) => /^https?:\/\//i.test(value));
+
+  if (values.length === 0) {
+    return '';
+  }
+
+  const counts = new Map();
+  const order = [];
+
+  for (const value of values) {
+    const origin = new URL(value).origin;
+    if (!counts.has(origin)) {
+      counts.set(origin, 0);
+      order.push(origin);
+    }
+    counts.set(origin, counts.get(origin) + 1);
+  }
+
+  let winner = order[0];
+  let highestCount = -1;
+  for (const origin of order) {
+    const count = counts.get(origin) || 0;
+    if (count > highestCount) {
+      highestCount = count;
+      winner = origin;
+    }
+  }
+
+  return winner;
+}
+
+function resolveBackstopManifestPath(inputPath) {
+  const rawPath = String(inputPath || '').trim();
+  if (!rawPath) {
+    throw new Error('Usage: rsr import --backstop=/path/to/backstop --dir <project-dir>');
+  }
+
+  const invocationDir = path.resolve(process.env.REG_SUIT_INVOCATION_DIR || process.cwd());
+  const resolved = path.resolve(invocationDir, rawPath);
+  if (looksLikeJsonFile(resolved)) {
+    return resolved;
+  }
+
+  return path.join(resolved, 'backstop.json');
+}
+
+function looksLikeJsonFile(resolvedPath) {
+  return path.extname(resolvedPath).toLowerCase() === '.json';
+}
+
+async function readJson(filePath) {
+  const raw = await fsp.readFile(filePath, 'utf8');
+  return JSON.parse(raw);
+}
+
+async function readJsonIfExists(filePath) {
+  try {
+    return await readJson(filePath);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+function mergeDeep(baseValue, overrideValue) {
+  if (Array.isArray(baseValue) && Array.isArray(overrideValue)) {
+    return overrideValue;
+  }
+
+  if (isPlainObject(baseValue) && isPlainObject(overrideValue)) {
+    const result = { ...baseValue };
+    for (const [key, value] of Object.entries(overrideValue)) {
+      result[key] = key in baseValue ? mergeDeep(baseValue[key], value) : value;
+    }
+    return result;
+  }
+
+  return overrideValue === undefined ? baseValue : overrideValue;
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function parseArgs(argv) {
+  const parsed = {
+    backstop: process.env.npm_config_backstop || null
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const value = argv[index];
+
+    if (!value || value === '--' || value === 'import') {
+      continue;
+    }
+
+    if (value.startsWith('--backstop=')) {
+      parsed.backstop = value.slice('--backstop='.length).trim();
+    } else if (value === '--backstop') {
+      parsed.backstop = (argv[index + 1] || '').trim();
+      index += 1;
+    }
+  }
+
+  return parsed;
+}
+
+main().catch((error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});

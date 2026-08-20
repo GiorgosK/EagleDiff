@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 
 const path = require('path');
+const fs = require('fs');
 const { spawnSync } = require('child_process');
 
 const defaultScriptDir = path.resolve(__dirname, '..');
 const invocationDir = path.resolve(process.env.INIT_CWD || process.cwd());
-const commands = new Set(['config', 'reference', 'test', 'approve', 'results', 'clean', 'report']);
+const commands = new Set(['config', 'import', 'reference', 'test', 'approve', 'results', 'clean', 'report']);
 const scriptByCommand = {
   config: 'scripts/config.js',
+  import: 'scripts/import.js',
   reference: 'scripts/run.js',
   test: 'scripts/run.js',
   approve: 'scripts/run.js',
@@ -34,13 +36,15 @@ function main() {
 
   const resolvedScriptDir = resolveScriptDir(scriptDir);
   const resolvedProjectDir = resolveProjectDir(projectDir);
-  const childArgs = command === 'config'
+  ensureProjectDir(resolvedProjectDir);
+  const childArgs = command === 'config' || command === 'import'
     ? forwardedArgs
     : [command, ...forwardedArgs];
   const child = spawnSync(resolveNodeBinary(), [path.join(resolvedScriptDir, scriptName), ...childArgs], {
     cwd: resolvedProjectDir,
     env: {
       ...process.env,
+      REG_SUIT_INVOCATION_DIR: invocationDir,
       REG_SUIT_SCRIPT_DIR: resolvedScriptDir,
       REG_SUIT_PROJECT_DIR: resolvedProjectDir,
       REG_SUIT_HELPER_DIR: resolvedScriptDir
@@ -78,7 +82,17 @@ function resolveProjectDir(projectDir) {
 }
 
 function resolveNodeBinary() {
-  return process.env.npm_node_execpath || 'node';
+  return process.env.npm_node_execpath || process.execPath || 'node';
+}
+
+function ensureProjectDir(projectDir) {
+  if (!projectDir) {
+    return;
+  }
+
+  if (!fs.existsSync(projectDir)) {
+    fs.mkdirSync(projectDir, { recursive: true });
+  }
 }
 
 function parseArgs(argv) {
@@ -167,7 +181,7 @@ function parseArgs(argv) {
 }
 
 function printUsage() {
-  console.error('Usage: reg-suit-runner <config|reference|test|approve|results|clean|report> [--dir <project-dir>] [--script-dir <helper-dir>] [args...]');
+  console.error('Usage: reg-suit-runner <config|import|reference|test|approve|results|clean|report> [--dir <project-dir>] [--script-dir <helper-dir>] [args...]');
 }
 
 Promise.resolve(main()).catch((error) => {

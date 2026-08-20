@@ -9,6 +9,7 @@
   "scripts": {
     "cli": "node bin/reg-suit.js",
     "config": "node scripts/config.js",
+    "import": "node scripts/import.js",
     "reference": "node scripts/run.js reference",
     "test": "node scripts/run.js test",
     "approve": "node scripts/run.js approve",

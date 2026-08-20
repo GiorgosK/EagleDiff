@@ -42,6 +42,18 @@ rsr --dir tests/reg-suit-runner test -- --filter=homepage
 The helper reads the project config from `tests/reg-suit-runner`, writes `.reg/`
 state there, and keeps the shared helper package itself free of project data.
 
+## Backstop Import
+
+If you already have a Backstop folder, import it into a project config without
+supplying separate reference or test URLs:
+
+```bash
+rsr import --backstop=/path/to/your-local-project/tests/backstop --dir tests/reg-suit-runner
+```
+
+The importer reads `backstop.json`, derives the base URLs from the scenarios,
+and writes `config.json` in the project directory you passed with `--dir`.
+
 ## Project Setup
 
 Refresh the project config with the shared helper:
@@ -60,6 +72,9 @@ rsr --dir tests/reg-suit-runner test
 Generated screenshots, `.reg/` state, and `results.json` all stay in this
 project folder so the helper remains reusable across projects.
 
+If you are starting from Backstop, run the `import` command first and then use
+`config` later when you want to refresh or expand the discovered pages.
+
 The shared helper keeps the base template in
 `/home/giorgos/share/gwebsites/reg-suit-runner/config-default.json`, so this
 project directory does not need its own `config-default.json`.
@@ -77,6 +92,7 @@ Projects do not need their own `config-default.json`.
 ## Common Commands
 
 ```bash
+rsr import --backstop=/path/to/your-local-project/tests/backstop --dir tests/reg-suit-runner
 rsr --dir tests/reg-suit-runner reference
 rsr --dir tests/reg-suit-runner test
 rsr --dir tests/reg-suit-runner approve
@@ -92,10 +108,13 @@ Common flags:
 
 ## Config Refresh
 
-Refresh or create a config:
+Refresh or create a config by scanning reference and test URLs:
 
 ```bash
 rsr --dir tests/reg-suit-runner config -- --limit=15 --ref=https://your-local-project.example --test=https://your-local-project.test
 ```
+
+Use `config` when you want the helper to discover new pages from the live site
+and merge them into the existing config.
 
 Use `--script-dir` only if you need to point the command at a different copy of the helper package than the one that provided the `rsr` binary.
