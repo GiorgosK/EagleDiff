@@ -1,0 +1,24 @@
+{
+  "name": "reg-suit-runner",
+  "private": true,
+  "bin": {
+    "reg-suit-runner": "bin/reg-suit.js"
+  },
+  "type": "commonjs",
+  "scripts": {
+    "cli": "node bin/reg-suit.js",
+    "config": "node scripts/config.js",
+    "reference": "node scripts/run.js reference",
+    "test": "node scripts/run.js test",
+    "approve": "node scripts/run.js approve",
+    "results": "node scripts/results.js",
+    "clean": "node scripts/clean.js",
+    "report": "node scripts/report.js"
+  },
+  "dependencies": {
+    "puppeteer-core": "^25.1.0",
+    "reg-publish-filesystem-plugin": "^0.2.0",
+    "reg-simple-keygen-plugin": "^0.14.2",
+    "reg-suit": "^0.14.5"
+  }
+}

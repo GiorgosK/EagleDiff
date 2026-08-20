@@ -1,0 +1,74 @@
+{
+  "referenceBaseURL": "https://example.com",
+  "testBaseURL": "https://example.test",
+  "core": {
+    "thresholdRate": 0.001,
+    "temporaryErrorRetries": 0,
+    "protocolTimeout": 60000
+  },
+  "defaults": {
+    "delay": 1500,
+    "fullPage": true,
+    "waitUntil": "domcontentloaded",
+    "readyTimeout": 10000,
+    "readySelector": "#footer",
+    "readyVisible": false,
+    "waitUntilGone": [],
+    "waitUntilGoneTimeout": 10000,
+    "carouselSelectors": [],
+    "carouselSettleDelayMs": 500,
+    "keepSelectors": [],
+    "normalizeResponsiveImageSelectors": [
+      "img",
+      "picture source"
+    ],
+    "hideDynamicSelectors": [
+      "#CybotCookiebotDialog",
+      "#CybotCookiebotDialogBodyUnderlay",
+      ".anrt-gdpr-floating-cookie",
+      "#toolbar-administration",
+      "#toolbar-item-administration-tray",
+      ".toolbar-tray-open"
+    ],
+    "networkIdleTime": 500,
+    "networkIdleTimeout": 5000,
+    "failOnResponseStatusCodes": [404,500,502,503,504],
+    "hideSelectors": [],
+    "removeSelectors": []
+  },
+  "onBeforeScript": [],
+  "onReadyScript": [
+    "hooks/fail-on-response-status",
+    "hooks/wait-until-gone",
+    "hooks/scroll-to-bottom",
+    "hooks/wait-for-element",
+    "hooks/hide-dynamic-elements",
+    "hooks/disable-animations",
+    "hooks/wait-for-fonts",
+    "hooks/pause-media",
+    "hooks/load-lazy-images",
+    "hooks/normalize-responsive-images",
+    "hooks/keep-selectors",
+    "hooks/wait-for-background-images",
+    "hooks/wait-for-network-idle",
+    "hooks/stabilize-carousels"
+  ],
+  "viewports": [
+    {
+      "label": "phone",
+      "width": 360,
+      "height": 640
+    },
+    {
+      "label": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "label": "pc",
+      "width": 1920,
+      "height": 1080
+    }
+  ],
+  "scenarios": []
+}
