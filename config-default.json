@@ -13,6 +13,17 @@
     "readyTimeout": 10000,
     "readySelector": "#footer",
     "readyVisible": false,
+    "waitForStableContent": {
+      "triggerSelectors": [
+        "script#CookieDeclaration"
+      ],
+      "selectors": [
+        ".CookieDeclaration",
+        "#CookieDeclaration"
+      ],
+      "timeout": 15000,
+      "settleDelayMs": 750
+    },
     "waitUntilGone": [],
     "waitUntilGoneTimeout": 10000,
     "carouselSelectors": [],
@@ -34,7 +45,10 @@
     "networkIdleTimeout": 5000,
     "failOnResponseStatusCodes": [404,500,502,503,504],
     "hideSelectors": [],
-    "removeSelectors": []
+    "removeSelectors": [
+      ".CookieDeclaration",
+      "#CookieDeclaration"
+    ]
   },
   "onBeforeScript": [],
   "onReadyScript": [
@@ -42,6 +56,7 @@
     "hooks/wait-until-gone",
     "hooks/scroll-to-bottom",
     "hooks/wait-for-element",
+    "hooks/wait-for-stable-content",
     "hooks/hide-dynamic-elements",
     "hooks/disable-animations",
     "hooks/wait-for-fonts",
