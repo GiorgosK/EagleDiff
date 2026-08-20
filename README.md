@@ -1,74 +1,101 @@
 # reg-suit-runner
 
 Shared helper for project-specific visual regression runs.
-The runnable code lives here. Each project keeps its own config and generated
-artifacts in its own folder.
 
-## Paths
+## CLI Arguments
 
-- `--dir` is the pnpm working directory for this helper package.
-- `--project-dir` is the target project folder that the helper reads from and
-  writes to.
-- When `--project-dir` is relative, it is resolved from the directory you ran
-  pnpm from.
+- `--dir` is the project directory the helper should read from and write to.
+- `--script-dir` points at the shared helper package directory if you need to override the default.
+- Relative `--dir` paths are resolved from the directory you ran the command from.
 
-## Global Setup
+## Install And Alias
 
-Install the helper once:
+The simplest way to get a short command is to expose the binary as `rsr`.
+This package already ships both `reg-suit-runner` and `rsr` binaries.
+
+Example global install:
 
 ```bash
-pnpm --dir /home/giorgos/share/gwebsites/reg-suit install
+pnpm add -g /home/giorgos/share/gwebsites/reg-suit-runner
 ```
 
-Run it against a project:
+After that, if your global bin directory is on `PATH`, you can run:
 
 ```bash
-pnpm --dir /home/giorgos/share/gwebsites/reg-suit run cli -- --project-dir /home/giorgos/share/gwebsites/my-site/tests/reg-suit-runner test -- --filter=homepage
+rsr --dir /path/to/your-local-project/tests/reg-suit-runner test -- --filter=homepage
 ```
 
-Or from the project root:
+If you prefer `/usr/local/bin`, create a symlink to the installed binary:
 
 ```bash
-cd /home/giorgos/share/gwebsites/my-site
-pnpm --dir /home/giorgos/share/gwebsites/reg-suit run cli -- --project-dir tests/reg-suit-runner test -- --filter=homepage
+sudo ln -s /home/giorgos/share/gwebsites/reg-suit-runner/bin/reg-suit.js /usr/local/bin/rsr
 ```
 
-You can also set:
+## Local Project Usage
+
+Run from your local project root:
 
 ```bash
-export REG_SUIT_PROJECT_DIR=/home/giorgos/share/gwebsites/my-site/tests/reg-suit-runner
+rsr --dir tests/reg-suit-runner test -- --filter=homepage
 ```
 
-The helper reads config from the project directory, writes `.reg/` and
-`results.json` there, and leaves the shared helper tree untouched.
+The helper reads the project config from `tests/reg-suit-runner`, writes `.reg/`
+state there, and keeps the shared helper package itself free of project data.
 
-The shared template config lives in
-`/home/giorgos/share/gwebsites/reg-suit/config-default.json`, so project
-directories do not need their own `config-default.json`.
+## Project Setup
 
-## Project Commands
+Refresh the project config with the shared helper:
 
 ```bash
-pnpm --dir /home/giorgos/share/gwebsites/reg-suit run cli -- --project-dir /home/giorgos/share/gwebsites/my-site/tests/reg-suit-runner reference
-pnpm --dir /home/giorgos/share/gwebsites/reg-suit run cli -- --project-dir /home/giorgos/share/gwebsites/my-site/tests/reg-suit-runner test
-pnpm --dir /home/giorgos/share/gwebsites/reg-suit run cli -- --project-dir /home/giorgos/share/gwebsites/my-site/tests/reg-suit-runner approve
+rsr --dir tests/reg-suit-runner config -- --limit=15 --ref=https://your-local-project.example --test=https://your-local-project.test
+```
+
+You can also point the helper at this directory with `REG_SUIT_DIR`:
+
+```bash
+export REG_SUIT_DIR=/path/to/your-local-project/tests/reg-suit-runner
+rsr --dir tests/reg-suit-runner test
+```
+
+Generated screenshots, `.reg/` state, and `results.json` all stay in this
+project folder so the helper remains reusable across projects.
+
+The shared helper keeps the base template in
+`/home/giorgos/share/gwebsites/reg-suit-runner/config-default.json`, so this
+project directory does not need its own `config-default.json`.
+
+## Shared Template
+
+The base template config lives in:
+
+```bash
+/home/giorgos/share/gwebsites/reg-suit-runner/config-default.json
+```
+
+Projects do not need their own `config-default.json`.
+
+## Common Commands
+
+```bash
+rsr --dir tests/reg-suit-runner reference
+rsr --dir tests/reg-suit-runner test
+rsr --dir tests/reg-suit-runner approve
 ```
 
 Common flags:
 
-- `--filter` matches the scenario label or URL substring.
-- `--addpara` enables the paragraph hook when a scenario opts in.
-- `--clean` starts with a fresh `.reg/actual/` cache.
+- `--filter` matches scenario labels or URLs.
+- `--addpara` enables the paragraph hook for scenarios that opt in.
+- `--clean` starts from a fresh `.reg/actual/` cache.
 - `--no-clean` keeps the current `.reg/actual/` cache.
-- `--workers` splits screenshot capture across multiple Node workers.
+- `--workers` splits capture across multiple Node workers.
 
-## Config
+## Config Refresh
 
-Refresh a project config:
+Refresh or create a config:
 
 ```bash
-pnpm --dir /home/giorgos/share/gwebsites/reg-suit run cli -- --project-dir /home/giorgos/share/gwebsites/my-site/tests/reg-suit-runner config -- --limit=15 --ref=https://example.com --test=https://my-site.ddev.site
+rsr --dir tests/reg-suit-runner config -- --limit=15 --ref=https://your-local-project.example --test=https://your-local-project.test
 ```
 
-This command preserves the current config when it already exists and only uses
-`--ref` / `--test` when a new config is being created.
+Use `--script-dir` only if you need to point the command at a different copy of the helper package than the one that provided the `rsr` binary.

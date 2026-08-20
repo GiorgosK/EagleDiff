@@ -1,9 +1,14 @@
 const path = require('path');
 
-const helperDir = path.resolve(__dirname, '..');
+const helperDir = path.resolve(
+  process.env.REG_SUIT_SCRIPT_DIR
+    || process.env.REG_SUIT_HELPER_DIR
+    || path.resolve(__dirname, '..')
+);
 
 function resolveProjectDir() {
-  const rawProjectDir = process.env.REG_SUIT_PROJECT_DIR
+  const rawProjectDir = process.env.REG_SUIT_DIR
+    || process.env.REG_SUIT_PROJECT_DIR
     || process.env.REG_SUIT_ROOT
     || process.env.npm_config_project_dir
     || process.env.npm_config_dir

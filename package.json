@@ -2,7 +2,8 @@
   "name": "reg-suit-runner",
   "private": true,
   "bin": {
-    "reg-suit-runner": "bin/reg-suit.js"
+    "reg-suit-runner": "bin/reg-suit.js",
+    "rsr": "bin/reg-suit.js"
   },
   "type": "commonjs",
   "scripts": {

@@ -3,7 +3,7 @@
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const helperDir = path.resolve(__dirname, '..');
+const defaultScriptDir = path.resolve(__dirname, '..');
 const invocationDir = path.resolve(process.env.INIT_CWD || process.cwd());
 const commands = new Set(['config', 'reference', 'test', 'approve', 'results', 'clean', 'report']);
 const scriptByCommand = {
@@ -17,7 +17,7 @@ const scriptByCommand = {
 };
 
 function main() {
-  const { command, projectDir, forwardedArgs } = parseArgs(process.argv.slice(2));
+  const { command, projectDir, scriptDir, forwardedArgs } = parseArgs(process.argv.slice(2));
 
   if (!command) {
     printUsage();
@@ -32,16 +32,18 @@ function main() {
     return;
   }
 
+  const resolvedScriptDir = resolveScriptDir(scriptDir);
   const resolvedProjectDir = resolveProjectDir(projectDir);
   const childArgs = command === 'config'
     ? forwardedArgs
     : [command, ...forwardedArgs];
-  const child = spawnSync(resolveNodeBinary(), [path.join(helperDir, scriptName), ...childArgs], {
+  const child = spawnSync(resolveNodeBinary(), [path.join(resolvedScriptDir, scriptName), ...childArgs], {
     cwd: resolvedProjectDir,
     env: {
       ...process.env,
+      REG_SUIT_SCRIPT_DIR: resolvedScriptDir,
       REG_SUIT_PROJECT_DIR: resolvedProjectDir,
-      REG_SUIT_HELPER_DIR: helperDir
+      REG_SUIT_HELPER_DIR: resolvedScriptDir
     },
     stdio: 'inherit'
   });
@@ -53,14 +55,23 @@ function main() {
   process.exitCode = child.status ?? 1;
 }
 
+function resolveScriptDir(scriptDir) {
+  const candidate = scriptDir || process.env.REG_SUIT_SCRIPT_DIR;
+  if (candidate) {
+    return path.resolve(invocationDir, candidate);
+  }
+
+  return defaultScriptDir;
+}
+
 function resolveProjectDir(projectDir) {
   if (projectDir) {
     return path.resolve(invocationDir, projectDir);
   }
 
   const cwd = invocationDir;
-  if (cwd === helperDir && !process.env.REG_SUIT_PROJECT_DIR && !process.env.REG_SUIT_ROOT) {
-    throw new Error('Refusing to use the shared helper directory as a project directory. Pass --project-dir or set REG_SUIT_PROJECT_DIR.');
+  if (cwd === defaultScriptDir && !process.env.REG_SUIT_PROJECT_DIR && !process.env.REG_SUIT_ROOT && !process.env.REG_SUIT_DIR) {
+    throw new Error('Refusing to use the shared helper directory as a project directory. Pass --dir or set REG_SUIT_DIR.');
   }
 
   return cwd;
@@ -73,6 +84,7 @@ function resolveNodeBinary() {
 function parseArgs(argv) {
   let command = null;
   let projectDir = null;
+  let scriptDir = null;
   const forwardedArgs = [];
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -86,9 +98,20 @@ function parseArgs(argv) {
       break;
     }
 
-    if (arg === '--project-dir' || arg === '--projectDir' || arg === '--dir' || arg === '-C') {
+    if (arg === '--dir' || arg === '--project-dir' || arg === '--projectDir' || arg === '-C') {
       projectDir = argv[i + 1];
       i += 1;
+      continue;
+    }
+
+    if (arg === '--script-dir' || arg === '--scriptDir' || arg === '--script-path') {
+      scriptDir = argv[i + 1];
+      i += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--dir=')) {
+      projectDir = arg.slice('--dir='.length);
       continue;
     }
 
@@ -102,8 +125,18 @@ function parseArgs(argv) {
       continue;
     }
 
-    if (arg.startsWith('--dir=')) {
-      projectDir = arg.slice('--dir='.length);
+    if (arg.startsWith('--script-dir=')) {
+      scriptDir = arg.slice('--script-dir='.length);
+      continue;
+    }
+
+    if (arg.startsWith('--scriptDir=')) {
+      scriptDir = arg.slice('--scriptDir='.length);
+      continue;
+    }
+
+    if (arg.startsWith('--script-path=')) {
+      scriptDir = arg.slice('--script-path='.length);
       continue;
     }
 
@@ -128,12 +161,13 @@ function parseArgs(argv) {
   return {
     command,
     projectDir,
+    scriptDir,
     forwardedArgs
   };
 }
 
 function printUsage() {
-  console.error('Usage: reg-suit-runner <config|reference|test|approve|results|clean|report> [--project-dir <path>] [args...]');
+  console.error('Usage: reg-suit-runner <config|reference|test|approve|results|clean|report> [--dir <project-dir>] [--script-dir <helper-dir>] [args...]');
 }
 
 Promise.resolve(main()).catch((error) => {
