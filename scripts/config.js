@@ -59,7 +59,11 @@ async function main() {
 
 async function discoverScenarios({ discoverySources, limit }) {
   const browser = await puppeteer.launch({
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--ignore-certificate-errors'
+    ],
     ignoreHTTPSErrors: true,
     executablePath: resolveChromePath(),
     headless: true
