@@ -3,6 +3,7 @@
   "testBaseURL": "https://example.test",
   "core": {
     "thresholdRate": 0.001,
+    "thresholdRateColor": 0.05,
     "temporaryErrorRetries": 0,
     "protocolTimeout": 60000
   },
@@ -33,6 +34,7 @@
       "img",
       "picture source"
     ],
+    "normalizeImageDecodingSelectors": ["img"],
     "hideDynamicSelectors": [
       "#CybotCookiebotDialog",
       "#CybotCookiebotDialogBodyUnderlay",
@@ -53,9 +55,9 @@
   "onBeforeScript": [],
   "onReadyScript": [
     "hooks/fail-on-response-status",
+    "hooks/wait-for-element",
     "hooks/wait-until-gone",
     "hooks/scroll-to-bottom",
-    "hooks/wait-for-element",
     "hooks/wait-for-stable-content",
     "hooks/hide-dynamic-elements",
     "hooks/disable-animations",
@@ -63,6 +65,7 @@
     "hooks/pause-media",
     "hooks/load-lazy-images",
     "hooks/normalize-responsive-images",
+    "hooks/normalize-image-decoding",
     "hooks/keep-selectors",
     "hooks/wait-for-background-images",
     "hooks/wait-for-network-idle",

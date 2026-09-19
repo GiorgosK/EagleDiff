@@ -118,3 +118,43 @@ Use `config` when you want the helper to discover new pages from the live site
 and merge them into the existing config.
 
 Use `--script-dir` only if you need to point the command at a different copy of the helper package than the one that provided the `rsr` binary.
+
+## Image Capture Stability
+
+New project configs include three capture/comparison defaults:
+
+- `hooks/wait-for-element` runs before `hooks/wait-until-gone`. The ready
+  selector must identify the real page, so a preloader check does not finish
+  prematurely on an intermediate browser-verification page.
+- `hooks/normalize-image-decoding` follows responsive-image normalization.
+  It decodes JPEGs at their intrinsic resolution and displays lossless PNG
+  copies during capture, preserving dimensions and content. Site files and
+  application configuration are never modified.
+- `core.thresholdRateColor: 0.05` tolerates small per-pixel colour differences
+  from image decoding or compression. This is distinct from
+  `core.thresholdRate: 0.001`, the overall fraction of differing pixels allowed in a
+  screenshot. Higher matching thresholds reduce sensitivity to subtle real
+  colour changes too; use `0` for strict colour comparison. Values must be
+  numbers between `0` and `1`.
+
+Normalization adds processing and memory overhead. Use
+`defaults.normalizeImageDecodingSelectors` (or the scenario override) to limit
+the selected images; the default is `["img"]`, and `[]` disables it. Image URLs
+must end in `.jpg` or `.jpeg` (optionally followed by a query/fragment).
+Cross-origin images whose bytes cannot be fetched are left unchanged with a
+warning. Other fetch/decode errors fail the capture. PNGs and animated formats
+are not converted. Images are not hidden or replaced with placeholders.
+
+Existing configs retain their hook lists and use strict per-pixel matching when
+`thresholdRateColor` is absent. To adopt these defaults, update their hook
+order, add the decoding hook, and set `core.thresholdRateColor` explicitly.
+Use the same settings for reference and test captures and review refreshed
+references. Small compression differences can be tolerated, but genuinely
+different image content should still produce a diff.
+
+Use `thresholdRate` and `thresholdRateColor` in RSR configs; no legacy
+aliases are supported. RSR translates the colour setting to reg-suit's required
+internal field name when generating its comparison config.
+
+Run the browser/config/comparison regression checks with
+`node --test tests/image-stability.test.js` (requires Chrome/Chromium).

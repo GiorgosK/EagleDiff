@@ -525,13 +525,19 @@ function parseArgs(argv) {
 }
 
 function buildRegSuitConfig(config) {
-  const thresholdRate = config.core?.thresholdRate ?? 0.01;
+  const core = config.core;
+  const thresholdRate = core?.thresholdRate ?? 0.01;
+  const matchingThreshold = core?.thresholdRateColor ?? 0;
+  if (!Number.isFinite(matchingThreshold) || matchingThreshold < 0 || matchingThreshold > 1) {
+    throw new Error('core.thresholdRateColor must be a number between 0 and 1.');
+  }
 
   return {
     core: {
       workingDir,
       actualDir: path.join('.reg', 'staging', 'screenshots'),
-      thresholdRate
+      thresholdRate,
+      matchingThreshold
     }
   };
 }
