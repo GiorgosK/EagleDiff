@@ -201,6 +201,22 @@ async function captureScenarioScreenshot({
 
   while (true) {
     const activePage = await browser.newPage();
+    const readyContext = {
+      ...captureContext,
+      navigationResponseStatus: null,
+      navigationResponseUrl: null,
+      navigationResponseOk: null
+    };
+    const trackNavigationResponse = response => {
+      const request = response.request();
+      if (!request.isNavigationRequest() || request.frame() !== activePage.mainFrame()) return;
+      if (response.status() >= 300 && response.status() < 400) return;
+      readyContext.navigationResponseStatus = response.status();
+      readyContext.navigationResponseUrl = response.url();
+      readyContext.navigationResponseOk = response.ok();
+    };
+    // Browser-verification pages can reload after goto has already returned.
+    activePage.on('response', trackNavigationResponse);
     await activePage.setViewport({
       width: viewport.width,
       height: viewport.height,
@@ -210,16 +226,12 @@ async function captureScenarioScreenshot({
     try {
       await runScripts(activePage, beforeScripts, { scenario, mode: 'before', config: runtimeConfig });
       const navigationResponse = await activePage.goto(url, { waitUntil });
+      if (readyContext.navigationResponseStatus === null && navigationResponse) {
+        trackNavigationResponse(navigationResponse);
+      }
       if (delayMs) {
         await sleep(delayMs);
       }
-
-      const readyContext = {
-        ...captureContext,
-        navigationResponseStatus: navigationResponse ? navigationResponse.status() : null,
-        navigationResponseUrl: navigationResponse ? navigationResponse.url() : null,
-        navigationResponseOk: navigationResponse ? navigationResponse.ok() : null
-      };
 
       await runScripts(activePage, readyScripts, readyContext);
       await applyHideAndRemoveSelectors(activePage, scenario, runtimeConfig);
@@ -248,6 +260,7 @@ async function captureScenarioScreenshot({
       attempt += 1;
       console.warn(`[reg-suit] Temporary network error on ${getScenarioLabel(scenario)}; retrying ${attempt}/${temporaryErrorRetries}: ${error.message}`);
     } finally {
+      activePage.off('response', trackNavigationResponse);
       await safeClosePage(activePage);
     }
   }

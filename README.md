@@ -119,6 +119,46 @@ and merge them into the existing config.
 
 Use `--script-dir` only if you need to point the command at a different copy of the helper package than the one that provided the `rsr` binary.
 
+## Browser Verification
+
+`hooks/wait-for-browser-verification` runs before
+`hooks/fail-on-response-status`. Challenge detection is configured entirely
+through CSS selectors, so the same hook can wait for different verification
+scripts or challenge containers. New configs include Botbuster's selectors:
+
+```json
+"browserVerification": {
+  "challengeSelectors": ["script[src*=\"/botbuster/js/challenge.js\"]"],
+  "errorSelectors": ["#error"],
+  "timeout": 30000
+}
+```
+
+Put this object under `defaults`, or override its fields in a scenario's
+`browserVerification` object. For another provider, change the selectors, for
+example to `script[src*="/other-provider/verify.js"]`. Multiple challenge
+selectors match any configured provider. Selectors can be strings or arrays.
+`challengeSelectors: []` disables the hook; `errorSelectors: []` disables early
+failure detection but retains the timeout.
+
+Choose challenge markers that disappear when verification finishes, usually
+when the browser reloads. A script that remains on the final page is not a
+suitable marker; use its temporary challenge container instead. A visible
+configured error element fails the capture while the challenge is present.
+Failed or looping challenges time out with a verification error. This hook
+waits for normal browser verification; it does not solve interactive CAPTCHAs.
+
+RSR tracks main-document responses across reloads so the status guard checks
+the resulting page, not the challenge's initial 503. Ordinary 503 pages and
+error responses after verification still fail. Do not remove 503 from
+`failOnResponseStatusCodes` to work around Botbuster. No cookies are forged and
+no site protection settings need changing.
+
+Existing projects can add `hooks/wait-for-browser-verification` immediately
+before the status guard, together with `defaults.browserVerification`.
+Pages without a configured challenge marker pass through. There are no
+provider-specific selectors hardcoded in the hook.
+
 ## Image Capture Stability
 
 New project configs include three capture/comparison defaults:
@@ -157,4 +197,4 @@ aliases are supported. RSR translates the colour setting to reg-suit's required
 internal field name when generating its comparison config.
 
 Run the browser/config/comparison regression checks with
-`node --test tests/image-stability.test.js` (requires Chrome/Chromium).
+`node --test tests/*.test.js` (requires Chrome/Chromium).

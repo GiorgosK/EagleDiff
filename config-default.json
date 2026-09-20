@@ -14,6 +14,11 @@
     "readyTimeout": 10000,
     "readySelector": "#footer",
     "readyVisible": false,
+    "browserVerification": {
+      "challengeSelectors": ["script[src*=\"/botbuster/js/challenge.js\"]"],
+      "errorSelectors": ["#error"],
+      "timeout": 30000
+    },
     "waitForStableContent": {
       "triggerSelectors": [
         "script#CookieDeclaration"
@@ -54,6 +59,7 @@
   },
   "onBeforeScript": [],
   "onReadyScript": [
+    "hooks/wait-for-browser-verification",
     "hooks/fail-on-response-status",
     "hooks/wait-for-element",
     "hooks/wait-until-gone",
