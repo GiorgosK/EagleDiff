@@ -70,8 +70,8 @@ async function discoverScenarios({ discoverySources, limit }) {
   });
 
   try {
-    const discovered = [];
-    const seenUrls = new Set();
+    const discovered = [{ url: '/', label: 'Homepage' }];
+    const seenUrls = new Set(['/']);
 
     for (const baseUrl of discoverySources) {
       const page = await browser.newPage();
@@ -199,6 +199,11 @@ function mergeScenarios(existingScenarios, discoveredScenarios) {
       url: scenario.url,
       label: scenario.label
     });
+  }
+
+  const frontpageIndex = merged.findIndex(scenario => getScenarioUrl(scenario) === '/');
+  if (frontpageIndex > 0) {
+    merged.unshift(...merged.splice(frontpageIndex, 1));
   }
 
   return merged;

@@ -117,6 +117,10 @@ rsr --dir tests/reg-suit-runner config -- --limit=15 --ref=https://your-local-pr
 Use `config` when you want the helper to discover new pages from the live site
 and merge them into the existing config.
 
+The frontpage (`/`) is always the first scenario, even if the site has no link
+to it. It counts toward `--limit` for discovered scenarios. Refreshing preserves
+existing scenarios and their settings, moving an existing frontpage to the top.
+
 Use `--script-dir` only if you need to point the command at a different copy of the helper package than the one that provided the `rsr` binary.
 
 ## Browser Verification

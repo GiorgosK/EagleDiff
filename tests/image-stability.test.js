@@ -75,11 +75,30 @@ after(async () => {
 test('new configs include the image stability defaults', async () => {
   await cli('config', '--', `--ref=${baseURL}`, `--test=${baseURL}`, '--limit=1');
   const config = JSON.parse(await fs.readFile(path.join(directory, 'config.json')));
+  assert.deepEqual(config.scenarios, [{ url: '/', label: 'Homepage' }]);
   assert.equal(config.core.thresholdRateColor, 0.05);
   assert.equal(config.core.thresholdRate, 0.001);
   assert.deepEqual(config.onReadyScript, template.onReadyScript);
   assert(config.onReadyScript.indexOf('hooks/wait-for-element') < config.onReadyScript.indexOf('hooks/wait-until-gone'));
   assert(config.onReadyScript.indexOf('hooks/normalize-image-decoding') > config.onReadyScript.indexOf('hooks/normalize-responsive-images'));
+});
+
+test('config refresh keeps the frontpage first without losing scenario settings', async () => {
+  const configPath = path.join(directory, 'config.json');
+  const config = JSON.parse(await fs.readFile(configPath));
+  const frontpage = { url: '/', label: 'Custom homepage', delay: 123 };
+  const existingPage = { url: '/page', label: 'Custom page' };
+  config.scenarios = [existingPage, frontpage];
+  await fs.writeFile(configPath, JSON.stringify(config));
+  await cli('config', '--', '--limit=2');
+  const refreshed = JSON.parse(await fs.readFile(configPath));
+  assert.deepEqual(refreshed.scenarios, [frontpage, existingPage]);
+
+  config.scenarios = [existingPage];
+  await fs.writeFile(configPath, JSON.stringify(config));
+  await cli('config', '--', '--limit=2');
+  const added = JSON.parse(await fs.readFile(configPath));
+  assert.deepEqual(added.scenarios, [{ url: '/', label: 'Homepage' }, existingPage]);
 });
 
 test('explicit thresholds survive config refresh and import', async () => {
