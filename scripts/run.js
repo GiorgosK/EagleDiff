@@ -106,6 +106,7 @@ async function main() {
 }
 
 async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl, addPara, command, options = {}) {
+  const reportWarning = options.warningReporter || require('./warnings').createWarningReporter();
   const defaultDelayMs = Number(config.defaults?.delay || 0);
   const waitUntil = config.defaults?.waitUntil || 'networkidle2';
   const fullPage = config.defaults?.fullPage !== false;
@@ -137,7 +138,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
       const readySelector = scenario.readySelector || runtimeConfig.defaults?.readySelector;
       const readyTimeout = scenario.readyTimeout || runtimeConfig.defaults?.readyTimeout;
       const delayMs = scenario.delay ?? defaultDelayMs;
-      const captureContext = { scenario, mode: 'ready', config: runtimeConfig, readySelector, readyTimeout };
+      const captureContext = { scenario, mode: 'ready', config: runtimeConfig, readySelector, readyTimeout, reportWarning };
 
       const progressEvent = {
         current: currentScreenshot,
@@ -173,7 +174,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
           temporaryErrorRetries
         });
       } catch (error) {
-        console.error(`[${currentScreenshot}/${totalScreenshots}] FAILED ${getScenarioLabel(scenario)} @ ${viewport.label}: ${error.message}`);
+        if (!options.parallel) console.error(`[${currentScreenshot}/${totalScreenshots}] FAILED ${getScenarioLabel(scenario)} @ ${viewport.label}: ${error.message}`);
         throw error;
       }
     }
@@ -794,8 +795,12 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
   const totalScreenshots = scenarios.scenarios.length * scenarios.viewports.length;
   let completedScreenshots = 0;
   const workerPath = path.join(__dirname, 'capture-worker.js');
+  const children = [];
+  const reportWarning = require('./warnings').createWarningReporter();
+  let aborted = false;
 
-  await Promise.all(
+  try {
+    await Promise.all(
     scenarioBatches.map((scenarioBatch, index) => new Promise((resolve, reject) => {
       const workerId = index + 1;
       const child = fork(workerPath, [], {
@@ -803,6 +808,7 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
         env: process.env,
         stdio: ['inherit', 'inherit', 'inherit', 'ipc']
       });
+      children.push(child);
       let settled = false;
 
       const fail = (error) => {
@@ -811,12 +817,16 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
         }
 
         settled = true;
-        child.kill('SIGTERM');
         reject(error);
       };
 
       child.on('message', (message) => {
-        if (!message || typeof message !== 'object') {
+        if (aborted || !message || typeof message !== 'object') {
+          return;
+        }
+
+        if (message.type === 'warning') {
+          reportWarning(message.code, message.message);
           return;
         }
 
@@ -861,7 +871,14 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
         workerId
       });
     }))
-  );
+    );
+  } catch (error) {
+    aborted = true;
+    for (const child of children) {
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+    }
+    throw error;
+  }
 }
 
 function partitionScenarios(scenarios, workerCount) {

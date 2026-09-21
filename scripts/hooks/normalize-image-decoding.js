@@ -53,7 +53,9 @@ module.exports = async function normalizeImageDecoding(page, context) {
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     return Array.from(skipped);
   }, selector);
-  for (const source of warnings) {
-    console.warn(`[reg-suit] Image decoding normalization skipped (cross-origin fetch blocked or failed): ${source}`);
+  if (warnings.length) {
+    const message = `Some cross-origin JPEG images could not be normalized; originals are unchanged and may produce decoding differences. Example: ${warnings[0]}. Use consistent page/image origins or allow CORS on the image server. Setting defaults.normalizeImageDecodingSelectors to [] disables normalization, but loses its stabilization benefit. Further warnings of this type are suppressed for this run.`;
+    if (context.reportWarning) context.reportWarning('image-normalization-skipped', message);
+    else console.warn(`[reg-suit] ${message}`);
   }
 };

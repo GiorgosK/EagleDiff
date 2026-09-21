@@ -123,6 +123,19 @@ existing scenarios and their settings, moving an existing frontpage to the top.
 
 Use `--script-dir` only if you need to point the command at a different copy of the helper package than the one that provided the `rsr` binary.
 
+## Capture Diagnostics
+
+Capture stops all workers if a required `readySelector` cannot be found within
+`readyTimeout` (or is not visible when `readyVisible` is enabled). Set
+`defaults.readySelector` to a reliable marker present on every page, or use a
+scenario override for pages with different layouts.
+
+Cross-origin image normalization failures produce one warning per run, including
+parallel runs. Images remain unchanged. Use consistent page/image origins or
+configure CORS on the image server to allow normalization. Setting
+`defaults.normalizeImageDecodingSelectors` to `[]` disables normalization rather
+than fixing it, and can reintroduce small JPEG decoding differences.
+
 ## Browser Verification
 
 `hooks/wait-for-browser-verification` runs before
