@@ -40,6 +40,8 @@
       "picture source"
     ],
     "normalizeImageDecodingSelectors": ["img"],
+    "randomImage": [],
+    "randomContent": [],
     "hideDynamicSelectors": [
       "#CybotCookiebotDialog",
       "#CybotCookiebotDialogBodyUnderlay",
@@ -75,6 +77,7 @@
     "hooks/pause-media",
     "hooks/load-lazy-images",
     "hooks/normalize-responsive-images",
+    "hooks/replace-random-content",
     "hooks/normalize-image-decoding",
     "hooks/keep-selectors",
     "hooks/wait-for-background-images",

@@ -125,6 +125,44 @@ Use `--script-dir` only if you need to point the command at a different copy of 
 
 ## Capture Diagnostics
 
+### Random Content
+
+`hooks/replace-random-content` replaces explicitly selected random areas with
+deterministic placeholders in both reference and test captures. New configs include
+the hook after responsive-image normalization and before image-decoding
+normalization. Existing configs must add the hook at the same position.
+
+Set `randomImage` and `randomContent` in `defaults` or a scenario. A scenario list
+replaces its default list; `[]` disables that replacement for the scenario.
+For example, on a page with a randomized banner:
+
+```json
+{
+  "url": "/movies/all",
+  "randomImage": [".banner__image"],
+  "randomContent": [".banner__top_left"]
+}
+```
+
+Image selectors can target an `img`, a `picture`, or a container of images. For
+elements without images, the hook replaces the CSS background image. It generates
+a local SVG labelled IMAGE PLACEHOLDER, requiring no external image service.
+Existing CSS sizing is retained. Image intrinsic dimensions are preserved when
+available; if random images have different aspect ratios, specify a consistent
+pair such as `{ "selector": ".banner__image", "width": 1200, "height": 675 }`.
+These set placeholder intrinsic dimensions, not a fixed CSS layout size.
+
+Content selectors replace the selected element's children with fixed text,
+defaulting to Lorem ipsum. Usually select the whole random region: its outer
+container and CSS remain, but its variable internal markup is no longer tested.
+No knowledge of its titles, dates, links, or nested markup is needed. Only the
+outer selectors are site-specific. Use `{ "selector": ".random-area", "text":
+"Custom placeholder" }` for custom text. Missing selectors are ignored. Replacements run once after lazy
+loading; scripts that keep rewriting these areas need separate stabilization.
+The hook does not freeze randomized container sizes or positions. Keep selectors
+narrow so genuine layout regressions remain visible, and regenerate references
+after enabling replacements.
+
 Screenshot filenames use a transliterated scenario URL plus a hash of the original
 URL and viewport, not the page label. This prevents different pages with identical
 or non-Latin labels from overwriting each other. Duplicate URL/viewport entries
