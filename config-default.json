@@ -53,7 +53,9 @@
     "networkIdleTime": 500,
     "networkIdleTimeout": 5000,
     "failOnResponseStatusCodes": [404,500,502,503,504],
-    "hideSelectors": [],
+    "hideSelectors": [
+      "[id^=\"div-gpt-ad\"]"
+    ],
     "removeSelectors": [
       ".CookieDeclaration",
       "#CookieDeclaration"

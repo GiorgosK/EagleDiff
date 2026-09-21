@@ -79,6 +79,7 @@ test('new configs include the image stability defaults', async () => {
   assert.deepEqual(config.scenarios, [{ url: '/', label: 'Homepage' }]);
   assert.equal(config.core.thresholdRateColor, 0.05);
   assert.equal(config.core.thresholdRate, 0.001);
+  assert(config.defaults.hideSelectors.includes('[id^="div-gpt-ad"]'));
   assert.deepEqual(config.onReadyScript, template.onReadyScript);
   assert(config.onReadyScript.indexOf('hooks/wait-for-element') < config.onReadyScript.indexOf('hooks/wait-until-gone'));
   assert(config.onReadyScript.indexOf('hooks/normalize-image-decoding') > config.onReadyScript.indexOf('hooks/normalize-responsive-images'));
