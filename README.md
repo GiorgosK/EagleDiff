@@ -125,6 +125,12 @@ Use `--script-dir` only if you need to point the command at a different copy of 
 
 ## Capture Diagnostics
 
+New configs hide Cookiebot and CookieScript consent dialogs using
+`hooks/hide-dynamic-elements`. The CSS also hides dialogs injected later, without
+clicking consent buttons. For existing configs, add `#cookiescript_injected_wrapper`
+and `#cookiescript_injected` to `defaults.hideDynamicSelectors` (and any scenario
+selector overrides). Config refresh preserves existing selector lists.
+
 Capture stops all workers if a required `readySelector` cannot be found within
 `readyTimeout` (or is not visible when `readyVisible` is enabled). Set
 `defaults.readySelector` to a reliable marker present on every page, or use a

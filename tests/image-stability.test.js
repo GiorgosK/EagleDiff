@@ -9,6 +9,7 @@ const { promisify } = require('node:util');
 const puppeteer = require('puppeteer-core');
 const { buildBrowserLaunchOptions } = require('../scripts/run');
 const normalize = require('../scripts/hooks/normalize-image-decoding');
+const hideDynamicElements = require('../scripts/hooks/hide-dynamic-elements');
 const template = require('../config-default.json');
 
 const exec = promisify(execFile);
@@ -142,6 +143,23 @@ test('normalization preserves geometry, tolerates non-CORS CDNs, and reports bro
     document.images[0].src = '/missing.jpg';
   }));
   await assert.rejects(() => normalize(page, { scenario: {}, config: {} }), /404/);
+});
+
+test('cookie consent defaults hide CookieScript and Cookiebot, including late injection', async t => {
+  const page = await browser.newPage();
+  t.after(() => page.close());
+  await page.setContent('<main>Content</main><div id="CybotCookiebotDialog">Cookiebot</div><div id="CybotCookiebotDialogBodyUnderlay"></div>');
+  await hideDynamicElements(page, { scenario: {}, config: template });
+  await page.evaluate(() => {
+    document.body.insertAdjacentHTML('beforeend', '<div id="cookiescript_injected_wrapper"><div id="cookiescript_injected" role="dialog">CookieScript</div></div>');
+  });
+  for (const selector of ['#CybotCookiebotDialog', '#CybotCookiebotDialogBodyUnderlay', '#cookiescript_injected_wrapper', '#cookiescript_injected']) {
+    assert.equal(await page.$eval(selector, element => getComputedStyle(element).display), 'none');
+  }
+  assert.notEqual(await page.$eval('main', element => getComputedStyle(element).display), 'none');
+  await page.setContent('<div id="cookiescript_injected" role="dialog">CookieScript</div>');
+  await hideDynamicElements(page, { scenario: { hideDynamicSelectors: [] }, config: template });
+  assert.notEqual(await page.$eval('#cookiescript_injected', element => getComputedStyle(element).display), 'none');
 });
 
 test('comparison ignores small colour noise but detects substantial visual changes', async () => {

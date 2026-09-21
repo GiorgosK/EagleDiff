@@ -43,6 +43,8 @@
     "hideDynamicSelectors": [
       "#CybotCookiebotDialog",
       "#CybotCookiebotDialogBodyUnderlay",
+      "#cookiescript_injected_wrapper",
+      "#cookiescript_injected",
       ".anrt-gdpr-floating-cookie",
       "#toolbar-administration",
       "#toolbar-item-administration-tray",
