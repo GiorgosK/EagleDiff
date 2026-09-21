@@ -170,7 +170,7 @@ test('comparison ignores small colour noise but detects substantial visual chang
     testBaseURL: baseURL,
     defaults: { ...template.defaults, delay: 0, fullPage: false },
     viewports: [{ label: 'fixture', width: 100, height: 100 }],
-    scenarios: [{ label: 'fixture', url: '/' }]
+    scenarios: [{ label: 'fixture', url: '/' }, { label: 'fixture', url: '/other' }]
   };
   await fs.writeFile(path.join(directory, 'config.json'), JSON.stringify(config));
   await cli('reference');
@@ -180,13 +180,17 @@ test('comparison ignores small colour noise but detects substantial visual chang
   assert.equal(generated.core.matchingThreshold, 0.05);
   const output = () => fs.readFile(path.join(directory, '.reg/run/out.json')).then(JSON.parse);
   assert.deepEqual((await output()).failedItems, []);
+  assert.equal((await output()).passedItems.length, 2);
+  await cli('test', '--', '--filter=/other');
   assert.equal((await output()).passedItems.length, 1);
+  assert.deepEqual((await output()).newItems, []);
+  assert.deepEqual((await output()).deletedItems, []);
   shade = 180;
   await cli('test');
-  assert.equal((await output()).failedItems.length, 1);
+  assert.equal((await output()).failedItems.length, 2);
   delete config.core.thresholdRateColor;
   await fs.writeFile(path.join(directory, 'config.json'), JSON.stringify(config));
   shade = 105;
   await cli('test');
-  assert.equal((await output()).failedItems.length, 1);
+  assert.equal((await output()).failedItems.length, 2);
 });

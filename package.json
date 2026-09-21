@@ -21,6 +21,7 @@
     "puppeteer-core": "^25.1.0",
     "reg-publish-filesystem-plugin": "^0.2.0",
     "reg-simple-keygen-plugin": "^0.14.2",
-    "reg-suit": "^0.14.5"
+    "reg-suit": "^0.14.5",
+    "transliteration": "^2.6.1"
   }
 }

@@ -1,6 +1,8 @@
 const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
+const { createHash } = require('crypto');
+const { transliterate } = require('transliteration');
 const { execFileSync, fork, spawn } = require('child_process');
 
 const puppeteer = require('puppeteer-core');
@@ -28,6 +30,7 @@ async function main() {
   const startedAt = Date.now();
   const config = await readJson(configPath);
   const selectedScenarios = filterScenarios(config.scenarios || [], filter, config);
+  validateScreenshotNames(selectedScenarios);
 
   try {
     if (command === 'approve') {
@@ -106,6 +109,7 @@ async function main() {
 }
 
 async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl, addPara, command, options = {}) {
+  validateScreenshotNames(scenarios);
   const reportWarning = options.warningReporter || require('./warnings').createWarningReporter();
   const defaultDelayMs = Number(config.defaults?.delay || 0);
   const waitUntil = config.defaults?.waitUntil || 'networkidle2';
@@ -130,7 +134,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
   for (const viewport of scenarios.viewports) {
     for (const scenario of scenarios.scenarios) {
       currentScreenshot += 1;
-      const fileName = `${slugify(getScenarioLabel(scenario))}__${slugify(viewport.label)}.png`;
+      const fileName = getScreenshotFileName(scenario, viewport);
       const filePath = path.join(actualDir, fileName);
       const url = buildScenarioUrl(baseUrl, getScenarioUrl(scenario));
       const beforeScripts = [...globalBeforeScripts, ...normalizeScriptList(scenario.onBeforeScript)];
@@ -387,6 +391,35 @@ function slugify(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+function getScreenshotFileName(scenario, viewport) {
+  const url = getScenarioUrl(scenario) || '/';
+  let readableUrl = url;
+  try {
+    readableUrl = decodeURI(url);
+  } catch {
+    // Keep malformed percent escapes readable without losing URL identity.
+  }
+  const name = slugify(transliterate(readableUrl)).slice(0, 120) || 'homepage';
+  const viewportName = slugify(transliterate(String(viewport.label || 'viewport'))).slice(0, 32) || 'viewport';
+  // Hash the original URL, not its lossy transliteration, and include viewport geometry.
+  const identity = JSON.stringify([url, viewport.label, viewport.width, viewport.height, viewport.deviceScaleFactor || 1]);
+  const hash = createHash('sha256').update(identity).digest('hex').slice(0, 16);
+  return `${name}--${hash}__${viewportName}.png`;
+}
+
+function validateScreenshotNames(selection) {
+  const names = new Set();
+  for (const scenario of selection.scenarios) {
+    for (const viewport of selection.viewports || []) {
+      const name = getScreenshotFileName(scenario, viewport);
+      if (names.has(name)) {
+        throw new Error(`Duplicate screenshot identity for URL ${getScenarioUrl(scenario)} at viewport ${viewport.label}. Remove duplicate scenarios/viewports or give variants distinct URLs/viewports.`);
+      }
+      names.add(name);
+    }
+  }
 }
 
 function sleep(milliseconds) {
@@ -681,7 +714,7 @@ function normalizeScriptList(value) {
 async function populateExpectedSnapshots(workingDir, referenceDir, selection, filter) {
   const expectedDir = path.join(workingDir, 'expected');
   const keepNames = new Set(
-    selection.scenarios.flatMap((scenario) => selection.viewports.map((viewport) => `${slugify(scenario.label)}__${slugify(viewport.label)}.png`))
+    selection.scenarios.flatMap((scenario) => selection.viewports.map((viewport) => getScreenshotFileName(scenario, viewport)))
   );
 
   await fsp.rm(expectedDir, { recursive: true, force: true });
@@ -722,7 +755,7 @@ async function listImageFiles(directoryPath) {
 
 async function stageActuals(actualDir, stageActualDir, scenarios) {
   const selectedFileNames = scenarios.scenarios.flatMap((scenario) =>
-    scenarios.viewports.map((viewport) => `${slugify(getScenarioLabel(scenario))}__${slugify(viewport.label)}.png`)
+    scenarios.viewports.map((viewport) => getScreenshotFileName(scenario, viewport))
   );
 
   for (const fileName of selectedFileNames) {
@@ -780,7 +813,7 @@ async function getSelectedActualFileNames(actualDir, scenarios, options = {}) {
   }
 
   const selectedFileNames = scenarios.scenarios.flatMap((scenario) =>
-    scenarios.viewports.map((viewport) => `${slugify(getScenarioLabel(scenario))}__${slugify(viewport.label)}.png`)
+    scenarios.viewports.map((viewport) => getScreenshotFileName(scenario, viewport))
   );
 
   if (selectedFileNames.length === 0) {
@@ -952,5 +985,7 @@ module.exports = {
   buildScenarioUrl,
   getScenarioLabel,
   getScenarioUrl,
+  getScreenshotFileName,
+  validateScreenshotNames,
   slugify
 };

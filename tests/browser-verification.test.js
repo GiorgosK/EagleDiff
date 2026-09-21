@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const http = require('node:http');
 const puppeteer = require('puppeteer-core');
-const { buildBrowserLaunchOptions, captureScreenshots } = require('../scripts/run');
+const { buildBrowserLaunchOptions, captureScreenshots, getScreenshotFileName } = require('../scripts/run');
 const template = require('../config-default.json');
 const waitForVerification = require('../scripts/hooks/wait-for-browser-verification');
 
@@ -73,7 +73,8 @@ function capture(url, browserVerification) {
 test('a 503 challenge completes normally and checks the final main-document status', async () => {
   await capture('/challenge-503');
   assert.equal(hits.get('/challenge-503'), 2);
-  assert((await fs.stat(path.join(directory, 'challenge-503__phone.png'))).size > 0);
+  const filename = getScreenshotFileName({ url: '/challenge-503' }, { label: 'phone', width: 360, height: 640 });
+  assert((await fs.stat(path.join(directory, filename))).size > 0);
 });
 
 test('older 200 challenge responses are also awaited', async () => {

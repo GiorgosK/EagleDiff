@@ -125,6 +125,16 @@ Use `--script-dir` only if you need to point the command at a different copy of 
 
 ## Capture Diagnostics
 
+Screenshot filenames use a transliterated scenario URL plus a hash of the original
+URL and viewport, not the page label. This prevents different pages with identical
+or non-Latin labels from overwriting each other. Duplicate URL/viewport entries
+are rejected before capture. Reference and test captures use the same naming rule.
+
+After upgrading from label-based names, regenerate references with
+`rsr --dir tests/reg-suit-runner reference -- --clean` before running tests.
+Old references cannot safely be renamed because earlier collisions may have
+overwritten them. Avoid `--no-clean` during this migration.
+
 New configs hide Cookiebot and CookieScript consent dialogs using
 `hooks/hide-dynamic-elements`. The CSS also hides dialogs injected later, without
 clicking consent buttons. For existing configs, add `#cookiescript_injected_wrapper`
