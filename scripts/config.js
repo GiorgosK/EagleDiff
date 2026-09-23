@@ -54,7 +54,23 @@ async function main() {
   };
 
   await fsp.writeFile(configPath, `${JSON.stringify(outputConfig, null, 2)}\n`);
+  await ensureGitignore(rootDir);
   console.log(`[reg-suit] Wrote ${path.relative(rootDir, configPath)} with ${discoveredScenarios.length} discovered scenarios`);
+}
+
+async function ensureGitignore(projectDir) {
+  const gitignorePath = path.join(projectDir, '.gitignore');
+  let existing = '';
+  try {
+    existing = await fsp.readFile(gitignorePath, 'utf8');
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+
+  if (existing.split(/\r?\n/).some((line) => ['.reg', '.reg/', '/.reg', '/.reg/'].includes(line.trim()))) return;
+
+  const separator = existing && !existing.endsWith('\n') ? '\n' : '';
+  await fsp.writeFile(gitignorePath, `${existing}${separator}.reg/\n`);
 }
 
 async function discoverScenarios({ discoverySources, limit }) {

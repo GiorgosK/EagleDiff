@@ -127,6 +127,10 @@ It does not check every discovered page's HTTP status. Previously generated
 invalid scenarios must be removed from the config manually; refreshing preserves
 existing entries.
 
+The `config` command also creates or updates `.gitignore` in the project directory
+to ignore `.reg/`. Existing entries are preserved, and repeated config refreshes
+do not duplicate the entry.
+
 Use `--script-dir` only if you need to point the command at a different copy of the helper package than the one that provided the `rsr` binary.
 
 ## Capture Diagnostics
