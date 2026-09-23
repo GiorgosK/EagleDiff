@@ -121,6 +121,12 @@ The frontpage (`/`) is always the first scenario, even if the site has no link
 to it. It counts toward `--limit` for discovered scenarios. Refreshing preserves
 existing scenarios and their settings, moving an existing frontpage to the top.
 
+Discovery skips unresolved template tokens in link URLs or labels (such as
+Cookiebot's `[#DSR_FORM_URL#]`) and paths with unmatched square brackets.
+It does not check every discovered page's HTTP status. Previously generated
+invalid scenarios must be removed from the config manually; refreshing preserves
+existing entries.
+
 Use `--script-dir` only if you need to point the command at a different copy of the helper package than the one that provided the `rsr` binary.
 
 ## Capture Diagnostics

@@ -115,6 +115,12 @@ function normalizeLink(pageUrl, link) {
     return null;
   }
 
+  // Check before URL parsing: a placeholder's '#' becomes a fragment and
+  // otherwise leaves a seemingly valid path such as '/[' behind.
+  if ([link.href, link.text, link.title, link.ariaLabel].some(hasTemplateToken)) {
+    return null;
+  }
+
   let urlObject;
   try {
     urlObject = new URL(link.href, pageUrl);
@@ -135,6 +141,10 @@ function normalizeLink(pageUrl, link) {
     return null;
   }
 
+  if (hasUnmatchedBrackets(decodeForValidation(urlObject.pathname))) {
+    return null;
+  }
+
   const url = normalizePath(urlObject.pathname, urlObject.search);
   if (!url || url === '/' || url.startsWith('/#')) {
     return null;
@@ -146,6 +156,27 @@ function normalizeLink(pageUrl, link) {
     url,
     label
   };
+}
+
+function decodeForValidation(value) {
+  try {
+    return decodeURIComponent(String(value || ''));
+  } catch {
+    return String(value || '');
+  }
+}
+
+function hasTemplateToken(value) {
+  return /\[#[\s\S]*?#\]|\{\{[\s\S]*?\}\}|\$\{[^}]*\}|<%[\s\S]*?%>/.test(decodeForValidation(value));
+}
+
+function hasUnmatchedBrackets(value) {
+  let depth = 0;
+  for (const char of value) {
+    if (char === '[') depth += 1;
+    if (char === ']' && --depth < 0) return true;
+  }
+  return depth !== 0;
 }
 
 function normalizePath(pathname, search) {
@@ -328,7 +359,11 @@ function sleep(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { normalizeLink };
