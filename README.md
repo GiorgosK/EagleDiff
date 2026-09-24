@@ -1,6 +1,30 @@
 # reg-suit-runner
 
-Shared helper for project-specific visual regression runs.
+**reg-suit-runner (RSR)** tests websites and web apps visually, using reg-suit to compare screenshots.
+It aims to be a BackstopJS alternative with more defaults built in,
+so you can get started out of the box—or as close to it as possible.
+
+## Quick Start
+
+Create config and calibrate by comparing the same site against itself:
+
+```bash
+rsr --dir tests/reg-suit-runner config -- --limit=25 --ref=https://example.com
+rsr --dir tests/reg-suit-runner reference -- --workers=15
+rsr --dir tests/reg-suit-runner test -- --workers=15
+rsr --dir tests/reg-suit-runner report
+```
+
+All tests should pass. If they don't, adjust `config.json`
+to stabilize captures, then rerun `reference` and `test`. 
+
+Once calibration passes, change `testBaseURL` in that config to your staging or
+local site, then run the tests again
+
+```bash
+rsr --dir tests/reg-suit-runner test -- --workers=15
+rsr --dir tests/reg-suit-runner report
+```
 
 ## CLI Arguments
 
