@@ -253,6 +253,12 @@ async function captureScenarioScreenshot({
         screenshotOptions.captureBeyondViewport = true;
       }
 
+      // Final DOM edits can invalidate layout after the readiness hooks ran.
+      // Allow a render cycle, then flush geometry before Chrome sizes the image.
+      await activePage.evaluate(async () => {
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        document.documentElement.getBoundingClientRect();
+      });
       await activePage.screenshot(screenshotOptions);
       return;
     } catch (error) {

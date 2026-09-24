@@ -242,6 +242,12 @@ provider-specific selectors hardcoded in the hook.
 
 ## Image Capture Stability
 
+Before each screenshot, the runner waits two animation frames and flushes layout
+after the final DOM changes, including `removeSelectors` and paragraph injection.
+This lets immediate layout updates finish before Chrome determines screenshot
+dimensions. It applies to existing configs automatically; it does not replace
+readiness hooks for delayed content or network requests.
+
 New project configs include three capture/comparison defaults:
 
 - `hooks/wait-for-element` runs before `hooks/wait-until-gone`. The ready
