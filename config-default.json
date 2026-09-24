@@ -12,7 +12,7 @@
     "fullPage": true,
     "waitUntil": "domcontentloaded",
     "readyTimeout": 10000,
-    "readySelector": "#footer",
+    "readySelector": "#footer,.footer,footer",
     "readyVisible": false,
     "browserVerification": {
       "challengeSelectors": ["script[src*=\"/botbuster/js/challenge.js\"]"],
