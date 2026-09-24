@@ -114,6 +114,9 @@ Refresh or create a config by scanning reference and test URLs:
 rsr --dir tests/reg-suit-runner config -- --limit=15 --ref=https://your-local-project.example --test=https://your-local-project.test
 ```
 
+For a new config, omitting `--test` or passing `--test=` uses the `--ref` URL for
+both environments. Refreshing an existing config preserves its saved base URLs.
+
 Use `config` when you want the helper to discover new pages from the live site
 and merge them into the existing config.
 

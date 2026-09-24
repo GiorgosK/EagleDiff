@@ -25,10 +25,10 @@ async function main() {
     : explicitReferenceBaseURL;
   const outputTestBaseURL = hasExistingConfig
     ? baseConfig.testBaseURL
-    : explicitTestBaseURL;
+    : explicitTestBaseURL || outputReferenceBaseURL;
 
   if (!hasExistingConfig && (!outputReferenceBaseURL || !outputTestBaseURL)) {
-    throw new Error('Usage: node scripts/config.js --ref=<reference-url> --test=<test-url> [--limit=15]');
+    throw new Error('Usage: node scripts/config.js --ref=<reference-url> [--test=<test-url>] [--limit=15]');
   }
 
   const discoverySources = resolveDiscoverySources(
