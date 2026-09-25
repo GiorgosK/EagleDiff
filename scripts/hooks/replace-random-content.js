@@ -16,6 +16,16 @@ module.exports = async function replaceRandomContent(page, context) {
   };
   const images = entries('randomImage');
   const content = entries('randomContent');
+  const replacements = context.scenario.replaceContent ?? context.config.defaults?.replaceContent ?? {};
+  if (!replacements || typeof replacements !== 'object' || Array.isArray(replacements)) {
+    throw new Error('replaceContent must be an object mapping CSS selectors to text strings.');
+  }
+  for (const [selector, text] of Object.entries(replacements)) {
+    if (!selector.trim() || typeof text !== 'string') {
+      throw new Error('replaceContent requires non-empty CSS selectors and text strings.');
+    }
+    content.push({ selector, text });
+  }
   if (!images.length && !content.length) return;
 
   await page.evaluate(async ({ images, content }) => {

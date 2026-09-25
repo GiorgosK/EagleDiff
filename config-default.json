@@ -42,6 +42,7 @@
     "normalizeImageDecodingSelectors": ["img"],
     "randomImage": [],
     "randomContent": [],
+    "replaceContent": {},
     "hideDynamicSelectors": [
       "#CybotCookiebotDialog",
       "#CybotCookiebotDialogBodyUnderlay",

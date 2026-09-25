@@ -78,6 +78,7 @@ in an entry in the `scenarios` array. Selectors below are CSS selectors:
 | `removeSelectors` | Remove elements and their space, including a wrapping `li` if needed. |
 | `hideDynamicSelectors` | Apply `display: none`, including to elements injected later. |
 | `randomImage` / `randomContent` | Replace selected variable content with repeatable placeholders. |
+| `replaceContent` | Replace matching elements' contents with text you specify. |
 
 Example entry in `scenarios` (replace these selectors with ones from your site):
 
@@ -89,8 +90,22 @@ Example entry in `scenarios` (replace these selectors with ones from your site):
 }
 ```
 
-Random replacements require `hooks/replace-random-content` in `onReadyScript`,
+For specific text, add `replaceContent` to `defaults` or a scenario in `config.json`:
+
+```json
+"replaceContent": {
+  ".open-hours": "This content"
+}
+```
+
+Use an object (`{}`), not an array. Every matching element keeps its own tag and
+attributes, but its children are replaced with plain text, not HTML. Missing
+selectors are ignored; `""` clears the content. A scenario's object replaces the
+default object; `{}` disables these replacements for that scenario.
+
+Random and specific-text replacements require `hooks/replace-random-content` in `onReadyScript`,
 after `hooks/normalize-responsive-images` and before `hooks/normalize-image-decoding`.
+If both text settings match an element, `replaceContent` runs after `randomContent`.
 Regenerate references after changing capture settings.
 
 In your project's `config.json`, the `core` object controls how screenshots are compared:

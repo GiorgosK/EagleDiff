@@ -13,9 +13,41 @@ const source = color => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="ht
 test('defaults are opt-in and replacement follows responsive normalization', () => {
   assert.deepEqual(template.defaults.randomImage, []);
   assert.deepEqual(template.defaults.randomContent, []);
+  assert.deepEqual(template.defaults.replaceContent, {});
   const index = template.onReadyScript.indexOf('hooks/replace-random-content');
   assert(index > template.onReadyScript.indexOf('hooks/normalize-responsive-images'));
   assert(index < template.onReadyScript.indexOf('hooks/normalize-image-decoding'));
+});
+
+test('replaceContent maps selectors to literal text while preserving matched elements', async t => {
+  const page = await browser.newPage();
+  t.after(() => page.close());
+  await page.setContent('<section class="hours" data-keep="yes"><b>Random</b></section><p class="hours">Other</p><div id="clear">Clear me</div><footer>Keep</footer>');
+  await replace(page, { scenario: {}, config: { defaults: {
+    randomContent: ['.hours'],
+    replaceContent: { '.hours': '<b>Specific text</b>', '#clear': '', '.missing': 'Ignored' }
+  } } });
+  assert.deepEqual(await page.$$eval('.hours', elements => elements.map(e => [e.textContent, e.children.length])), [
+    ['<b>Specific text</b>', 0], ['<b>Specific text</b>', 0]
+  ]);
+  assert.equal(await page.$eval('section', e => e.getAttribute('data-keep')), 'yes');
+  assert.equal(await page.$eval('#clear', e => e.textContent), '');
+  assert.equal(await page.$eval('footer', e => e.textContent), 'Keep');
+});
+
+test('replaceContent supports scenario overrides and rejects invalid mappings', async t => {
+  const page = await browser.newPage();
+  t.after(() => page.close());
+  const config = { defaults: { replaceContent: { p: 'Default' } } };
+  await page.setContent('<p>Original</p><aside>Original</aside>');
+  await replace(page, { scenario: { replaceContent: {} }, config });
+  assert.equal(await page.$eval('p', e => e.textContent), 'Original');
+  await replace(page, { scenario: { replaceContent: { aside: 'Scenario' } }, config });
+  assert.equal(await page.$eval('p', e => e.textContent), 'Original');
+  assert.equal(await page.$eval('aside', e => e.textContent), 'Scenario');
+  for (const value of [['p'], 'p', { p: 42 }, { ' ': 'Text' }]) {
+    await assert.rejects(replace(page, { scenario: { replaceContent: value }, config }), /replaceContent/);
+  }
 });
 
 test('different random image and text variants produce identical captures', async t => {
