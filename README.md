@@ -15,6 +15,8 @@ pnpm add -g /path/to/reg-suit-runner
 
 ## Quick Start
 
+### Calibrate
+
 Create config and calibrate by comparing the same site against itself:
 
 ```bash
@@ -27,6 +29,8 @@ rsr --dir tests/reg-suit-runner report
 All tests should pass. If they don't, adjust `tests/reg-suit-runner/config.json`,
 then rerun `reference` and `test`. For an existing config, set both base URLs to
 the same site before calibrating.
+
+### Compare environments
 
 Once calibration passes, change `testBaseURL` to your staging or local site:
 
@@ -79,6 +83,9 @@ in an entry in the `scenarios` array. Selectors below are CSS selectors:
 | `hideDynamicSelectors` | Apply `display: none`, including to elements injected later. |
 | `randomImage` / `randomContent` | Replace selected variable content with repeatable placeholders. |
 | `replaceContent` | Replace matching elements' contents with text you specify. |
+| `cssOverrides` | Inject custom CSS, including media queries, into both captures. |
+
+### `randomImage` and `randomContent`
 
 Example entry in `scenarios` (replace these selectors with ones from your site):
 
@@ -89,6 +96,8 @@ Example entry in `scenarios` (replace these selectors with ones from your site):
   "randomContent": [".news-card .summary"]
 }
 ```
+
+### `replaceContent`
 
 For specific text, add `replaceContent` to `defaults` or a scenario in `config.json`:
 
@@ -103,10 +112,27 @@ attributes, but its children are replaced with plain text, not HTML. Missing
 selectors are ignored; `""` clears the content. A scenario's object replaces the
 default object; `{}` disables these replacements for that scenario.
 
+### Enable content replacements
+
 Random and specific-text replacements require `hooks/replace-random-content` in `onReadyScript`,
 after `hooks/normalize-responsive-images` and before `hooks/normalize-image-decoding`.
 If both text settings match an element, `replaceContent` runs after `randomContent`.
 Regenerate references after changing capture settings.
+
+### `cssOverrides`
+
+Apply custom CSS to both captures. Add it to `defaults` or a scenario.
+
+Example: replace a randomized background with a fixed image above 500px:
+
+```json
+"cssOverrides": "@media (min-width: 500px) { body { background-image: url('/sites/default/files/styles/large_screens_s/public/2017-11/_MG_3558_WEB.jpg') !important; } }"
+```
+
+Older configs need `hooks/apply-css-overrides` after `hooks/replace-random-content`
+in `onReadyScript`. Regenerate references after changing the CSS.
+
+### Comparison settings
 
 In your project's `config.json`, the `core` object controls how screenshots are compared:
 

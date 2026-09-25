@@ -43,6 +43,7 @@
     "randomImage": [],
     "randomContent": [],
     "replaceContent": {},
+    "cssOverrides": "",
     "hideDynamicSelectors": [
       "#CybotCookiebotDialog",
       "#CybotCookiebotDialogBodyUnderlay",
@@ -79,6 +80,7 @@
     "hooks/load-lazy-images",
     "hooks/normalize-responsive-images",
     "hooks/replace-random-content",
+    "hooks/apply-css-overrides",
     "hooks/normalize-image-decoding",
     "hooks/keep-selectors",
     "hooks/wait-for-background-images",
