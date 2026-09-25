@@ -66,6 +66,36 @@ rsr --dir tests/reg-suit-runner config -- --limit=25
 - `--filter` matches labels or URLs; `--workers` controls capture concurrency. `report` only opens the latest report.
 - `--clean` is the default: `reference` rebuilds baselines. `--no-clean` retains cached files between runs.
 
+## Default Hooks
+
+New configs include this `onReadyScript` list. Copy it into your project's
+`config.json` to update an older config, retaining any custom hooks you need.
+Hooks run in the order shown.
+
+```json
+"onReadyScript": [
+  "hooks/wait-for-browser-verification",
+  "hooks/fail-on-response-status",
+  "hooks/wait-for-element",
+  "hooks/wait-until-gone",
+  "hooks/scroll-to-bottom",
+  "hooks/wait-for-stable-content",
+  "hooks/hide-dynamic-elements",
+  "hooks/disable-animations",
+  "hooks/wait-for-fonts",
+  "hooks/pause-media",
+  "hooks/load-lazy-images",
+  "hooks/normalize-responsive-images",
+  "hooks/replace-random-content",
+  "hooks/apply-css-overrides",
+  "hooks/normalize-image-decoding",
+  "hooks/keep-selectors",
+  "hooks/wait-for-background-images",
+  "hooks/wait-for-network-idle",
+  "hooks/stabilize-carousels"
+]
+```
+
 ## Project-Specific Adjustments
 
 New configs include browser scripts (hooks) that prepare fonts, images, animations,
