@@ -86,6 +86,11 @@ test('config-update CLI updates only the selected config, is repeatable, and lea
   assert.match((await run()).stdout, /Updated config.json to 2026.09.26.02/);
   const saved = await fs.readFile(configPath, 'utf8');
   assert.equal(JSON.parse(saved).defaults.delay, 7);
+  assert.equal(Object.keys(JSON.parse(saved))[0], 'version');
+  const { version, ...rest } = JSON.parse(saved);
+  await fs.writeFile(configPath, JSON.stringify({ ...rest, version }));
+  assert.match((await run()).stdout, /Updated config.json/);
+  assert.equal(await fs.readFile(configPath, 'utf8'), saved);
   assert.match((await run()).stdout, /already up to date/);
   assert.equal(await fs.readFile(configPath, 'utf8'), saved);
   assert.deepEqual(await fs.readdir(directory), ['config.json']);

@@ -74,7 +74,7 @@ function updateConfig(current, defaults) {
     }
   }
   result.version = defaults.version;
-  return result;
+  return { version: result.version, ...result };
 }
 
 async function main() {
@@ -82,7 +82,7 @@ async function main() {
   const current = JSON.parse(await fsp.readFile(configPath, 'utf8'));
   const defaults = JSON.parse(await fsp.readFile(path.join(helperDir, 'config-default.json'), 'utf8'));
   const updated = updateConfig(current, defaults);
-  if (isDeepStrictEqual(current, updated)) {
+  if (Object.keys(current)[0] === 'version' && isDeepStrictEqual(current, updated)) {
     console.log(`[reg-suit] Config already up to date (${defaults.version})`);
     return;
   }
