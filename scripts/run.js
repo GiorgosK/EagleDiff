@@ -843,7 +843,7 @@ async function getSelectedActualFileNames(actualDir, scenarios, options = {}) {
 }
 
 async function captureScreenshotsInWorkers({ command, config, scenarios, actualDir, baseUrl, addPara, workers }) {
-  const scenarioBatches = partitionScenarios(scenarios.scenarios, workers);
+  const captureBatches = partitionCaptures(scenarios, workers);
   const totalScreenshots = scenarios.scenarios.length * scenarios.viewports.length;
   let completedScreenshots = 0;
   const workerPath = path.join(__dirname, 'capture-worker.js');
@@ -853,7 +853,7 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
 
   try {
     await Promise.all(
-    scenarioBatches.map((scenarioBatch, index) => new Promise((resolve, reject) => {
+    captureBatches.map((captures, index) => new Promise((resolve, reject) => {
       const workerId = index + 1;
       const child = fork(workerPath, [], {
         cwd: rootDir,
@@ -884,7 +884,7 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
 
         if (message.type === 'progress') {
           completedScreenshots += 1;
-          const workerTag = scenarioBatches.length > 1 ? ` [w${workerId}]` : '';
+          const workerTag = captureBatches.length > 1 ? ` [w${workerId}]` : '';
           console.log(`[${completedScreenshots}/${totalScreenshots}]${workerTag} ${message.scenarioLabel} @ ${message.viewportLabel}`);
           return;
         }
@@ -913,10 +913,7 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
       child.send({
         command,
         config,
-        scenarios: {
-          ...scenarios,
-          scenarios: scenarioBatch
-        },
+        captures,
         actualDir,
         baseUrl,
         addPara,
@@ -933,15 +930,18 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
   }
 }
 
-function partitionScenarios(scenarios, workerCount) {
-  const batchCount = Math.min(Math.max(1, workerCount), Math.max(1, scenarios.length));
+function partitionCaptures(selection, workerCount) {
+  const captures = selection.viewports.flatMap(viewport =>
+    selection.scenarios.map(scenario => ({ scenario, viewport }))
+  );
+  const batchCount = Math.min(Math.max(1, Math.floor(workerCount)), captures.length);
   const batches = Array.from({ length: batchCount }, () => []);
 
-  scenarios.forEach((scenario, index) => {
-    batches[index % batchCount].push(scenario);
+  captures.forEach((capture, index) => {
+    batches[index % batchCount].push(capture);
   });
 
-  return batches.filter((batch) => batch.length > 0);
+  return batches;
 }
 
 async function runScripts(page, scriptSpecs, context) {

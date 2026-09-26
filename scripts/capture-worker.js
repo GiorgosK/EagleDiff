@@ -14,31 +14,30 @@ process.once('message', async (job) => {
   });
 
   try {
-    await captureScreenshots(
-      browser,
-      job.config,
-      job.scenarios,
-      job.actualDir,
-      job.baseUrl,
-      job.addPara,
-      job.command,
-      {
-        workerId: job.workerId,
-        parallel: true,
-        warningReporter: require('./warnings').createWarningReporter((message, code) => {
-          if (process.connected) process.send({ type: 'warning', code, message });
-        }),
-        progressReporter: (event) => {
-          if (process.send) {
-            process.send({
-              type: 'progress',
-              ...event,
-              workerId: job.workerId
-            });
-          }
+    const options = {
+      workerId: job.workerId,
+      parallel: true,
+      warningReporter: require('./warnings').createWarningReporter((message, code) => {
+        if (process.connected) process.send({ type: 'warning', code, message });
+      }),
+      progressReporter: (event) => {
+        if (process.send) {
+          process.send({ type: 'progress', ...event, workerId: job.workerId });
         }
       }
-    );
+    };
+    for (const { scenario, viewport } of job.captures) {
+      await captureScreenshots(
+        browser,
+        job.config,
+        { scenarios: [scenario], viewports: [viewport] },
+        job.actualDir,
+        job.baseUrl,
+        job.addPara,
+        job.command,
+        options
+      );
+    }
 
     if (process.send) {
       process.send({ type: 'done', workerId: job.workerId });

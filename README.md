@@ -63,7 +63,7 @@ rsr --dir tests/reg-suit-runner config -- --limit=25
 - `config` discovers links and merges scenarios. It preserves saved URLs, settings, and existing scenarios; `/` counts toward `--limit`.
 - For new configs, omitted or empty `--test` defaults to `--ref`. Edit saved base URLs directly to change environments.
 - `config` also adds `.reg/` to the project's `.gitignore`.
-- `--filter` matches labels or URLs; `--workers` controls capture concurrency. `report` only opens the latest report.
+- `--filter` matches labels or URLs; `--workers` limits concurrent captures. Each scenario/viewport pair can run in a separate worker (one scenario with three viewports uses up to three workers). `report` only opens the latest report.
 - `--clean` is the default: `reference` rebuilds baselines. `--no-clean` retains cached files between runs.
 
 ## Capture Errors
