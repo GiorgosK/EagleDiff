@@ -22,6 +22,11 @@ const scriptByCommand = {
 function main() {
   const { command, projectDir, scriptDir, forwardedArgs } = parseArgs(process.argv.slice(2));
 
+  if (command === 'help' || forwardedArgs.some(arg => arg === '--help' || arg === '-h')) {
+    printUsage(console.log);
+    return;
+  }
+
   if (!command) {
     printUsage();
     process.exitCode = 1;
@@ -181,8 +186,29 @@ function parseArgs(argv) {
   };
 }
 
-function printUsage() {
-  console.error('Usage: reg-suit-runner <config|config-update|import|reference|test|approve|results|clean|report> [--dir <project-dir>] [--script-dir <helper-dir>] [args...]');
+function printUsage(write = console.error) {
+  write(`Usage: rsr [--dir <project-dir>] <command> [options]
+
+Run inside the folder containing config.json, or add --dir tests/reg-suit-runner.
+
+Commands and examples:
+  rsr config --ref=https://example.com --limit=25  Discover pages and create or extend config.json.
+  rsr config-update                             Add missing settings/hooks; preserve existing values.
+  rsr import --backstop=/path/to/backstop        Import scenarios and settings from Backstop.
+  rsr reference                                 Capture reference screenshots, replacing the baseline.
+  rsr test --filter=homepage --workers=3         Capture matching pages and compare with references.
+  rsr approve                                   Replace references with the latest captures after review.
+  rsr results                                   Show recent pass counts, timings, and run history.
+  rsr report                                    Open the latest comparison report in your browser.
+  rsr clean                                     Delete screenshots, references, reports, and legacy caches.
+  rsr help                                      Show this help (also --help or -h).
+
+Options:
+  --dir <path>         Project folder; defaults to the current directory.
+  --script-dir <path>  Use scripts from another RSR checkout.
+  --filter <text>      Match scenario labels or URLs for reference/test.
+  --workers <count>    Limit concurrent captures; overrides core.workers.
+  --no-clean          Keep cached screenshots when running reference/test.`);
 }
 
 Promise.resolve(main()).catch((error) => {
