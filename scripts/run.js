@@ -4,6 +4,8 @@ const path = require('path');
 const { createHash } = require('crypto');
 const { transliterate } = require('transliteration');
 const { execFileSync, fork, spawn } = require('child_process');
+const { createInterface } = require('readline');
+const { stripVTControlCharacters } = require('util');
 
 const puppeteer = require('puppeteer-core');
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
@@ -978,10 +980,16 @@ function resolveScriptPath(scriptSpec) {
 
 function runRegSuit(args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(regSuitBin, args, { stdio: 'inherit', cwd: rootDir, shell: false });
+    const child = spawn(regSuitBin, args, { stdio: ['inherit', 'pipe', 'inherit'], cwd: rootDir, shell: false });
+    const output = createInterface({ input: child.stdout, crlfDelay: Infinity });
+    output.on('line', (line) => {
+      // RSR supplies local references directly; snapshot-key discovery is unused.
+      if (stripVTControlCharacters(line).trim() === '[reg-suit] info Skipped to detect the previous snapshot key because key generator plugin is not set up.') return;
+      process.stdout.write(`${line}\n`);
+    });
 
     child.on('error', reject);
-    child.on('exit', (code) => {
+    child.on('close', (code) => {
       if (code === 0) {
         resolve();
         return;
