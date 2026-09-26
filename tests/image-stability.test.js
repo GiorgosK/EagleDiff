@@ -16,6 +16,25 @@ const exec = promisify(execFile);
 let browser, server, cdn, baseURL, cdnURL, directory, jpeg;
 let shade = 100;
 const serve = (request, response) => {
+  if (request.url === '/redirect-cdn.jpg') {
+    response.writeHead(302, { Location: `${cdnURL}/image.jpg` });
+    response.end();
+    return;
+  }
+  if (request.url === '/reset.jpg') {
+    request.socket.destroy();
+    return;
+  }
+  if (request.url === '/redirect.jpg') {
+    response.writeHead(302, { Location: '/reset.jpg' });
+    response.end();
+    return;
+  }
+  if (request.url === '/invalid.jpg') {
+    response.writeHead(200, { 'Content-Type': 'image/jpeg' });
+    response.end('Not a JPEG');
+    return;
+  }
   if (request.url === '/image.jpg') {
     response.writeHead(200, { 'Content-Type': 'image/jpeg' });
     response.end(jpeg);
@@ -144,6 +163,53 @@ test('normalization preserves geometry, tolerates non-CORS CDNs, and reports bro
     document.images[0].src = '/missing.jpg';
   }));
   await assert.rejects(() => normalize(page, { scenario: {}, config: {} }), /404/);
+});
+
+test('normalization errors retain image URLs, processing stages, and browser network failures', async t => {
+  const page = await browser.newPage();
+  t.after(() => page.close());
+  await page.goto(baseURL);
+  const listeners = page.listenerCount('requestfailed');
+  const consoleListeners = page.listenerCount('console');
+  for (const file of ['reset.jpg', 'redirect.jpg', 'invalid.jpg']) {
+    const url = `${baseURL}/${file}`;
+    await page.setContent(`<img src="${url}">`);
+    await assert.rejects(normalize(page, { scenario: {}, config: {} }), error => {
+      assert(error.message.includes(url), error.message);
+      if (file === 'invalid.jpg') {
+        assert.match(error.message, /during decoding JPEG/);
+      } else {
+        assert.match(error.message, /during fetching/);
+        assert.match(error.message, /Failed to fetch/);
+        assert.match(error.message, /Network error: net::ERR_/);
+      }
+      return true;
+    });
+    assert.equal(page.listenerCount('requestfailed'), listeners);
+    assert.equal(page.listenerCount('console'), consoleListeners);
+  }
+});
+
+test('same-origin redirects to non-CORS images retain the loaded image and warn', async t => {
+  const page = await browser.newPage();
+  t.after(() => page.close());
+  await page.goto(baseURL);
+  const url = `${baseURL}/redirect-cdn.jpg`;
+  await page.setContent(`<img width="330" src="${url}">`);
+  await page.$eval('img', image => image.decode());
+  const before = await page.screenshot();
+  const warnings = [];
+  await normalize(page, { scenario: {}, config: {}, reportWarning: (code, message) => warnings.push(message) });
+  assert.equal(await page.$eval('img', image => image.src), url);
+  assert.deepEqual(await page.screenshot(), before);
+  assert.equal(warnings.length, 1);
+  assert(warnings[0].includes(url));
+  assert.match(warnings[0], /originals loaded successfully/);
+  await page.setContent(`<img src="${cdnURL}/missing.jpg">`);
+  await assert.rejects(normalize(page, { scenario: {}, config: {} }), error => {
+    assert(error.message.includes(`${cdnURL}/missing.jpg`));
+    return true;
+  });
 });
 
 test('cookie consent defaults hide CookieScript and Cookiebot, including late injection', async t => {

@@ -32,6 +32,7 @@ async function main() {
   const selectedScenarios = filterScenarios(config.scenarios || [], filter, config);
   validateScreenshotNames(selectedScenarios);
 
+  let failed = false;
   try {
     if (command === 'approve') {
       await normalizeReferenceDir(referenceDir);
@@ -101,9 +102,12 @@ async function main() {
     });
     await prependJsonArrayEntry(resultsPath, entry);
     printResultsComparison(entry, Array.isArray(previousResults) ? previousResults[0] : null);
+  } catch (error) {
+    failed = true;
+    throw error;
   } finally {
     if (command === 'reference' || command === 'test') {
-      console.log(`[reg-suit] ${command} completed in ${formatDuration(Date.now() - startedAt)}`);
+      console.log(`[reg-suit] ${command} ${failed ? 'failed' : 'completed'} in ${formatDuration(Date.now() - startedAt)}`);
     }
   }
 }
@@ -178,8 +182,8 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
           temporaryErrorRetries
         });
       } catch (error) {
-        if (!options.parallel) console.error(`[${currentScreenshot}/${totalScreenshots}] FAILED ${getScenarioLabel(scenario)} @ ${viewport.label}: ${error.message}`);
-        throw error;
+        const worker = options.workerId ? ` [w${options.workerId}]` : '';
+        throw new Error(`Capture failed${worker}: ${getScenarioLabel(scenario)} @ ${viewport.label} (${viewport.width}x${viewport.height})\nPage URL: ${url}\n${error.message}`, { cause: error });
       }
     }
   }
@@ -265,11 +269,15 @@ async function captureScenarioScreenshot({
       const retryable = attempt < temporaryErrorRetries && isTemporaryCaptureError(error);
 
       if (!retryable) {
+        const finalUrl = activePage.url();
+        if (finalUrl && finalUrl !== 'about:blank' && finalUrl !== url) {
+          throw new Error(`Final page URL: ${finalUrl}\n${error.message}`, { cause: error });
+        }
         throw error;
       }
 
       attempt += 1;
-      console.warn(`[reg-suit] Temporary network error on ${getScenarioLabel(scenario)}; retrying ${attempt}/${temporaryErrorRetries}: ${error.message}`);
+      console.warn(`[reg-suit] Temporary network error on ${getScenarioLabel(scenario)} @ ${viewport.label}; retrying ${attempt}/${temporaryErrorRetries}\nPage URL: ${url}\n${error.message}`);
     } finally {
       activePage.off('response', trackNavigationResponse);
       await safeClosePage(activePage);
@@ -933,16 +941,20 @@ function partitionScenarios(scenarios, workerCount) {
 
 async function runScripts(page, scriptSpecs, context) {
   for (const scriptSpec of scriptSpecs) {
-    const scriptPath = resolveScriptPath(scriptSpec);
-    // eslint-disable-next-line global-require, import/no-dynamic-require
-    const script = require(scriptPath);
-    const runner = typeof script === 'function' ? script : script.run;
+    try {
+      const scriptPath = resolveScriptPath(scriptSpec);
+      // eslint-disable-next-line global-require, import/no-dynamic-require
+      const script = require(scriptPath);
+      const runner = typeof script === 'function' ? script : script.run;
 
-    if (typeof runner !== 'function') {
-      throw new Error(`Hook must export a function: ${scriptPath}`);
+      if (typeof runner !== 'function') {
+        throw new Error(`Hook must export a function: ${scriptPath}`);
+      }
+
+      await runner(page, context);
+    } catch (error) {
+      throw new Error(`Hook: ${scriptSpec}\n${error.message}`, { cause: error });
     }
-
-    await runner(page, context);
   }
 }
 

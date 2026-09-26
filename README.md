@@ -66,6 +66,12 @@ rsr --dir tests/reg-suit-runner config -- --limit=25
 - `--filter` matches labels or URLs; `--workers` controls capture concurrency. `report` only opens the latest report.
 - `--clean` is the default: `reference` rebuilds baselines. `--no-clean` retains cached files between runs.
 
+## Capture Errors
+
+Capture errors report the scenario, viewport, attempted page URL, and failing
+hook. Redirected pages also include the final URL. Image errors include the image
+URL, processing step, and Chrome's network error when available.
+
 ## Default Hooks
 
 New configs include this `onReadyScript` list. Copy it into your project's
@@ -154,7 +160,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `hideDynamicSelectors` | Apply `display: none`, including to elements added later. | `hide-dynamic-elements` |
 | `keepCookiebot` | **Scenario only:** skip the entire `hideDynamicSelectors` hook for this page. | `hide-dynamic-elements` |
 | `normalizeResponsiveImageSelectors` | Freeze image/source choices and remove responsive sizing attributes. | `normalize-responsive-images` |
-| `normalizeImageDecodingSelectors` | Convert selected JPEGs to decoded PNGs for capture; unavailable cross-origin images stay unchanged with a warning. | `normalize-image-decoding` |
+| `normalizeImageDecodingSelectors` | Convert selected JPEGs to PNGs for capture. If fetching is blocked but the original image loads, keep it and warn. Broken images still fail. | `normalize-image-decoding` |
 | `randomImage` | Replace selected images with fixed placeholders; use a background placeholder when the target contains no images. | `replace-random-content` |
 | `randomContent` | Replace selected elements' children with placeholder text. | `replace-random-content` |
 | `replaceContent` | Map selectors to specific replacement text. | `replace-random-content` |

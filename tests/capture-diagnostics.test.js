@@ -31,10 +31,27 @@ test('missing readiness marker identifies the selector and remedy', async () => 
 test('parallel captures warn once and stop other workers on missing readiness', async t => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-diagnostics-'));
   // No CORS header: the page can reference this image but cannot fetch its bytes.
-  const cdn = http.createServer((req, res) => res.end('image'));
+  const cdn = http.createServer((req, res) => {
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.end('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="red"/></svg>');
+  });
   await new Promise(resolve => cdn.listen(0, '127.0.0.1', resolve));
   const server = http.createServer((req, res) => {
+    if (req.url === '/broken') {
+      res.writeHead(302, { Location: '/gallery' });
+      res.end();
+      return;
+    }
+    if (req.url === '/missing.jpg') {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
     res.setHeader('Content-Type', 'text/html');
+    if (req.url === '/gallery') {
+      res.end('<footer></footer><img src="/missing.jpg">');
+      return;
+    }
     res.end(`<img src="http://127.0.0.1:${cdn.address().port}/image.jpg"><footer></footer>`);
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -51,15 +68,31 @@ test('parallel captures warn once and stop other workers on missing readiness', 
     scenarios: [{ url: '/one' }, { url: '/two' }, { url: '/three' }]
   };
   const configPath = path.join(directory, 'config.json');
-  const run = () => promisify(execFile)(process.execPath, [
+  const run = (workers = 2) => promisify(execFile)(process.execPath, [
     path.join(__dirname, '../bin/reg-suit.js'), '--dir', directory,
-    '--script-dir', path.join(__dirname, '..'), 'reference', '--', '--workers=2'
+    '--script-dir', path.join(__dirname, '..'), 'reference', '--', `--workers=${workers}`
   ], { timeout: 20000, env: { ...process.env, REG_SUIT_DIR: directory,
     REG_SUIT_CONFIG: configPath, GLOBAL_REG_SUIT_CONFIG: configPath } });
   await fs.writeFile(configPath, JSON.stringify(config));
   const result = await run();
-  assert.equal((result.stderr.match(/Some cross-origin JPEG/g) || []).length, 1);
+  assert.equal((result.stderr.match(/Some JPEG images/g) || []).length, 1);
   assert.match(result.stderr, /allow CORS/);
+
+  config.scenarios = [{ url: '/broken', label: 'Broken gallery' }];
+  await fs.writeFile(configPath, JSON.stringify(config));
+  for (const workers of [1, 2]) {
+    await assert.rejects(run(workers), error => {
+      assert.match(error.stderr, /Broken gallery @ phone \(100x100\)/);
+      assert(error.stderr.includes(`Page URL: ${baseURL}/broken`));
+      assert(error.stderr.includes(`Final page URL: ${baseURL}/gallery`));
+      assert.match(error.stderr, /Hook: hooks\/normalize-image-decoding/);
+      assert(error.stderr.includes(`Cannot normalize image (404): ${baseURL}/missing.jpg`));
+      assert.equal((error.stderr.match(/Capture failed/g) || []).length, 1);
+      assert.match(error.stdout, /reference failed in/);
+      assert.doesNotMatch(error.stdout, /reference completed in/);
+      return true;
+    });
+  }
 
   config.scenarios = [
     { url: '/missing', readySelector: '.missing', readyTimeout: 100 },
@@ -70,6 +103,8 @@ test('parallel captures warn once and stop other workers on missing readiness', 
   await assert.rejects(run(), error => {
     assert.equal(error.killed, false);
     assert.match(error.stderr, /Required readySelector "\.missing"/);
+    assert(error.stderr.includes(`Page URL: ${baseURL}/missing`));
+    assert.match(error.stderr, /Hook: hooks\/wait-for-element/);
     assert.doesNotMatch(error.stdout, /must-not-start/);
     return true;
   });
