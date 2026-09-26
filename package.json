@@ -19,7 +19,7 @@
     "report": "node scripts/report.js"
   },
   "dependencies": {
-    "puppeteer-core": "^25.1.0",
+    "puppeteer-core": "^25.12.0",
     "reg-publish-filesystem-plugin": "^0.2.0",
     "reg-simple-keygen-plugin": "^0.14.2",
     "reg-suit": "^0.14.5",
