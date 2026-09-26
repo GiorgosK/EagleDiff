@@ -1,0 +1,100 @@
+const fsp = require('fs/promises');
+const path = require('path');
+const { isDeepStrictEqual } = require('util');
+const { getConfigPath, helperDir, rootDir } = require('./config-path');
+
+function isObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+// Only absent keys are filled. Arrays and explicit null/false/empty values are overrides.
+function fillMissing(current, defaults) {
+  const result = structuredClone(current);
+  for (const [key, value] of Object.entries(defaults)) {
+    if (!Object.hasOwn(result, key)) {
+      Object.defineProperty(result, key, {
+        value: structuredClone(value), enumerable: true, writable: true, configurable: true
+      });
+    } else if (isObject(result[key]) && isObject(value)) {
+      result[key] = fillMissing(result[key], value);
+    }
+  }
+  return result;
+}
+
+function hookKey(hook) {
+  return typeof hook === 'string' ? hook.replace(/^scripts\/hooks\//, 'hooks/').replace(/\.js$/, '') : hook;
+}
+
+function addMissingHooks(current, defaults) {
+  // A string is a supported single-hook configuration; preserve explicit null/false.
+  if (!Array.isArray(current) && typeof current !== 'string') return current;
+  const result = Array.isArray(current) ? [...current] : [current];
+  const defaultHooks = Array.isArray(defaults) ? defaults : [defaults];
+  for (let index = 0; index < defaultHooks.length; index += 1) {
+    const hook = defaultHooks[index];
+    if (result.some(existing => hookKey(existing) === hookKey(hook))) continue;
+    // Insert beside known default hooks without reordering any existing hooks.
+    const next = defaultHooks.slice(index + 1)
+      .map(candidate => result.findIndex(existing => hookKey(existing) === hookKey(candidate)))
+      .find(position => position !== -1);
+    if (next !== undefined) {
+      result.splice(next, 0, hook);
+    } else {
+      const previous = defaultHooks.slice(0, index).reverse()
+        .map(candidate => result.findIndex(existing => hookKey(existing) === hookKey(candidate)))
+        .find(position => position !== -1);
+      result.splice(previous === undefined ? result.length : previous + 1, 0, hook);
+    }
+  }
+  return result;
+}
+
+function versionParts(version) {
+  if (typeof version !== 'string' || !/^\d{4}\.\d{2}\.\d{2}\.\d{2,}$/.test(version)) {
+    throw new Error(`Invalid version: ${JSON.stringify(version)}. Expected YYYY.MM.DD.NN.`);
+  }
+  return version.split('.').map(Number);
+}
+
+function updateConfig(current, defaults) {
+  if (!isObject(current) || !isObject(defaults)) throw new Error('Config must be a JSON object.');
+  const target = versionParts(defaults.version);
+  if (Object.hasOwn(current, 'version')) {
+    const existing = versionParts(current.version);
+    const differing = existing.findIndex((part, index) => part !== target[index]);
+    if (differing !== -1 && existing[differing] > target[differing]) {
+      throw new Error(`Config version ${current.version} is newer than RSR defaults ${defaults.version}. Update RSR first.`);
+    }
+  }
+  const result = fillMissing(current, defaults);
+  for (const key of ['onBeforeScript', 'onReadyScript']) {
+    if (Object.hasOwn(current, key) && Object.hasOwn(defaults, key)) {
+      result[key] = addMissingHooks(current[key], defaults[key]);
+    }
+  }
+  result.version = defaults.version;
+  return result;
+}
+
+async function main() {
+  const configPath = getConfigPath();
+  const current = JSON.parse(await fsp.readFile(configPath, 'utf8'));
+  const defaults = JSON.parse(await fsp.readFile(path.join(helperDir, 'config-default.json'), 'utf8'));
+  const updated = updateConfig(current, defaults);
+  if (isDeepStrictEqual(current, updated)) {
+    console.log(`[reg-suit] Config already up to date (${defaults.version})`);
+    return;
+  }
+  await fsp.writeFile(configPath, `${JSON.stringify(updated, null, 2)}\n`);
+  console.log(`[reg-suit] Updated ${path.relative(rootDir, configPath)} to ${defaults.version}; existing settings preserved`);
+}
+
+if (require.main === module) {
+  main().catch(error => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { updateConfig };

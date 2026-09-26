@@ -6,9 +6,10 @@ const { spawnSync } = require('child_process');
 
 const defaultScriptDir = path.resolve(__dirname, '..');
 const invocationDir = path.resolve(process.env.INIT_CWD || process.cwd());
-const commands = new Set(['config', 'import', 'reference', 'test', 'approve', 'results', 'clean', 'report']);
+const commands = new Set(['config', 'config-update', 'import', 'reference', 'test', 'approve', 'results', 'clean', 'report']);
 const scriptByCommand = {
   config: 'scripts/config.js',
+  'config-update': 'scripts/config-update.js',
   import: 'scripts/import.js',
   reference: 'scripts/run.js',
   test: 'scripts/run.js',
@@ -37,7 +38,7 @@ function main() {
   const resolvedScriptDir = resolveScriptDir(scriptDir);
   const resolvedProjectDir = resolveProjectDir(projectDir);
   ensureProjectDir(resolvedProjectDir);
-  const childArgs = command === 'config' || command === 'import'
+  const childArgs = command === 'config' || command === 'config-update' || command === 'import'
     ? forwardedArgs
     : [command, ...forwardedArgs];
   const child = spawnSync(resolveNodeBinary(), [path.join(resolvedScriptDir, scriptName), ...childArgs], {
@@ -181,7 +182,7 @@ function parseArgs(argv) {
 }
 
 function printUsage() {
-  console.error('Usage: reg-suit-runner <config|import|reference|test|approve|results|clean|report> [--dir <project-dir>] [--script-dir <helper-dir>] [args...]');
+  console.error('Usage: reg-suit-runner <config|config-update|import|reference|test|approve|results|clean|report> [--dir <project-dir>] [--script-dir <helper-dir>] [args...]');
 }
 
 Promise.resolve(main()).catch((error) => {
