@@ -1,6 +1,7 @@
 const fsp = require('fs/promises');
 const path = require('path');
 const { isDeepStrictEqual } = require('util');
+const { compareVersions, versionParts } = require('./config-version');
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
 
 function isObject(value) {
@@ -50,22 +51,11 @@ function addMissingHooks(current, defaults) {
   return result;
 }
 
-function versionParts(version) {
-  if (typeof version !== 'string' || !/^\d{4}\.\d{2}\.\d{2}\.\d{2,}$/.test(version)) {
-    throw new Error(`Invalid version: ${JSON.stringify(version)}. Expected YYYY.MM.DD.NN.`);
-  }
-  return version.split('.').map(Number);
-}
-
 function updateConfig(current, defaults) {
   if (!isObject(current) || !isObject(defaults)) throw new Error('Config must be a JSON object.');
-  const target = versionParts(defaults.version);
-  if (Object.hasOwn(current, 'version')) {
-    const existing = versionParts(current.version);
-    const differing = existing.findIndex((part, index) => part !== target[index]);
-    if (differing !== -1 && existing[differing] > target[differing]) {
-      throw new Error(`Config version ${current.version} is newer than RSR defaults ${defaults.version}. Update RSR first.`);
-    }
+  versionParts(defaults.version);
+  if (Object.hasOwn(current, 'version') && compareVersions(current.version, defaults.version) > 0) {
+    throw new Error(`Config version ${current.version} is newer than RSR defaults ${defaults.version}. Update RSR first.`);
   }
   const result = fillMissing(current, defaults);
   for (const key of ['onBeforeScript', 'onReadyScript']) {

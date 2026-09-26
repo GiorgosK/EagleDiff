@@ -83,7 +83,7 @@ test('config-update CLI updates only the selected config, is repeatable, and lea
   ], { env: { ...process.env, REG_SUIT_DIR: directory,
     REG_SUIT_CONFIG: configPath, GLOBAL_REG_SUIT_CONFIG: configPath } });
   await fs.writeFile(configPath, JSON.stringify({ defaults: { delay: 7 }, scenarios: [] }));
-  assert.match((await run()).stdout, /Updated config.json to 2026.09.26.02/);
+  assert((await run()).stdout.includes(`Updated config.json to ${template.version}`));
   const saved = await fs.readFile(configPath, 'utf8');
   assert.equal(JSON.parse(saved).defaults.delay, 7);
   assert.equal(Object.keys(JSON.parse(saved))[0], 'version');

@@ -32,7 +32,8 @@ async function main() {
 
   const startedAt = Date.now();
   const config = await readJson(configPath);
-  const workers = requestedWorkers ?? config.core?.workers ?? 1;
+  const workers = requestedWorkers ?? config.core?.workers
+    ?? (await readJson(path.join(helperDir, 'config-default.json'))).core.workers;
   if (!Number.isInteger(workers) || workers < 1) {
     throw new Error(`Invalid workers count: ${workers}. Expected a positive integer.`);
   }

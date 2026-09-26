@@ -31,11 +31,11 @@ test('workers distribute scenario/viewport pairs without duplicate or missing ca
     ],
     scenarios: [{ label: 'One', url: '/one' }]
   };
-  for (const [scenarioCount, workers, expectedWorkers, fromProject] of [[1, undefined, 3, true], [1, undefined, 3], [1, 25, 3], [2, 4, 4], [2, 1, 1]]) {
+  for (const [scenarioCount, workers, expectedWorkers, fromProject, omitConfigWorkers] of [[1, undefined, 3, true], [1, undefined, 3], [1, 25, 3], [2, undefined, 4], [2, 4, 4], [2, 1, 1], [2, undefined, 6, false, true]]) {
     if (scenarioCount === 2 && config.scenarios.length === 1) {
       config.scenarios.push({ label: 'Two', url: '/two' });
     }
-    await fs.writeFile(configPath, JSON.stringify(config));
+    await fs.writeFile(configPath, JSON.stringify(omitConfigWorkers ? { ...config, core: {} } : config));
     const { stdout } = await promisify(execFile)(process.execPath, [
       path.join(__dirname, '../bin/reg-suit.js'), ...(fromProject ? [] : ['--dir', directory]),
       '--script-dir', path.join(__dirname, '..'), 'reference', '--', ...(workers === undefined ? [] : [`--workers=${workers}`])

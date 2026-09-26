@@ -19,7 +19,7 @@ const scriptByCommand = {
   report: 'scripts/report.js'
 };
 
-function main() {
+async function main() {
   const { command, projectDir, scriptDir, forwardedArgs } = parseArgs(process.argv.slice(2));
 
   if (command === 'help' || forwardedArgs.some(arg => arg === '--help' || arg === '-h')) {
@@ -42,10 +42,21 @@ function main() {
 
   const resolvedScriptDir = resolveScriptDir(scriptDir);
   const resolvedProjectDir = resolveProjectDir(projectDir);
+  const configPath = path.resolve(resolvedProjectDir,
+    process.env.GLOBAL_REG_SUIT_CONFIG || process.env.REG_SUIT_CONFIG
+      || process.env.npm_config_config || path.join(process.env.REG_SUIT_DIR || resolvedProjectDir, 'config.json'));
+  const allowNewer = forwardedArgs.includes('--allow-newer-config');
+  const operationArgs = forwardedArgs.filter(arg => arg !== '--allow-newer-config');
+  const { checkConfigVersion } = require('../scripts/check-config-version');
+  if (!await checkConfigVersion({ configPath, scriptDir: resolvedScriptDir, command, allowNewer })) {
+    console.error('[reg-suit] Operation cancelled.');
+    process.exitCode = process.exitCode || 1;
+    return;
+  }
   ensureProjectDir(resolvedProjectDir);
   const childArgs = command === 'config' || command === 'config-update' || command === 'import'
-    ? forwardedArgs
-    : [command, ...forwardedArgs];
+    ? operationArgs
+    : [command, ...operationArgs];
   const child = spawnSync(resolveNodeBinary(), [path.join(resolvedScriptDir, scriptName), ...childArgs], {
     cwd: resolvedProjectDir,
     env: {
@@ -208,7 +219,8 @@ Options:
   --script-dir <path>  Use scripts from another RSR checkout.
   --filter <text>      Match scenario labels or URLs for reference/test.
   --workers <count>    Limit concurrent captures; overrides core.workers.
-  --no-clean          Keep cached screenshots when running reference/test.`);
+  --no-clean          Keep cached screenshots when running reference/test.
+  --allow-newer-config  Continue with a config newer than this RSR without prompting.`);
 }
 
 Promise.resolve(main()).catch((error) => {

@@ -63,7 +63,7 @@ rsr --dir tests/reg-suit-runner config -- --limit=25
 - `config` discovers links and merges scenarios. It preserves saved URLs, settings, and existing scenarios; `/` counts toward `--limit`.
 - For new configs, omitted or empty `--test` defaults to `--ref`. Edit saved base URLs directly to change environments.
 - `config` also adds `.reg/` to the project's `.gitignore`.
-- `--filter` matches labels or URLs; `--workers` overrides `core.workers` (default `10` in new or updated configs). Each scenario/viewport pair can run in a separate worker (one scenario with three viewports uses up to three workers). `report` only opens the latest report.
+- `--filter` matches labels or URLs; `--workers` overrides `core.workers`. When neither is set, RSR uses `core.workers` from `config-default.json` (currently `10`). Each scenario/viewport pair can run in a separate worker (one scenario with three viewports uses up to three workers). `report` only opens the latest report.
 - `--clean` is the default: `reference` rebuilds baselines. `--no-clean` retains cached files between runs.
 
 ## Update An Existing Config
@@ -84,6 +84,12 @@ are kept unchanged. Recalibrate after updating.
 (`YYYY.MM.DD.NN`). Bump it in `config-default.json` when runner or config changes need a new revision;
 `NN` increments for changes on the same date. The command updates this field
 and refuses to downgrade a config from a newer revision.
+
+Before running a command, RSR compares the config version with its bundled defaults.
+Newer configs require confirmation; older or unversioned configs offer an update.
+Declining the update keeps your config and continues. In non-interactive runs,
+older configs continue with a warning; newer configs stop unless you pass
+`--allow-newer-config`. Use `config-update` to update explicitly.
 
 ## Capture Errors
 
@@ -161,7 +167,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `referenceBaseURL` / `testBaseURL` | **Root:** base URLs for reference and test captures. | - |
 | `core.thresholdRateColor` | **Root:** colour tolerance when counting changed pixels, from 0–1. `0` is strictest; higher values ignore larger colour differences. This is not a percentage of pixels. | - |
 | `core.temporaryErrorRetries` | **Root:** retries per capture for temporary network or browser errors. | - |
-| `core.workers` | **Root:** maximum concurrent captures; `--workers` overrides it. Older configs without this setting use one worker. | - |
+| `core.workers` | **Root:** maximum concurrent captures; `--workers` overrides it. Configs without this setting use `core.workers` from `config-default.json` (currently `10`). | - |
 | `core.protocolTimeout` | **Root:** timeout for browser protocol commands. | - |
 | `readyVisible` | Require the ready element to be visible as well as present. | `wait-for-element` |
 | `failOnResponseStatusCodes` | Main-page HTTP status codes that fail capture. | `fail-on-response-status` |
