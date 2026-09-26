@@ -94,6 +94,7 @@ async function main() {
     const compareResult = await readCompareResult();
     const previousResults = await readJsonIfExists(resultsPath);
     const entry = buildResultEntry({
+      config,
       compareResult,
       selectedScenarios,
       viewports: config.viewports || [],
@@ -457,12 +458,14 @@ async function readCompareResult() {
   return JSON.parse(raw);
 }
 
-function buildResultEntry({ compareResult, selectedScenarios, viewports, workers, durationMs }) {
+function buildResultEntry({ config, compareResult, selectedScenarios, viewports, workers, durationMs }) {
   const run = selectedScenarios.scenarios.length * viewports.length;
   const passed = Array.isArray(compareResult?.passedItems) ? compareResult.passedItems.length : 0;
 
   return {
     datetime: formatDateTimeStamp(new Date()),
+    ref: config.referenceBaseURL || '',
+    test: config.testBaseURL || '',
     run,
     passed,
     dur_sec: Math.max(0, Math.round(durationMs / 1000)),
