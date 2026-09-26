@@ -24,7 +24,7 @@ const workingDir = path.join(controlledRootDir, 'run');
 const runActualDir = path.join(workingDir, 'actual');
 
 async function main() {
-  const { command, filter, addPara, clean, workers } = parseArgs(process.argv.slice(2));
+  const { command, filter, addPara, clean, workers: requestedWorkers } = parseArgs(process.argv.slice(2));
 
   if (!command || !['reference', 'test', 'approve'].includes(command)) {
     throw new Error('Usage: node scripts/run.js <reference|test|approve>');
@@ -32,6 +32,10 @@ async function main() {
 
   const startedAt = Date.now();
   const config = await readJson(configPath);
+  const workers = requestedWorkers ?? config.core?.workers ?? 1;
+  if (!Number.isInteger(workers) || workers < 1) {
+    throw new Error(`Invalid workers count: ${workers}. Expected a positive integer.`);
+  }
   const selectedScenarios = filterScenarios(config.scenarios || [], filter, config);
   validateScreenshotNames(selectedScenarios);
 
@@ -539,7 +543,7 @@ function parseArgs(argv) {
     filter: process.env.npm_config_filter || null,
     addPara: process.env.npm_config_addpara === 'true' || process.env.npm_config_addpara === '1',
     clean: true,
-    workers: Number(process.env.npm_config_workers || 1) || 1
+    workers: process.env.npm_config_workers ? Number(process.env.npm_config_workers) : undefined
   };
 
   for (let index = 1; index < argv.length; index += 1) {
@@ -576,7 +580,7 @@ function parseArgs(argv) {
     }
   }
 
-  if (!Number.isFinite(parsed.workers) || parsed.workers < 1) {
+  if (parsed.workers !== undefined && (!Number.isInteger(parsed.workers) || parsed.workers < 1)) {
     throw new Error(`Invalid workers count: ${parsed.workers}`);
   }
 

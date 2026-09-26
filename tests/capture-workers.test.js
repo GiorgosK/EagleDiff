@@ -22,6 +22,7 @@ test('workers distribute scenario/viewport pairs without duplicate or missing ca
   const configPath = path.join(directory, 'config.json');
   const config = {
     referenceBaseURL: `http://127.0.0.1:${server.address().port}`,
+    core: { workers: 4 },
     defaults: { delay: 0, waitUntil: 'load', fullPage: false },
     viewports: [
       { label: 'phone', width: 100, height: 120 },
@@ -30,16 +31,17 @@ test('workers distribute scenario/viewport pairs without duplicate or missing ca
     ],
     scenarios: [{ label: 'One', url: '/one' }]
   };
-  for (const [scenarioCount, workers, expectedWorkers] of [[1, 25, 3], [2, 4, 4], [2, 1, 1]]) {
+  for (const [scenarioCount, workers, expectedWorkers, fromProject] of [[1, undefined, 3, true], [1, undefined, 3], [1, 25, 3], [2, 4, 4], [2, 1, 1]]) {
     if (scenarioCount === 2 && config.scenarios.length === 1) {
       config.scenarios.push({ label: 'Two', url: '/two' });
     }
     await fs.writeFile(configPath, JSON.stringify(config));
     const { stdout } = await promisify(execFile)(process.execPath, [
-      path.join(__dirname, '../bin/reg-suit.js'), '--dir', directory,
-      '--script-dir', path.join(__dirname, '..'), 'reference', '--', `--workers=${workers}`
-    ], { timeout: 30000, env: { ...process.env, REG_SUIT_DIR: directory,
-      REG_SUIT_CONFIG: configPath, GLOBAL_REG_SUIT_CONFIG: configPath } });
+      path.join(__dirname, '../bin/reg-suit.js'), ...(fromProject ? [] : ['--dir', directory]),
+      '--script-dir', path.join(__dirname, '..'), 'reference', '--', ...(workers === undefined ? [] : [`--workers=${workers}`])
+    ], { timeout: 30000, cwd: fromProject ? directory : path.join(__dirname, '..'),
+      env: { ...process.env, npm_config_workers: '', INIT_CWD: '', REG_SUIT_DIR: '', REG_SUIT_CONFIG: '',
+        GLOBAL_REG_SUIT_CONFIG: '', npm_config_config: '' } });
     const progress = stdout.split('\n').filter(line => /^\[\d+\/\d+\]/.test(line));
     assert.equal(progress.length, scenarioCount * config.viewports.length);
     assert.equal(new Set(progress.map(line => line.match(/\[w(\d+)\]/)?.[1] || '1')).size, expectedWorkers);

@@ -1,8 +1,9 @@
 {
-  "version": "2026.09.26.01",
+  "version": "2026.09.26.02",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "core": {
+    "workers": 10,
     "thresholdRate": 0.001,
     "thresholdRateColor": 0.05,
     "temporaryErrorRetries": 0,

@@ -23,7 +23,8 @@ test('adds missing nested settings while preserving user values and scenario ove
   const original = structuredClone(current);
   const result = updateConfig(current, template);
   assert.deepEqual(current, original);
-  assert.equal(result.version, '2026.09.26.01');
+  assert.equal(result.version, template.version);
+  assert.equal(result.core.workers, template.core.workers);
   for (const key of ['referenceBaseURL', 'testBaseURL', 'viewports', 'scenarios', 'custom']) {
     assert.deepEqual(result[key], current[key]);
   }
@@ -82,7 +83,7 @@ test('config-update CLI updates only the selected config, is repeatable, and lea
   ], { env: { ...process.env, REG_SUIT_DIR: directory,
     REG_SUIT_CONFIG: configPath, GLOBAL_REG_SUIT_CONFIG: configPath } });
   await fs.writeFile(configPath, JSON.stringify({ defaults: { delay: 7 }, scenarios: [] }));
-  assert.match((await run()).stdout, /Updated config.json to 2026.09.26.01/);
+  assert.match((await run()).stdout, /Updated config.json to 2026.09.26.02/);
   const saved = await fs.readFile(configPath, 'utf8');
   assert.equal(JSON.parse(saved).defaults.delay, 7);
   assert.match((await run()).stdout, /already up to date/);
