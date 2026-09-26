@@ -8,6 +8,7 @@ const { createInterface } = require('readline');
 const { stripVTControlCharacters } = require('util');
 
 const puppeteer = require('puppeteer-core');
+const { readResults } = require('./results-history');
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
 
 const configPath = getConfigPath();
@@ -94,17 +95,21 @@ async function main() {
     await populateExpectedSnapshots(workingDir, referenceDir, selectedScenarios, filter);
     await runRegSuit(['compare', '--config', generatedRegConfigPath]);
     const compareResult = await readCompareResult();
-    const previousResults = await readJsonIfExists(resultsPath);
-    const entry = buildResultEntry({
-      config,
-      compareResult,
-      selectedScenarios,
-      viewports: config.viewports || [],
-      workers,
-      durationMs: Date.now() - startedAt
-    });
-    await prependJsonArrayEntry(resultsPath, entry);
-    printResultsComparison(entry, Array.isArray(previousResults) ? previousResults[0] : null);
+    try {
+      const previousResults = await readResults(resultsPath);
+      const entry = buildResultEntry({
+        config,
+        compareResult,
+        selectedScenarios,
+        viewports: config.viewports || [],
+        workers,
+        durationMs: Date.now() - startedAt
+      });
+      await prependJsonArrayEntry(resultsPath, entry);
+      printResultsComparison(entry, Array.isArray(previousResults) ? previousResults[0] : null);
+    } catch (error) {
+      throw new Error(`Comparison completed, but failed to save results history to ${resultsPath}:\n${error.message}`, { cause: error });
+    }
   } catch (error) {
     failed = true;
     throw error;
@@ -476,7 +481,7 @@ function buildResultEntry({ config, compareResult, selectedScenarios, viewports,
 }
 
 async function prependJsonArrayEntry(filePath, entry) {
-  const existing = await readJsonIfExists(filePath);
+  const existing = await readResults(filePath);
   const entries = Array.isArray(existing) ? existing : [];
   entries.unshift(entry);
   await fsp.writeFile(filePath, `${JSON.stringify(entries, null, 2)}\n`);
@@ -526,18 +531,6 @@ function formatDateStamp(date) {
 async function readJson(filePath) {
   const raw = await fsp.readFile(filePath, 'utf8');
   return JSON.parse(raw);
-}
-
-async function readJsonIfExists(filePath) {
-  try {
-    return await readJson(filePath);
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      return null;
-    }
-
-    throw error;
-  }
 }
 
 function parseArgs(argv) {

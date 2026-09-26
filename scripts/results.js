@@ -1,4 +1,4 @@
-const fsp = require('fs/promises');
+const { readResults } = require('./results-history');
 const path = require('path');
 
 const { rootDir } = require('./config-path');
@@ -23,20 +23,6 @@ async function main() {
 
   for (const entry of results.slice(0, 10).reverse()) {
     console.log(`[results] ${formatDateTime(entry.datetime)} ${renderBar(entry.passed, entry.run)} ${entry.passed}/${entry.run}`);
-  }
-}
-
-async function readResults(resultsPath) {
-  try {
-    const raw = await fsp.readFile(resultsPath, 'utf8');
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      return [];
-    }
-
-    throw error;
   }
 }
 
