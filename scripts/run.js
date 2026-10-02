@@ -8,6 +8,7 @@ const { createInterface } = require('readline');
 const { stripVTControlCharacters } = require('util');
 
 const puppeteer = require('puppeteer-core');
+const captureScreenshot = require('./capture-screenshot');
 const { readResults } = require('./results-history');
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
 
@@ -270,13 +271,7 @@ async function captureScenarioScreenshot({
         screenshotOptions.captureBeyondViewport = true;
       }
 
-      // Final DOM edits can invalidate layout after the readiness hooks ran.
-      // Allow a render cycle, then flush geometry before Chrome sizes the image.
-      await activePage.evaluate(async () => {
-        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        document.documentElement.getBoundingClientRect();
-      });
-      await activePage.screenshot(screenshotOptions);
+      await captureScreenshot(activePage, screenshotOptions);
       return;
     } catch (error) {
       const retryable = attempt < temporaryErrorRetries && isTemporaryCaptureError(error);

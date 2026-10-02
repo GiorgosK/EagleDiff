@@ -97,6 +97,10 @@ Capture errors report the scenario, viewport, attempted page URL, and failing
 hook. Redirected pages also include the final URL. Image errors include the image
 URL, processing step, and Chrome's network error when available.
 
+Full-page and clipped captures include a preliminary rendering pass to reduce
+missing offscreen content in Chrome. Only the final screenshot is saved; viewport
+dimensions and comparison thresholds stay unchanged.
+
 ## Default Hooks
 
 New configs include this `onReadyScript` list. Use `config-update` to add missing

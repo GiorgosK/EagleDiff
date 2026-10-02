@@ -68,7 +68,8 @@ test('never reorders existing hooks, even when they differ from the defaults', (
 
 test('version upgrades are numeric and newer configs cannot be downgraded', () => {
   assert.equal(updateConfig({ version: '2026.09.26.09' }, { version: '2026.09.26.10' }).version, '2026.09.26.10');
-  assert.throws(() => updateConfig({ version: '2026.09.27.01' }, template), /newer/);
+  const newer = template.version.replace(/\d+$/, revision => String(Number(revision) + 1).padStart(2, '0'));
+  assert.throws(() => updateConfig({ version: newer }, template), /newer/);
   assert.throws(() => updateConfig({ version: 'bad' }, template), /Invalid version/);
   for (const invalid of [null, [], 'config']) assert.throws(() => updateConfig(invalid, template), /JSON object/);
 });
