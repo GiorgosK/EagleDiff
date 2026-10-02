@@ -189,6 +189,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `carouselSettleDelayMs` | Pause after resetting carousels. | `stabilize-carousels` |
 | `hideDynamicSelectors` | Apply `display: none`, including to elements added later. | `hide-dynamic-elements` |
 | `keepCookiebot` | **Scenario only:** skip the entire `hideDynamicSelectors` hook for this page. | `hide-dynamic-elements` |
+| `lazyImageTimeout` | Maximum wait in milliseconds for each image to decode after lazy loading. | `load-lazy-images` |
 | `normalizeResponsiveImageSelectors` | Freeze image/source choices and remove responsive sizing attributes. | `normalize-responsive-images` |
 | `normalizeImageDecodingSelectors` | Convert selected JPEGs to PNGs for capture. If fetching is blocked but the original image loads, keep it and warn. Broken images still fail. | `normalize-image-decoding` |
 | `randomImage` | Replace selected images with fixed placeholders; use a background placeholder when the target contains no images. | `replace-random-content` |
@@ -287,6 +288,12 @@ Add to `defaults` or a scenario. Example: fix a randomized background at 500px a
 
 Use an image path available on your site. A scenario's CSS replaces the default
 CSS; `""` disables it for that scenario.
+
+### Lazy images
+
+The `load-lazy-images` hook loads common `data-src`, `data-srcset`, and `data-sizes`
+attributes (including `data-lazy-*`) and waits for images to decode before
+responsive-image normalization. Broken or timed-out images report their URL.
 
 ### Scroll reveals, fading icons, and moving decorations
 

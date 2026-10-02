@@ -1,5 +1,5 @@
 {
-  "version": "2026.10.02.02",
+  "version": "2026.10.02.03",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "core": {
@@ -37,6 +37,7 @@
     "carouselSelectors": [],
     "carouselSettleDelayMs": 500,
     "keepSelectors": [],
+    "lazyImageTimeout": 15000,
     "normalizeResponsiveImageSelectors": [
       "img",
       "picture source"
