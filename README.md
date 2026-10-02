@@ -240,6 +240,25 @@ For varying image sizes, an image entry can be
 Both dimensions are required together; they set the placeholder's intrinsic size.
 A text entry can use `{ "selector": ".summary", "text": "Fixed summary" }`.
 
+### Google Maps and other third-party embeds
+
+Example: exclude a changing Google Maps embed during calibration. Add to your
+existing `hideSelectors` in `defaults` or a scenario:
+
+```json
+"hideSelectors": [
+  "iframe[src^=\"https://www.google.com/maps/embed\"]"
+]
+```
+
+The map becomes blank, keeping its layout space. This uses built-in capture
+handling; no extra hook is needed. Adjust the selector for your embed URL.
+Use this when testing the surrounding page, since map content is no longer compared.
+Avoid `removeSelectors` here: removing the iframe shifts the content below it.
+
+For a changing reCAPTCHA badge, also add `.grecaptcha-badge`. Regenerate references
+and rerun `test` after adding these settings. RSR leaves embeds visible by default.
+
 ### `replaceContent`
 
 Add to `defaults` or a scenario:
