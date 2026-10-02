@@ -1,5 +1,5 @@
 {
-  "version": "2026.09.26.03",
+  "version": "2026.10.02.01",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "core": {
@@ -74,7 +74,6 @@
     "hooks/wait-for-element",
     "hooks/wait-until-gone",
     "hooks/scroll-to-bottom",
-    "hooks/wait-for-stable-content",
     "hooks/hide-dynamic-elements",
     "hooks/disable-animations",
     "hooks/wait-for-fonts",
@@ -84,6 +83,7 @@
     "hooks/replace-random-content",
     "hooks/apply-css-overrides",
     "hooks/normalize-image-decoding",
+    "hooks/wait-for-stable-content",
     "hooks/keep-selectors",
     "hooks/wait-for-background-images",
     "hooks/wait-for-network-idle",

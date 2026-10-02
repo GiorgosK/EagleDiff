@@ -110,7 +110,6 @@ Hooks run in the order shown.
   "hooks/wait-for-element",
   "hooks/wait-until-gone",
   "hooks/scroll-to-bottom",
-  "hooks/wait-for-stable-content",
   "hooks/hide-dynamic-elements",
   "hooks/disable-animations",
   "hooks/wait-for-fonts",
@@ -120,6 +119,7 @@ Hooks run in the order shown.
   "hooks/replace-random-content",
   "hooks/apply-css-overrides",
   "hooks/normalize-image-decoding",
+  "hooks/wait-for-stable-content",
   "hooks/keep-selectors",
   "hooks/wait-for-background-images",
   "hooks/wait-for-network-idle",
@@ -283,6 +283,22 @@ Add to `defaults` or a scenario. Example: fix a randomized background at 500px a
 
 Use an image path available on your site. A scenario's CSS replaces the default
 CSS; `""` disables it for that scenario.
+
+### Scroll reveals, fading icons, and moving decorations
+
+`disable-animations` removes CSS animation delays, but JavaScript can still hide
+an element or fade it in. Use `cssOverrides` to show selected content and stop
+selected decorations. Example selectors from a site using WOW and lazy images:
+
+```json
+"cssOverrides": ".wow { visibility: visible !important; opacity: 1 !important; transform: none !important; animation: none !important; } .shapes { animation: none !important; } img.lazy-img { opacity: 1 !important; }",
+"waitForStableContent": {
+  "triggerSelectors": [],
+  "selectors": ["img.lazy-img", ".wow", ".shapes"],
+  "timeout": 15000,
+  "settleDelayMs": 1000
+}
+```
 
 ### `addParagraph`
 
