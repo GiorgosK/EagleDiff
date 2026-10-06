@@ -60,11 +60,20 @@ rsr --dir tests/reg-suit-runner config -- --limit=25
 - `--dir` selects the folder containing `config.json`, screenshots in `.reg/`, and run history in `results.json`.
 - `approve` accepts the latest captured screenshots by replacing the reference set with them. Review the report first.
 - `results` prints pass counts, duration, and worker count for the latest two runs, plus a short history.
-- `config` discovers links and merges scenarios. It preserves saved URLs, settings, and existing scenarios; `/` counts toward `--limit`.
+- `config` discovers links and merges scenarios. It preserves saved URLs, settings, and existing scenarios except those matching `excludeExtensions`; `/` counts toward `--limit`.
 - For new configs, omitted or empty `--test` defaults to `--ref`. Edit saved base URLs directly to change environments.
 - `config` also adds `.reg/` to the project's `.gitignore`.
 - `--filter` matches labels or URLs; `--workers` overrides `core.workers`. When neither is set, RSR uses `core.workers` from `config-default.json` (currently `10`). Each scenario/viewport pair can run in a separate worker (one scenario with three viewports uses up to three workers). `report` only opens the latest report.
 - `--clean` is the default: `reference` rebuilds baselines. `--no-clean` retains cached files between runs.
+
+Set the root-level `excludeExtensions` array in `config.json` to skip file links
+during discovery, for example `"excludeExtensions": [".pdf", ".zip", "docx"]`.
+The default in `config-default.json` is `[".pdf"]`. Extensions accept an optional
+leading dot and match case-insensitively against the URL path, ignoring queries
+and fragments. Use `[]` to allow all extensions. Running `config` uses the saved
+list and also removes matching existing scenarios; excluded links do not count
+toward `--limit`. `config-update` adds the setting when missing and preserves
+custom lists. Run `config` afterward to filter existing scenarios.
 
 ## Update An Existing Config
 

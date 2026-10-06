@@ -8,6 +8,13 @@ const { promisify } = require('node:util');
 const { updateConfig } = require('../scripts/config-update');
 const template = require('../config-default.json');
 
+test('adds default extension exclusions and preserves custom or empty lists', () => {
+  assert.deepEqual(updateConfig({}, template).excludeExtensions, ['.pdf']);
+  for (const excludeExtensions of [['.pdf', '.zip'], []]) {
+    assert.deepEqual(updateConfig({ excludeExtensions }, template).excludeExtensions, excludeExtensions);
+  }
+});
+
 test('adds missing nested settings while preserving user values and scenario overrides', () => {
   const current = {
     referenceBaseURL: 'https://live.test', testBaseURL: 'https://local.test',

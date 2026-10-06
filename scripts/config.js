@@ -10,6 +10,7 @@ const {
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
 
 const defaultConfigPath = path.join(helperDir, 'config-default.json');
+const defaultExcludeExtensions = require('../config-default.json').excludeExtensions;
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -40,11 +41,12 @@ async function main() {
   const limit = Math.max(1, Number(args.limit || 15) || 15);
   const discoveredScenarios = await discoverScenarios({
     discoverySources,
-    limit
+    limit,
+    excludeExtensions: baseConfig.excludeExtensions
   });
 
   const existingScenarios = Array.isArray(baseConfig.scenarios) ? baseConfig.scenarios : [];
-  const mergedScenarios = mergeScenarios(existingScenarios, discoveredScenarios);
+  const mergedScenarios = mergeScenarios(existingScenarios, discoveredScenarios, baseConfig.excludeExtensions);
 
   const outputConfig = {
     ...baseConfig,
@@ -73,7 +75,7 @@ async function ensureGitignore(projectDir) {
   await fsp.writeFile(gitignorePath, `${existing}${separator}.reg/\n`);
 }
 
-async function discoverScenarios({ discoverySources, limit }) {
+async function discoverScenarios({ discoverySources, limit, excludeExtensions }) {
   const browser = await puppeteer.launch({
     args: [
       '--no-sandbox',
@@ -107,7 +109,7 @@ async function discoverScenarios({ discoverySources, limit }) {
             break;
           }
 
-          const normalized = normalizeLink(baseUrl, link);
+          const normalized = normalizeLink(baseUrl, link, excludeExtensions);
           if (!normalized || seenUrls.has(normalized.url)) {
             continue;
           }
@@ -126,7 +128,7 @@ async function discoverScenarios({ discoverySources, limit }) {
   }
 }
 
-function normalizeLink(pageUrl, link) {
+function normalizeLink(pageUrl, link, excludeExtensions = defaultExcludeExtensions) {
   if (!link || !link.href) {
     return null;
   }
@@ -154,6 +156,10 @@ function normalizeLink(pageUrl, link) {
   }
 
   if (!urlObject.pathname || urlObject.pathname === '/#') {
+    return null;
+  }
+
+  if (hasExcludedExtension(urlObject.href, excludeExtensions)) {
     return null;
   }
 
@@ -222,13 +228,27 @@ function getLabel(link, pathname) {
     .trim() || getScenarioLabel({ url: pathname });
 }
 
-function mergeScenarios(existingScenarios, discoveredScenarios) {
+function hasExcludedExtension(url, excludeExtensions) {
+  if (!Array.isArray(excludeExtensions)) {
+    throw new Error('excludeExtensions must be an array of file extensions.');
+  }
+  const pathname = decodeForValidation(new URL(url, 'https://example.invalid').pathname).toLowerCase();
+  return excludeExtensions.some(extension => {
+    if (typeof extension !== 'string' || !extension.trim()) {
+      throw new Error('excludeExtensions must contain non-empty strings.');
+    }
+    const normalized = extension.trim().toLowerCase().replace(/^\./, '');
+    return pathname.endsWith(`.${normalized}`);
+  });
+}
+
+function mergeScenarios(existingScenarios, discoveredScenarios, excludeExtensions = defaultExcludeExtensions) {
   const knownUrls = new Set();
   const merged = [];
 
   for (const scenario of existingScenarios) {
     const url = getScenarioUrl(scenario) || scenario.referenceUrl || '';
-    if (!url || knownUrls.has(url)) {
+    if (!url || knownUrls.has(url) || hasExcludedExtension(url, excludeExtensions)) {
       continue;
     }
 
@@ -237,7 +257,7 @@ function mergeScenarios(existingScenarios, discoveredScenarios) {
   }
 
   for (const scenario of discoveredScenarios) {
-    if (knownUrls.has(scenario.url)) {
+    if (knownUrls.has(scenario.url) || hasExcludedExtension(scenario.url, excludeExtensions)) {
       continue;
     }
 
@@ -382,4 +402,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { normalizeLink };
+module.exports = { normalizeLink, mergeScenarios };
