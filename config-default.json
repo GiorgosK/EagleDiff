@@ -62,7 +62,8 @@
     "networkIdleTimeout": 5000,
     "failOnResponseStatusCodes": [404,500,502,503,504],
     "hideSelectors": [
-      "[id^=\"div-gpt-ad\"]"
+      "[id^=\"div-gpt-ad\"]",
+      "iframe[src^=\"https://www.google.com/maps/embed\"]"
     ],
     "removeSelectors": [
       ".CookieDeclaration",
