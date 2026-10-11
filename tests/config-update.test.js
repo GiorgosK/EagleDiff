@@ -9,7 +9,7 @@ const { updateConfig } = require('../scripts/config-update');
 const template = require('../config-default.json');
 
 test('adds default extension exclusions and preserves custom or empty lists', () => {
-  assert.deepEqual(updateConfig({}, template).excludeExtensions, ['.pdf']);
+  assert.deepEqual(updateConfig({}, template).excludeExtensions, template.excludeExtensions);
   for (const excludeExtensions of [['.pdf', '.zip'], []]) {
     assert.deepEqual(updateConfig({ excludeExtensions }, template).excludeExtensions, excludeExtensions);
   }

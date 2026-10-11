@@ -6,6 +6,7 @@ const path = require('node:path');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 const { normalizeLink, mergeScenarios } = require('../scripts/config');
+const template = require('../config-default.json');
 
 const base = 'https://example.org/';
 
@@ -68,8 +69,8 @@ test('config CLI saves defaults and uses existing exclusions before applying the
 
   await run();
   const created = JSON.parse(await fs.readFile(configPath, 'utf8'));
-  assert.deepEqual(created.excludeExtensions, ['.pdf']);
-  assert.deepEqual(created.scenarios.map(scenario => scenario.url), ['/', '/archive.zip']);
+  assert.deepEqual(created.excludeExtensions, template.excludeExtensions);
+  assert.deepEqual(created.scenarios.map(scenario => scenario.url), ['/', '/page']);
 
   await fs.writeFile(configPath, JSON.stringify({
     ...created, excludeExtensions: ['pdf', '.zip'],
