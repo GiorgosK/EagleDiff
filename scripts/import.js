@@ -13,7 +13,7 @@ async function main() {
   const templateConfig = await readJson(defaultConfigPath);
   const existingConfig = await readJsonIfExists(configPath);
   const baseConfig = mergeDeep(templateConfig, existingConfig || {});
-  const importedConfig = buildImportedConfig(baseConfig, templateConfig, backstopConfig, backstopPath);
+  const importedConfig = buildImportedConfig(baseConfig, templateConfig, backstopConfig, backstopPath, configPath);
 
   await fsp.mkdir(path.dirname(configPath), { recursive: true });
   await fsp.writeFile(configPath, `${JSON.stringify(importedConfig, null, 2)}\n`);
@@ -24,8 +24,17 @@ async function main() {
   console.log(`[reg-suit] Wrote ${path.relative(rootDir, configPath)}`);
 }
 
-function buildImportedConfig(baseConfig, templateConfig, backstopConfig, backstopPath) {
-  const scenarios = Array.isArray(backstopConfig.scenarios) ? backstopConfig.scenarios : [];
+function buildImportedConfig(baseConfig, templateConfig, backstopConfig, backstopPath,
+  configPath = getConfigPath()) {
+  const scenarios = (Array.isArray(backstopConfig.scenarios) ? backstopConfig.scenarios : []).map(scenario => {
+    if (!scenario || typeof scenario !== 'object') return scenario;
+    const cookiePath = Object.hasOwn(scenario, 'cookiePath') ? scenario.cookiePath : backstopConfig.cookiePath;
+    return {
+      ...scenario,
+      ...(cookiePath !== undefined ? { cookiePath: cookiePath ? path.relative(path.dirname(configPath),
+        path.resolve(path.dirname(backstopPath), cookiePath)) : null } : {})
+    };
+  });
   const referenceBaseURL = deriveBaseUrl(scenarios, 'referenceUrl')
     || baseConfig.referenceBaseURL
     || baseConfig.testBaseURL;
@@ -43,6 +52,8 @@ function buildImportedConfig(baseConfig, templateConfig, backstopConfig, backsto
     readyVisible: baseConfig.defaults?.readyVisible,
     readyTimeout: baseConfig.defaults?.readyTimeout,
     waitUntil: baseConfig.defaults?.waitUntil,
+    cookiePath: baseConfig.defaults?.cookiePath,
+    cookies: baseConfig.defaults?.cookies,
     waitUntilGone: baseConfig.defaults?.waitUntilGone,
     waitUntilGoneTimeout: baseConfig.defaults?.waitUntilGoneTimeout,
     fullPage: baseConfig.defaults?.fullPage,
@@ -112,6 +123,8 @@ function stripScenarioToRunnerShape(scenario) {
     'readyTimeout',
     'readyVisible',
     'waitUntil',
+    'cookiePath',
+    'cookies',
     'waitUntilGone',
     'waitUntilGoneTimeout',
     'fullPage',
@@ -139,6 +152,8 @@ function pickScenarioOverrides(scenario, defaults) {
     'readyTimeout',
     'readyVisible',
     'waitUntil',
+    'cookiePath',
+    'cookies',
     'waitUntilGone',
     'waitUntilGoneTimeout',
     'fullPage',
@@ -161,7 +176,7 @@ function pickScenarioOverrides(scenario, defaults) {
     }
 
     const value = scenario[key];
-    if (!isMeaningfulValue(value)) {
+    if (!isMeaningfulValue(value) && key !== 'cookies' && key !== 'cookiePath') {
       continue;
     }
 
@@ -183,6 +198,8 @@ function buildSharedDefaults(scenarios, fallbackDefaults) {
     'readyVisible',
     'readyTimeout',
     'waitUntil',
+    'cookiePath',
+    'cookies',
     'waitUntilGone',
     'waitUntilGoneTimeout',
     'fullPage',
@@ -457,7 +474,11 @@ function parseArgs(argv) {
   return parsed;
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { buildImportedConfig };

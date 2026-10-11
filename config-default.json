@@ -1,5 +1,5 @@
 {
-  "version": "2026.10.06.01",
+  "version": "2026.10.10.01",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -14,6 +14,10 @@
     "delay": 1500,
     "fullPage": true,
     "waitUntil": "domcontentloaded",
+    "cookiePath": null,
+    "cookies": [],
+    "cookieDomain": null,
+    "cookieExpiry": null,
     "readyTimeout": 10000,
     "readySelector": "#footer,.footer,footer",
     "readyVisible": false,

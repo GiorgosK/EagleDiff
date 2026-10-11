@@ -46,7 +46,31 @@ rsr --dir tests/reg-suit-runner import --backstop=/path/to/tests/backstop
 ```
 
 Reads `backstop.json` and derives the base URLs from its scenarios. Review the
-imported config before capturing references.
+imported config before capturing references. Backstop `cookiePath` entries are
+imported as paths relative to the RSR config, resolving the source paths relative
+to `backstop.json`. A shared file becomes `defaults.cookiePath`; different files
+remain on their scenarios. Custom Backstop scripts are not executed by RSR.
+
+For existing imports, add `defaults.cookiePath` manually to preserve calibration
+changes rather than replacing scenarios with another import. Cookie files contain
+an array of cookie objects with `name`, `value`, and optional `domain`, `path`,
+`expires` (Unix seconds), `secure`, `httpOnly`, and `sameSite`.
+For reusable consent fixtures that should apply to both environments:
+
+```json
+{
+  "defaults": {
+    "cookiePath": "../backstop/backstop_data/engine_scripts/cookies.json",
+    "cookieDomain": "current",
+    "cookieExpiry": "session"
+  }
+}
+```
+
+These options explicitly change the domain and expiry; without them, RSR
+preserves both. Cookie values are never logged. File cookies are applied first,
+followed by inline `cookies`, which can override cookies with the same scope.
+
 
 ## Commands And Config
 
@@ -167,6 +191,7 @@ The descriptions show how RSR uses them.
 | `removeSelectors` | Defaults or scenario | Remove matching elements and their space from the DOM. | - |
 | `fullPage` | Defaults or scenario | Capture the whole page; `false` captures the viewport. | - |
 | `waitUntil` | Defaults only | Navigation readiness: `domcontentloaded`, `load`, `networkidle0`, or `networkidle2`. | - |
+| `cookiePath` / `cookies` | Defaults or scenario | JSON cookie file relative to `config.json`, plus optional inline cookie array. Applied before navigation in an isolated browser context for each capture. Set `cookiePath: null` and `cookies: []` on a scenario to disable shared cookies. | - |
 | `keepSelectors` | Defaults or scenario | Similar to Backstop's `selectors`, but produces one crop enclosing all matches. Missing selectors fail capture. | `keep-selectors` |
 | `core.thresholdRate` | Root | Allowed fraction of changed pixels. `0.001` means 0.1%; Backstop's `misMatchThreshold` uses percentages instead. | - |
 
@@ -182,6 +207,8 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `core.temporaryErrorRetries` | **Root:** retries per capture for temporary network or browser errors. | - |
 | `core.workers` | **Root:** maximum concurrent captures; `--workers` overrides it. Configs without this setting use `core.workers` from `config-default.json` (currently `10`). | - |
 | `core.protocolTimeout` | **Root:** timeout for browser protocol commands. | - |
+| `cookieDomain` | `null` preserves cookie domains (missing domains use the capture hostname). `"current"` explicitly scopes cookies to the current reference/test hostname; a domain string sets a fixed domain. | - |
+| `cookieExpiry` | `null` preserves expiry and warns when expired cookies are skipped. `"session"` removes expiry for reusable test fixtures. | - |
 | `readyVisible` | Require the ready element to be visible as well as present. | `wait-for-element` |
 | `failOnResponseStatusCodes` | Main-page HTTP status codes that fail capture. | `fail-on-response-status` |
 | `browserVerification.challengeSelectors` | Detect a browser-verification page; wait for these markers to disappear. | `wait-for-browser-verification` |

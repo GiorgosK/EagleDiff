@@ -9,6 +9,7 @@ const { stripVTControlCharacters } = require('util');
 
 const puppeteer = require('puppeteer-core');
 const captureScreenshot = require('./capture-screenshot');
+const { applyCookies } = require('./cookies');
 const { readResults } = require('./results-history');
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
 
@@ -223,7 +224,11 @@ async function captureScenarioScreenshot({
   let attempt = 0;
 
   while (true) {
-    const activePage = await browser.newPage();
+    const browserContext = await browser.createBrowserContext();
+    const activePage = await browserContext.newPage().catch(async error => {
+      await browserContext.close().catch(() => {});
+      throw error;
+    });
     const readyContext = {
       ...captureContext,
       navigationResponseStatus: null,
@@ -240,13 +245,13 @@ async function captureScenarioScreenshot({
     };
     // Browser-verification pages can reload after goto has already returned.
     activePage.on('response', trackNavigationResponse);
-    await activePage.setViewport({
-      width: viewport.width,
-      height: viewport.height,
-      deviceScaleFactor: viewport.deviceScaleFactor || 1
-    });
-
     try {
+      await activePage.setViewport({
+        width: viewport.width,
+        height: viewport.height,
+        deviceScaleFactor: viewport.deviceScaleFactor || 1
+      });
+      await applyCookies(browserContext, url, scenario, runtimeConfig.defaults, configPath, captureContext.reportWarning);
       await runScripts(activePage, beforeScripts, { scenario, mode: 'before', config: runtimeConfig });
       const navigationResponse = await activePage.goto(url, { waitUntil });
       if (readyContext.navigationResponseStatus === null && navigationResponse) {
@@ -289,6 +294,7 @@ async function captureScenarioScreenshot({
     } finally {
       activePage.off('response', trackNavigationResponse);
       await safeClosePage(activePage);
+      await browserContext.close().catch(() => {});
     }
   }
 }
