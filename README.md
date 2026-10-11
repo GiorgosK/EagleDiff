@@ -368,10 +368,14 @@ The `load-lazy-images` hook loads common `data-src`, `data-srcset`, and `data-si
 attributes (including `data-lazy-*`) and waits for images to decode before
 responsive-image normalization. Broken or timed-out images report their URL.
 `imageFailurePolicy` (defaults or scenario) defaults to `"error"`. Set `"warn"`
-to continue capturing with unresolved images, as Backstop's stabilizer does.
+to continue capturing with broken images, as Backstop's stabilizer does.
 Warnings identify the resources; broken placeholders remain in the screenshot
 and can fail visual comparison. Optional JPEG normalization skips those failed
 sources. This setting does not permit an HTTP error for the page itself.
+Image-loading timeouts fail capture in both modes and use
+`core.temporaryErrorRetries`: an image that is still loading can change the
+layout after the screenshot. On a busy computer, reduce `core.workers` or run
+with `--workers=1` to reduce competing browser work before increasing timeouts.
 
 ### Scroll reveals, fading icons, and moving decorations
 

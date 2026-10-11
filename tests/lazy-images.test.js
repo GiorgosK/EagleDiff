@@ -44,6 +44,9 @@ test('loads delayed lazy sources before normalization and reports failed image U
   await assert.rejects(load(page), error => error.message.includes(`${base}/missing.svg`));
   await page.setContent(`<img data-src="${base}/timeout.svg">`);
   await assert.rejects(load(page, { scenario: { lazyImageTimeout: 10 } }), /timeout.svg[\s\S]*Timed out after 10ms/);
+  await page.setContent(`<img data-src="${base}/warn-timeout.svg">`);
+  await assert.rejects(load(page, { scenario: { lazyImageTimeout: 10, imageFailurePolicy: 'warn' } }),
+    error => error.code === 'RSR_IMAGE_TIMEOUT' && /warn-timeout.svg/.test(error.message));
   await page.setContent(`<img width="40" height="30" src="${base}/missing.jpg?token=fixture">`);
   const warnings = [];
   const context = { scenario: {}, config: { defaults: { imageFailurePolicy: 'warn' } },

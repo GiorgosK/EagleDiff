@@ -45,11 +45,17 @@ module.exports = async function loadLazyImages(page, context = {}) {
         await Promise.race([
           image.decode(),
           new Promise((_, reject) => {
-            timer = setTimeout(() => reject(new Error(`Timed out after ${timeoutMs}ms`)), timeoutMs);
+            timer = setTimeout(() => {
+              const error = new Error(`Timed out after ${timeoutMs}ms`);
+              error.code = 'RSR_IMAGE_TIMEOUT';
+              reject(error);
+            }, timeoutMs);
           })
         ]);
       } catch (error) {
-        if (failurePolicy === 'warn') {
+        // A timeout leaves the image unresolved: it can still load and move
+        // the layout during capture. Let the runner retry even in warning mode.
+        if (failurePolicy === 'warn' && error.code !== 'RSR_IMAGE_TIMEOUT') {
           failures.push({ sources: [image.currentSrc, image.src].filter(Boolean), message: error.message });
           return;
         }
