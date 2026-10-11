@@ -13,7 +13,8 @@ async function main() {
   const templateConfig = await readJson(defaultConfigPath);
   const existingConfig = await readJsonIfExists(configPath);
   const baseConfig = mergeDeep(templateConfig, existingConfig || {});
-  const importedConfig = buildImportedConfig(baseConfig, templateConfig, backstopConfig, backstopPath, configPath);
+  const importedConfig = buildImportedConfig(baseConfig, templateConfig, backstopConfig, backstopPath,
+    configPath, { preserveWorkers: Object.hasOwn(existingConfig?.core || {}, 'workers') });
 
   await fsp.mkdir(path.dirname(configPath), { recursive: true });
   await fsp.writeFile(configPath, `${JSON.stringify(importedConfig, null, 2)}\n`);
@@ -25,7 +26,7 @@ async function main() {
 }
 
 function buildImportedConfig(baseConfig, templateConfig, backstopConfig, backstopPath,
-  configPath = getConfigPath()) {
+  configPath = getConfigPath(), { preserveWorkers = false } = {}) {
   const scenarios = (Array.isArray(backstopConfig.scenarios) ? backstopConfig.scenarios : []).map(scenario => {
     if (!scenario || typeof scenario !== 'object') return scenario;
     const cookiePath = Object.hasOwn(scenario, 'cookiePath') ? scenario.cookiePath : backstopConfig.cookiePath;
@@ -66,6 +67,7 @@ function buildImportedConfig(baseConfig, templateConfig, backstopConfig, backsto
   });
   const thresholdRate = deriveThresholdRate(scenarios, baseConfig.core?.thresholdRate);
   const translatedScenarios = normalizeScenarios(scenarios, referenceBaseURL, testBaseURL, sharedDefaults);
+  const captureLimit = Number(backstopConfig.asyncCaptureLimit);
 
   return {
     ...baseConfig,
@@ -73,6 +75,8 @@ function buildImportedConfig(baseConfig, templateConfig, backstopConfig, backsto
     testBaseURL,
     core: {
       ...baseConfig.core,
+      ...(!preserveWorkers && Number.isInteger(captureLimit) && captureLimit > 0
+        ? { workers: captureLimit } : {}),
       ...(thresholdRate === null ? {} : { thresholdRate })
     },
     defaults: {

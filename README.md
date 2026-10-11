@@ -50,6 +50,9 @@ imported config before capturing references. Backstop `cookiePath` entries are
 imported as paths relative to the RSR config, resolving the source paths relative
 to `backstop.json`. A shared file becomes `defaults.cookiePath`; different files
 remain on their scenarios. Custom Backstop scripts are not executed by RSR.
+Backstop's `asyncCaptureLimit` becomes `core.workers` unless the existing RSR
+config already specifies workers, avoiding an increase in capture concurrency
+on import.
 
 For existing imports, add `defaults.cookiePath` manually to preserve calibration
 changes rather than replacing scenarios with another import. Cookie files contain
