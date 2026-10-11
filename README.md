@@ -74,6 +74,22 @@ These options explicitly change the domain and expiry; without them, RSR
 preserves both. Cookie values are never logged. File cookies are applied first,
 followed by inline `cookies`, which can override cookies with the same scope.
 
+If `reference` fails during navigation, its error includes `waitUntil`, the
+navigation timeout, elapsed time, main-document HTTP responses and redirects,
+DOMContentLoaded/load events, and a bounded list of pending and failed requests.
+Diagnostic request URLs omit query strings, fragments and credentials. The run
+stops and cancels remaining workers on the first failed capture; progress lines
+indicate captures starting, not captures successfully saved. A failed `reference`
+also prevents `test` from running when connected with `&&`.
+To isolate a failing page:
+
+```bash
+rsr reference -- --filter=Inspire --workers=1
+```
+
+For slow pages, increase `defaults.navigationTimeout` (for example to `60000`)
+or set `navigationTimeout` on the affected scenario. `core.protocolTimeout`
+controls browser protocol commands and does not increase the navigation timeout.
 
 ## Commands And Config
 
@@ -193,7 +209,8 @@ The descriptions show how RSR uses them.
 | `hideSelectors` | Defaults or scenario | Hide matching elements, keeping their space. | - |
 | `removeSelectors` | Defaults or scenario | Remove matching elements and their space from the DOM. | - |
 | `fullPage` | Defaults or scenario | Capture the whole page; `false` captures the viewport. | - |
-| `waitUntil` | Defaults only | Navigation readiness: `domcontentloaded`, `load`, `networkidle0`, or `networkidle2`. | - |
+| `waitUntil` | Defaults or scenario | Navigation readiness: `domcontentloaded`, `load`, `networkidle0`, or `networkidle2`. | - |
+| `navigationTimeout` | Defaults or scenario | Navigation timeout, default `30000`. Separate from `core.protocolTimeout`; `0` disables the timeout. | - |
 | `cookiePath` / `cookies` | Defaults or scenario | JSON cookie file relative to `config.json`, plus optional inline cookie array. Applied before navigation in an isolated browser context for each capture. Set `cookiePath: null` and `cookies: []` on a scenario to disable shared cookies. | - |
 | `keepSelectors` | Defaults or scenario | Similar to Backstop's `selectors`, but produces one crop enclosing all matches. Missing selectors fail capture. | `keep-selectors` |
 | `core.thresholdRate` | Root | Allowed fraction of changed pixels. `0.001` means 0.1%; Backstop's `misMatchThreshold` uses percentages instead. | - |
@@ -207,7 +224,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | --- | --- | --- |
 | `referenceBaseURL` / `testBaseURL` | **Root:** base URLs for reference and test captures. | - |
 | `core.thresholdRateColor` | **Root:** colour tolerance when counting changed pixels, from 0–1. `0` is strictest; higher values ignore larger colour differences. This is not a percentage of pixels. | - |
-| `core.temporaryErrorRetries` | **Root:** retries per capture for temporary network or browser errors. | - |
+| `core.temporaryErrorRetries` | **Root:** retries per capture for temporary network/browser errors, navigation timeouts, image-loading timeouts, and readySelector timeouts. Each retry starts in a fresh browser context. Broken images and HTTP errors still fail. Default `0` disables retries. | - |
 | `core.workers` | **Root:** maximum concurrent captures; `--workers` overrides it. Configs without this setting use `core.workers` from `config-default.json` (currently `10`). | - |
 | `core.protocolTimeout` | **Root:** timeout for browser protocol commands. | - |
 | `cookieDomain` | `null` preserves cookie domains (missing domains use the capture hostname). `"current"` explicitly scopes cookies to the current reference/test hostname; a domain string sets a fixed domain. | - |

@@ -28,6 +28,8 @@ module.exports = async function waitForElement(page, context) {
   try {
     await page.waitForSelector(selector, options);
   } catch (error) {
-    throw new Error(`Required readySelector ${JSON.stringify(selector)} was not found${visible ? ' or visible' : ''} within ${timeoutMs}ms at ${page.url()}. Stopping capture. Check defaults.readySelector or the scenario override; increase readyTimeout only if the page needs more time. ${error.message}`, { cause: error });
+    const failure = new Error(`Required readySelector ${JSON.stringify(selector)} was not found${visible ? ' or visible' : ''} within ${timeoutMs}ms at ${page.url()}. Check defaults.readySelector or the scenario override; increase readyTimeout only if the page needs more time. ${error.message}`, { cause: error });
+    if (error.name === 'TimeoutError') failure.code = 'RSR_READY_TIMEOUT';
+    throw failure;
   }
 };

@@ -9,6 +9,7 @@ const { stripVTControlCharacters } = require('util');
 
 const puppeteer = require('puppeteer-core');
 const captureScreenshot = require('./capture-screenshot');
+const { navigate } = require('./navigation');
 const { applyCookies } = require('./cookies');
 const { readResults } = require('./results-history');
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
@@ -183,7 +184,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
           browser,
           viewport,
           url,
-          waitUntil,
+          waitUntil: scenario.waitUntil ?? waitUntil,
           delayMs,
           beforeScripts,
           readyScripts,
@@ -253,7 +254,11 @@ async function captureScenarioScreenshot({
       });
       await applyCookies(browserContext, url, scenario, runtimeConfig.defaults, configPath, captureContext.reportWarning);
       await runScripts(activePage, beforeScripts, { scenario, mode: 'before', config: runtimeConfig });
-      const navigationResponse = await activePage.goto(url, { waitUntil });
+      const navigationTimeout = scenario.navigationTimeout ?? runtimeConfig.defaults?.navigationTimeout ?? 30000;
+      if (!Number.isFinite(navigationTimeout) || navigationTimeout < 0) {
+        throw new Error('navigationTimeout must be a non-negative number of milliseconds.');
+      }
+      const navigationResponse = await navigate(activePage, url, { waitUntil, timeout: navigationTimeout });
       if (readyContext.navigationResponseStatus === null && navigationResponse) {
         trackNavigationResponse(navigationResponse);
       }
@@ -290,7 +295,7 @@ async function captureScenarioScreenshot({
       }
 
       attempt += 1;
-      console.warn(`[reg-suit] Temporary network error on ${getScenarioLabel(scenario)} @ ${viewport.label}; retrying ${attempt}/${temporaryErrorRetries}\nPage URL: ${url}\n${error.message}`);
+      console.warn(`[reg-suit] Temporary capture error on ${getScenarioLabel(scenario)} @ ${viewport.label}; retrying ${attempt}/${temporaryErrorRetries}\nPage URL: ${url}\n${error.message}`);
     } finally {
       activePage.off('response', trackNavigationResponse);
       await safeClosePage(activePage);
@@ -312,6 +317,11 @@ async function safeClosePage(page) {
 }
 
 function isTemporaryCaptureError(error) {
+  // Hooks wrap errors with a cause; retain the distinction between a slow
+  // resource and a broken image/HTTP error when deciding whether to retry.
+  for (let cause = error; cause; cause = cause.cause) {
+    if (['RSR_NAVIGATION_TIMEOUT', 'RSR_IMAGE_TIMEOUT', 'RSR_READY_TIMEOUT'].includes(cause.code)) return true;
+  }
   const message = String(error?.message || error || '');
   return /ERR_NETWORK_CHANGED|net::ERR_NETWORK_CHANGED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED|ERR_CONNECTION_TIMED_OUT|ERR_TIMED_OUT|ERR_ADDRESS_UNREACHABLE|ERR_CERT_COMMON_NAME_INVALID|net::ERR_CERT_COMMON_NAME_INVALID|ERR_CERT_AUTHORITY_INVALID|net::ERR_CERT_AUTHORITY_INVALID|Runtime\.callFunctionOn timed out|Protocol error \(Runtime\.callFunctionOn\): Target closed|Navigation failed because browser has disconnected/i.test(message);
 }
@@ -925,7 +935,7 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
     for (const child of children) {
       if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
     }
-    throw error;
+    throw new Error(`${error.message}\nCapture run stopped after a failure; remaining workers were cancelled.`, { cause: error });
   }
 }
 

@@ -52,5 +52,10 @@ module.exports = async function loadLazyImages(page, context = {}) {
       }
     }));
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  }, timeout);
+  }, timeout).catch(error => {
+    if (/Cannot load image before capture:[\s\S]*Timed out after \d+ms/.test(error.message)) {
+      error.code = 'RSR_IMAGE_TIMEOUT';
+    }
+    throw error;
+  });
 };
