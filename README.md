@@ -230,6 +230,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `referenceBaseURL` / `testBaseURL` | **Root:** base URLs for reference and test captures. | - |
 | `core.thresholdRateColor` | **Root:** colour tolerance when counting changed pixels, from 0–1. `0` is strictest; higher values ignore larger colour differences. This is not a percentage of pixels. | - |
 | `core.temporaryErrorRetries` | **Root:** retries per capture for temporary network/browser errors, navigation timeouts, image-loading timeouts, font failures, and readySelector timeouts. Each retry starts in a fresh browser context. Broken images and page HTTP errors still fail. Default `0` disables retries. | - |
+| `core.temporaryErrorRetryTimeoutMultiplier` | **Root:** multiply configured readiness timeouts on each retry. Default `1` keeps them unchanged; `2` gives attempts budgets of 1×, 2×, and 4×. Workers, delays, retry count and protocolTimeout stay unchanged. | - |
 | `fontTimeout` | Maximum wait for web fonts, default `30000` milliseconds. Font timeouts and failed font downloads fail capture and use temporary retries. | `wait-for-fonts` |
 | `requiredFonts` | CSS font specifications that must resolve to declared web fonts, for example `["400 16px Inter", "700 16px Quicksand"]`. Default `[]` still checks fonts the page requested. Scenario values replace defaults. | `wait-for-fonts` |
 | `core.workers` | **Root:** maximum concurrent captures; `--workers` overrides it. Configs without this setting use `core.workers` from `config-default.json` (currently `10`). | - |
@@ -373,6 +374,14 @@ failed font files. RSR repeats this hook after final DOM edits, just before
 capture, so late text does not silently use a fallback font. Set `fontTimeout`
 for slow loading and `core.temporaryErrorRetries` to retry in a fresh browser
 context. These checks keep the configured worker count unchanged.
+
+For sustained CPU or network load, set `core.temporaryErrorRetryTimeoutMultiplier`
+to `2` so a retry has longer navigation, ready-element, font, image, scroll and
+content-readiness budgets. Scenario timeout overrides scale as well; zero
+navigation timeouts remain disabled. Choose `core.protocolTimeout` above the
+longest resulting readiness budget so a browser-command timeout does not cut
+the wait short. This increases the maximum time spent on failed captures; it
+does not skip readiness checks or accept incomplete screenshots.
 
 ### Lazy images
 

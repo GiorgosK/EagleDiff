@@ -11,6 +11,7 @@ const puppeteer = require('puppeteer-core');
 const captureScreenshot = require('./capture-screenshot');
 const { navigate } = require('./navigation');
 const { applyCookies } = require('./cookies');
+const { withRetryTimeouts, retryTimeoutFactor } = require('./retry-timeouts');
 const { readResults } = require('./results-history');
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
 
@@ -225,6 +226,7 @@ async function captureScenarioScreenshot({
   let attempt = 0;
 
   while (true) {
+    const { config: attemptConfig, scenario: attemptScenario } = withRetryTimeouts(runtimeConfig, scenario, attempt);
     const browserContext = await browser.createBrowserContext();
     const activePage = await browserContext.newPage().catch(async error => {
       await browserContext.close().catch(() => {});
@@ -232,6 +234,9 @@ async function captureScenarioScreenshot({
     });
     const readyContext = {
       ...captureContext,
+      config: attemptConfig,
+      scenario: attemptScenario,
+      readyTimeout: attemptScenario.readyTimeout ?? attemptConfig.defaults?.readyTimeout,
       navigationResponseStatus: null,
       navigationResponseUrl: null,
       navigationResponseOk: null
@@ -252,9 +257,9 @@ async function captureScenarioScreenshot({
         height: viewport.height,
         deviceScaleFactor: viewport.deviceScaleFactor || 1
       });
-      await applyCookies(browserContext, url, scenario, runtimeConfig.defaults, configPath, captureContext.reportWarning);
-      await runScripts(activePage, beforeScripts, { scenario, mode: 'before', config: runtimeConfig });
-      const navigationTimeout = scenario.navigationTimeout ?? runtimeConfig.defaults?.navigationTimeout ?? 30000;
+      await applyCookies(browserContext, url, attemptScenario, attemptConfig.defaults, configPath, captureContext.reportWarning);
+      await runScripts(activePage, beforeScripts, { scenario: attemptScenario, mode: 'before', config: attemptConfig });
+      const navigationTimeout = attemptScenario.navigationTimeout ?? attemptConfig.defaults?.navigationTimeout ?? 30000;
       if (!Number.isFinite(navigationTimeout) || navigationTimeout < 0) {
         throw new Error('navigationTimeout must be a non-negative number of milliseconds.');
       }
@@ -267,8 +272,8 @@ async function captureScenarioScreenshot({
       }
 
       await runScripts(activePage, readyScripts, readyContext);
-      await applyHideAndRemoveSelectors(activePage, scenario, runtimeConfig);
-      await runAddParagraph(activePage, scenario, runtimeConfig, addPara, command);
+      await applyHideAndRemoveSelectors(activePage, attemptScenario, attemptConfig);
+      await runAddParagraph(activePage, attemptScenario, attemptConfig, addPara, command);
 
       // Late content and final DOM changes can request additional font faces.
       // Recheck configured font readiness immediately before rendering.
@@ -302,6 +307,8 @@ async function captureScenarioScreenshot({
 
       attempt += 1;
       console.warn(`[reg-suit] Temporary capture error on ${getScenarioLabel(scenario)} @ ${viewport.label}; retrying ${attempt}/${temporaryErrorRetries}\nPage URL: ${url}\n${error.message}`);
+      const factor = retryTimeoutFactor(runtimeConfig, attempt);
+      if (factor > 1) console.warn(`[reg-suit] Retry readiness timeouts: ${factor}x the configured budgets; worker count unchanged.`);
     } finally {
       activePage.off('response', trackNavigationResponse);
       await safeClosePage(activePage);
