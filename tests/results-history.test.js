@@ -29,6 +29,10 @@ test('missing and empty history are accepted; corrupt history is identified and 
 
 test('successful comparison saves a new entry when history is empty', async t => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-empty-history-'));
+  // A different Node on PATH must not replace the runtime executing RSR.
+  const binDirectory = path.join(directory, 'bin');
+  await fs.mkdir(binDirectory);
+  await fs.writeFile(path.join(binDirectory, 'node'), '#!/bin/sh\necho "Unexpected Node from PATH" >&2\nexit 99\n', { mode: 0o755 });
   const server = http.createServer((req, res) => res.end('<h1>Stable page</h1>'));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(async () => {
@@ -45,7 +49,8 @@ test('successful comparison saves a new entry when history is empty', async t =>
   }));
   const run = command => promisify(execFile)(process.execPath, [
     path.join(__dirname, '../bin/reg-suit.js'), '--dir', directory, command
-  ], { timeout: 30000, env: { ...process.env, REG_SUIT_DIR: directory,
+  ], { timeout: 30000, env: { ...process.env, PATH: `${binDirectory}${path.delimiter}${process.env.PATH}`,
+    REG_SUIT_DIR: directory,
     REG_SUIT_CONFIG: configPath, GLOBAL_REG_SUIT_CONFIG: configPath } });
   await run('reference');
   const resultsPath = path.join(directory, 'results.json');

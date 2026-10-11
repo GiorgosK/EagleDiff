@@ -15,7 +15,7 @@ const { getConfigPath, helperDir, rootDir } = require('./config-path');
 const configPath = getConfigPath();
 const generatedRegConfigPath = path.join(rootDir, '.reg', 'regconfig.generated.json');
 const resultsPath = path.join(rootDir, 'results.json');
-const regSuitBin = path.join(helperDir, 'node_modules', '.bin', process.platform === 'win32' ? 'reg-suit.cmd' : 'reg-suit');
+const regSuitBin = path.join(helperDir, 'node_modules', 'reg-suit', 'lib', 'cli.js');
 const controlledRootDir = path.join(rootDir, '.reg');
 const actualCacheDir = path.join(controlledRootDir, 'actual');
 const stagingRootDir = path.join(controlledRootDir, 'staging');
@@ -973,7 +973,7 @@ function resolveScriptPath(scriptSpec) {
 
 function runRegSuit(args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(regSuitBin, args, { stdio: ['inherit', 'pipe', 'inherit'], cwd: rootDir, shell: false });
+    const child = spawn(process.execPath, [regSuitBin, ...args], { stdio: ['inherit', 'pipe', 'inherit'], cwd: rootDir, shell: false });
     const output = createInterface({ input: child.stdout, crlfDelay: Infinity });
     output.on('line', (line) => {
       // RSR supplies local references directly; snapshot-key discovery is unused.
