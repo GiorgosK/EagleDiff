@@ -1,5 +1,5 @@
-module.exports = async function waitForBackgroundImages(page) {
-  await page.evaluate(async () => {
+module.exports = async function waitForBackgroundImages(page, context = {}) {
+  await page.evaluate(async failedSources => {
     const decodeImage = (img) => {
       if (img.decode) {
         return img.decode().catch(() => {});
@@ -18,7 +18,8 @@ module.exports = async function waitForBackgroundImages(page) {
       });
     };
 
-    const foregroundImages = Array.from(document.images);
+    const foregroundImages = Array.from(document.images).filter(image =>
+      !failedSources.includes(image.currentSrc) && !failedSources.includes(image.src));
     const backgroundImages = [];
 
     document.querySelectorAll('*').forEach((element) => {
@@ -41,5 +42,5 @@ module.exports = async function waitForBackgroundImages(page) {
       ...foregroundImages.map(waitForImage),
       ...backgroundImages.map(waitForImage)
     ]);
-  });
+  }, context.failedImageSources || []);
 };

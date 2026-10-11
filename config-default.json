@@ -45,6 +45,7 @@
     "carouselSettleDelayMs": 500,
     "keepSelectors": [],
     "lazyImageTimeout": 15000,
+    "imageFailurePolicy": "error",
     "normalizeResponsiveImageSelectors": [
       "img",
       "picture source"

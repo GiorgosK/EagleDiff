@@ -367,6 +367,11 @@ pages that prevent scrolling. These timeouts also use `core.temporaryErrorRetrie
 The `load-lazy-images` hook loads common `data-src`, `data-srcset`, and `data-sizes`
 attributes (including `data-lazy-*`) and waits for images to decode before
 responsive-image normalization. Broken or timed-out images report their URL.
+`imageFailurePolicy` (defaults or scenario) defaults to `"error"`. Set `"warn"`
+to continue capturing with unresolved images, as Backstop's stabilizer does.
+Warnings identify the resources; broken placeholders remain in the screenshot
+and can fail visual comparison. Optional JPEG normalization skips those failed
+sources. This setting does not permit an HTTP error for the page itself.
 
 ### Scroll reveals, fading icons, and moving decorations
 

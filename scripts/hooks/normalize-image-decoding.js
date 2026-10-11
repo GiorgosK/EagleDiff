@@ -23,12 +23,15 @@ module.exports = async function normalizeImageDecoding(page, context) {
   page.on('console', onConsole);
   let warnings;
   try {
-    warnings = await page.evaluate(async (currentSelector) => {
+    warnings = await page.evaluate(async (currentSelector, failedSources) => {
       const normalized = new Map();
       const skipped = new Set();
       for (const image of document.querySelectorAll(currentSelector)) {
         if (!(image instanceof HTMLImageElement)) continue;
         const source = image.currentSrc || image.src;
+        // Warning mode keeps broken originals for comparison; do not try to
+        // fetch those same failed images again during optional JPEG normalization.
+        if (failedSources.includes(source) || failedSources.includes(image.src)) continue;
         if (!/\.jpe?g(?:[?#]|$)/i.test(source)) continue;
         if (skipped.has(source)) continue;
 
@@ -86,7 +89,7 @@ module.exports = async function normalizeImageDecoding(page, context) {
       }
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       return Array.from(skipped);
-    }, selector);
+    }, selector, context.failedImageSources || []);
   } catch (error) {
     const failures = [...networkFailures].filter(([url]) => error.message.includes(url));
     const details = [...new Set(failures.map(([, failure]) => `Network error: ${failure.reason} (${failure.url})`))];

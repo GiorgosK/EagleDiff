@@ -11,12 +11,13 @@ module.exports = async function normalizeResponsiveImages(page, context) {
     return;
   }
 
-  await page.evaluate(async (currentSelectors) => {
+  await page.evaluate(async (currentSelectors, failedSources) => {
     const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
     const animationFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
     const elements = Array.from(document.querySelectorAll(currentSelectors.join(',')));
-    const images = elements.filter((element) => element.tagName === 'IMG');
+    const images = elements.filter((element) => element.tagName === 'IMG' &&
+      !failedSources.includes(element.currentSrc) && !failedSources.includes(element.src));
     const sources = elements.filter((element) => element.tagName === 'SOURCE');
 
     for (const image of images) {
@@ -31,6 +32,8 @@ module.exports = async function normalizeResponsiveImages(page, context) {
     }
 
     for (const source of sources) {
+      const image = source.closest('picture')?.querySelector('img');
+      if (image && (failedSources.includes(image.currentSrc) || failedSources.includes(image.src))) continue;
       const srcset = source.getAttribute('srcset');
       if (!srcset) {
         continue;
@@ -65,5 +68,5 @@ module.exports = async function normalizeResponsiveImages(page, context) {
     await animationFrame();
     await sleep(50);
     await animationFrame();
-  }, filteredSelectors);
+  }, filteredSelectors, context.failedImageSources || []);
 };
