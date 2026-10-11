@@ -320,7 +320,7 @@ function isTemporaryCaptureError(error) {
   // Hooks wrap errors with a cause; retain the distinction between a slow
   // resource and a broken image/HTTP error when deciding whether to retry.
   for (let cause = error; cause; cause = cause.cause) {
-    if (['RSR_NAVIGATION_TIMEOUT', 'RSR_IMAGE_TIMEOUT', 'RSR_READY_TIMEOUT'].includes(cause.code)) return true;
+    if (['RSR_NAVIGATION_TIMEOUT', 'RSR_IMAGE_TIMEOUT', 'RSR_READY_TIMEOUT', 'RSR_SCROLL_TIMEOUT'].includes(cause.code)) return true;
   }
   const message = String(error?.message || error || '');
   return /ERR_NETWORK_CHANGED|net::ERR_NETWORK_CHANGED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED|ERR_CONNECTION_TIMED_OUT|ERR_TIMED_OUT|ERR_ADDRESS_UNREACHABLE|ERR_CERT_COMMON_NAME_INVALID|net::ERR_CERT_COMMON_NAME_INVALID|ERR_CERT_AUTHORITY_INVALID|net::ERR_CERT_AUTHORITY_INVALID|Runtime\.callFunctionOn timed out|Protocol error \(Runtime\.callFunctionOn\): Target closed|Navigation failed because browser has disconnected/i.test(message);

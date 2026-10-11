@@ -358,6 +358,10 @@ RSR does not hide CAPTCHAs by default. For asynchronous newsletter forms, set
 a suitable `readyTimeout`, so missing forms fail capture instead of producing a misleading screenshot.
 If the form loads only when it enters the viewport, place `wait-for-element`
 after `scroll-to-bottom` in the project's `onReadyScript` list.
+Scrolling follows changes in page height as lazy content loads. `scrollTimeout`
+(defaults or scenario, default `30000` milliseconds) bounds this step, including
+pages that prevent scrolling. These timeouts also use `core.temporaryErrorRetries`.
+
 ### Lazy images
 
 The `load-lazy-images` hook loads common `data-src`, `data-srcset`, and `data-sizes`
