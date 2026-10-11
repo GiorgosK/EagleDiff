@@ -1,5 +1,5 @@
 {
-  "version": "2026.10.10.01",
+  "version": "2026.10.10.02",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -75,7 +75,11 @@
       "#CookieDeclaration"
     ]
   },
-  "onBeforeScript": [],
+  "onBeforeScript": [
+    "hooks/hide-dynamic-elements",
+    "hooks/disable-animations",
+    "hooks/apply-css-overrides"
+  ],
   "onReadyScript": [
     "hooks/wait-for-browser-verification",
     "hooks/fail-on-response-status",

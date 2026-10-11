@@ -155,6 +155,11 @@ dimensions and comparison thresholds stay unchanged.
 
 ## Default Hooks
 
+New configs also run `hide-dynamic-elements`, `disable-animations`, and
+`apply-css-overrides` in `onBeforeScript`. Their CSS applies as the document is
+created, before page scripts, and covers elements inserted later. The ready hooks
+reapply the styles before capture. `config-update` adds these hooks to existing configs.
+
 New configs include this `onReadyScript` list. Use `config-update` to add missing
 hooks to an older config, or copy the list below.
 Hooks run in the order shown.
@@ -345,6 +350,14 @@ Add to `defaults` or a scenario. Example: fix a randomized background at 500px a
 Use an image path available on your site. A scenario's CSS replaces the default
 CSS; `""` disables it for that scenario.
 
+For a randomized CAPTCHA, a project can keep its layout stable with
+`fieldset.captcha { visibility: hidden !important; height: 160px !important; overflow: hidden !important; }`.
+This excludes the challenge from visual comparison. Choose the height for the site;
+RSR does not hide CAPTCHAs by default. For asynchronous newsletter forms, set
+`readySelector` to the rendered submit button and `readyVisible` to `true`, with
+a suitable `readyTimeout`, so missing forms fail capture instead of producing a misleading screenshot.
+If the form loads only when it enters the viewport, place `wait-for-element`
+after `scroll-to-bottom` in the project's `onReadyScript` list.
 ### Lazy images
 
 The `load-lazy-images` hook loads common `data-src`, `data-srcset`, and `data-sizes`

@@ -1,6 +1,7 @@
-module.exports = async function disableAnimations(page) {
-  await page.addStyleTag({
-    content: `
+const applyPageStyles = require('../page-styles');
+
+module.exports = async function disableAnimations(page, context = {}) {
+  await applyPageStyles(page, `
       *, *::before, *::after {
         animation-duration: 0s !important;
         animation-delay: 0s !important;
@@ -27,6 +28,5 @@ module.exports = async function disableAnimations(page) {
         overflow-y: scroll !important;
         -webkit-text-size-adjust: 100% !important;
       }
-    `
-  });
+    `, context.mode);
 };

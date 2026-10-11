@@ -5,6 +5,8 @@ const { buildBrowserLaunchOptions } = require('../scripts/run');
 const apply = require('../scripts/hooks/apply-css-overrides');
 const waitForImages = require('../scripts/hooks/wait-for-background-images');
 const template = require('../config-default.json');
+const hideDynamicElements = require('../scripts/hooks/hide-dynamic-elements');
+const disableAnimations = require('../scripts/hooks/disable-animations');
 
 let browser;
 before(async () => { browser = await puppeteer.launch(buildBrowserLaunchOptions()); });
@@ -49,4 +51,38 @@ test('scenario CSS replaces defaults, empty CSS disables them, and invalid value
   await apply(page, { scenario: { cssOverrides: 'body { color: blue; }' }, config });
   assert.deepEqual(await page.$eval('body', e => [getComputedStyle(e).backgroundColor, getComputedStyle(e).color]), ['rgba(0, 0, 0, 0)', 'rgb(0, 0, 255)']);
   await assert.rejects(apply(page, { scenario: { cssOverrides: {} }, config }), /CSS string/);
+});
+
+test('before hooks stabilize first page scripts, late banners and variable CAPTCHA heights', async t => {
+  const page = await browser.newPage();
+  t.after(() => page.close());
+  const context = { mode: 'before', scenario: {}, config: { defaults: {
+    hideDynamicSelectors: ['#banner'],
+    cssOverrides: 'fieldset.captcha { visibility:hidden!important; height:160px!important; overflow:hidden!important; }'
+  } } };
+  await hideDynamicElements(page, context);
+  await disableAnimations(page, context);
+  await apply(page, context);
+  const positions = [];
+  for (const height of [10, 90]) {
+    await page.goto('data:text/html,' + encodeURIComponent(`<style>fieldset{margin:0;padding:0;border:0} #banner{height:100px}</style>
+      <fieldset class="captcha" style="height:${height}px"><span>Random challenge</span></fieldset>
+      <footer>Footer</footer><script>
+      window.firstScriptHeight = document.querySelector('fieldset').getBoundingClientRect().height;
+      const banner = document.createElement('div'); banner.id='banner'; document.body.appendChild(banner);
+      </script>`));
+    const state = await page.evaluate(() => ({
+      firstHeight: window.firstScriptHeight,
+      banner: getComputedStyle(document.querySelector('#banner')).display,
+      visibility: getComputedStyle(document.querySelector('fieldset')).visibility,
+      duration: getComputedStyle(document.body).animationDuration,
+      footerTop: document.querySelector('footer').getBoundingClientRect().top
+    }));
+    assert.equal(state.firstHeight, 160);
+    assert.equal(state.banner, 'none');
+    assert.equal(state.visibility, 'hidden');
+    assert.equal(state.duration, '0s');
+    positions.push(state.footerTop);
+  }
+  assert.equal(positions[0], positions[1]);
 });

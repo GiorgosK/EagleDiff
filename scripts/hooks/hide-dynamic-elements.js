@@ -1,3 +1,5 @@
+const applyPageStyles = require('../page-styles');
+
 module.exports = async function hideDynamicElements(page, context) {
   if (context.scenario.keepCookiebot) {
     return;
@@ -8,9 +10,7 @@ module.exports = async function hideDynamicElements(page, context) {
     return;
   }
 
-  await page.addStyleTag({
-    content: `${selectors.join(',\n')} {\n  display: none !important;\n}`
-  });
+  await applyPageStyles(page, `${selectors.join(',\n')} {\n  display: none !important;\n}`, context.mode);
 };
 
 function getSelectors(context) {
