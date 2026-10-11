@@ -7,14 +7,23 @@ process.once('message', async (job) => {
     return;
   }
 
-  const browser = await puppeteer.launch(buildBrowserLaunchOptions(job.config));
+  let browser = await puppeteer.launch(buildBrowserLaunchOptions(job.config));
+  let cancelled = false;
   process.once('SIGTERM', async () => {
+    cancelled = true;
     await browser.close().catch(() => {});
     process.exit(1);
   });
 
   try {
     const options = {
+      relaunchBrowser: async () => {
+        if (cancelled) throw new Error('Capture worker cancelled.');
+        await browser.close().catch(() => {});
+        if (cancelled) throw new Error('Capture worker cancelled.');
+        browser = await puppeteer.launch(buildBrowserLaunchOptions(job.config));
+        return browser;
+      },
       workerId: job.workerId,
       parallel: true,
       warningReporter: require('./warnings').createWarningReporter((message, code) => {

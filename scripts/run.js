@@ -78,12 +78,18 @@ async function main() {
       });
     }
     else {
-      const browser = await puppeteer.launch({
+      let browser = await puppeteer.launch({
         ...buildBrowserLaunchOptions(config)
       });
 
       try {
-        await captureScreenshots(browser, config, selectedScenarios, actualCacheDir, captureBaseUrl, addPara, command);
+        await captureScreenshots(browser, config, selectedScenarios, actualCacheDir, captureBaseUrl, addPara, command, {
+          relaunchBrowser: async () => {
+            await browser.close().catch(() => {});
+            browser = await puppeteer.launch(buildBrowserLaunchOptions(config));
+            return browser;
+          }
+        });
       } finally {
         await browser.close();
       }
@@ -196,7 +202,11 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
           command,
           filePath,
           fullPage,
-          temporaryErrorRetries
+          temporaryErrorRetries,
+          relaunchBrowser: options.relaunchBrowser ? async () => {
+            browser = await options.relaunchBrowser();
+            return browser;
+          } : null
         });
       } catch (error) {
         const worker = options.workerId ? ` [w${options.workerId}]` : '';
@@ -221,17 +231,15 @@ async function captureScenarioScreenshot({
   command,
   filePath,
   fullPage,
-  temporaryErrorRetries
+  temporaryErrorRetries,
+  relaunchBrowser
 }) {
   let attempt = 0;
 
   while (true) {
     const { config: attemptConfig, scenario: attemptScenario } = withRetryTimeouts(runtimeConfig, scenario, attempt);
-    const browserContext = await browser.createBrowserContext();
-    const activePage = await browserContext.newPage().catch(async error => {
-      await browserContext.close().catch(() => {});
-      throw error;
-    });
+    let browserContext;
+    let activePage;
     const readyContext = {
       ...captureContext,
       config: attemptConfig,
@@ -250,8 +258,11 @@ async function captureScenarioScreenshot({
       readyContext.navigationResponseOk = response.ok();
     };
     // Browser-verification pages can reload after goto has already returned.
-    activePage.on('response', trackNavigationResponse);
     try {
+      if (!browser.connected && relaunchBrowser) browser = await relaunchBrowser();
+      browserContext = await browser.createBrowserContext();
+      activePage = await browserContext.newPage();
+      activePage.on('response', trackNavigationResponse);
       await activePage.setViewport({
         width: viewport.width,
         height: viewport.height,
@@ -298,7 +309,7 @@ async function captureScenarioScreenshot({
       const retryable = attempt < temporaryErrorRetries && isTemporaryCaptureError(error);
 
       if (!retryable) {
-        const finalUrl = activePage.url();
+        const finalUrl = activePage?.url();
         if (finalUrl && finalUrl !== 'about:blank' && finalUrl !== url) {
           throw new Error(`Final page URL: ${finalUrl}\n${error.message}`, { cause: error });
         }
@@ -310,9 +321,9 @@ async function captureScenarioScreenshot({
       const factor = retryTimeoutFactor(runtimeConfig, attempt);
       if (factor > 1) console.warn(`[reg-suit] Retry readiness timeouts: ${factor}x the configured budgets; worker count unchanged.`);
     } finally {
-      activePage.off('response', trackNavigationResponse);
+      activePage?.off('response', trackNavigationResponse);
       await safeClosePage(activePage);
-      await browserContext.close().catch(() => {});
+      await browserContext?.close().catch(() => {});
     }
   }
 }
@@ -336,7 +347,7 @@ function isTemporaryCaptureError(error) {
     if (['RSR_NAVIGATION_TIMEOUT', 'RSR_IMAGE_TIMEOUT', 'RSR_READY_TIMEOUT', 'RSR_SCROLL_TIMEOUT', 'RSR_FONT_TIMEOUT', 'RSR_FONT_LOAD'].includes(cause.code)) return true;
   }
   const message = String(error?.message || error || '');
-  return /ERR_NETWORK_CHANGED|net::ERR_NETWORK_CHANGED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED|ERR_CONNECTION_TIMED_OUT|ERR_TIMED_OUT|ERR_ADDRESS_UNREACHABLE|ERR_CERT_COMMON_NAME_INVALID|net::ERR_CERT_COMMON_NAME_INVALID|ERR_CERT_AUTHORITY_INVALID|net::ERR_CERT_AUTHORITY_INVALID|Runtime\.callFunctionOn timed out|Protocol error \(Runtime\.callFunctionOn\): Target closed|Navigation failed because browser has disconnected/i.test(message);
+  return /ERR_NETWORK_CHANGED|net::ERR_NETWORK_CHANGED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED|ERR_CONNECTION_TIMED_OUT|ERR_TIMED_OUT|ERR_ADDRESS_UNREACHABLE|ERR_CERT_COMMON_NAME_INVALID|net::ERR_CERT_COMMON_NAME_INVALID|ERR_CERT_AUTHORITY_INVALID|net::ERR_CERT_AUTHORITY_INVALID|Runtime\.callFunctionOn timed out|Protocol error[^\n]*: (?:Target|Session|Connection) closed|Connection closed\.|Navigation failed because browser has disconnected/i.test(message);
 }
 
 function buildBrowserLaunchOptions(config = {}) {

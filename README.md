@@ -410,6 +410,11 @@ page without logging cookies or URL query parameters.
 Place image loading before a readiness selector that depends on the page's
 load event, so a stalled image cannot block its own recovery step.
 
+If Chromium disconnects, RSR restarts the affected worker's browser on a
+temporary-error retry and retains the replacement for its remaining captures.
+Context and page creation failures use the same retry limit as readiness
+failures. Cancelling the run prevents workers from restarting browsers.
+
 ### Scroll reveals, fading icons, and moving decorations
 
 `disable-animations` removes CSS animation delays, but JavaScript can still hide
