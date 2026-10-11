@@ -229,7 +229,9 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | --- | --- | --- |
 | `referenceBaseURL` / `testBaseURL` | **Root:** base URLs for reference and test captures. | - |
 | `core.thresholdRateColor` | **Root:** colour tolerance when counting changed pixels, from 0–1. `0` is strictest; higher values ignore larger colour differences. This is not a percentage of pixels. | - |
-| `core.temporaryErrorRetries` | **Root:** retries per capture for temporary network/browser errors, navigation timeouts, image-loading timeouts, and readySelector timeouts. Each retry starts in a fresh browser context. Broken images and HTTP errors still fail. Default `0` disables retries. | - |
+| `core.temporaryErrorRetries` | **Root:** retries per capture for temporary network/browser errors, navigation timeouts, image-loading timeouts, font failures, and readySelector timeouts. Each retry starts in a fresh browser context. Broken images and page HTTP errors still fail. Default `0` disables retries. | - |
+| `fontTimeout` | Maximum wait for web fonts, default `30000` milliseconds. Font timeouts and failed font downloads fail capture and use temporary retries. | `wait-for-fonts` |
+| `requiredFonts` | CSS font specifications that must resolve to declared web fonts, for example `["400 16px Inter", "700 16px Quicksand"]`. Default `[]` still checks fonts the page requested. Scenario values replace defaults. | `wait-for-fonts` |
 | `core.workers` | **Root:** maximum concurrent captures; `--workers` overrides it. Configs without this setting use `core.workers` from `config-default.json` (currently `10`). | - |
 | `core.protocolTimeout` | **Root:** timeout for browser protocol commands. | - |
 | `cookieDomain` | `null` preserves cookie domains (missing domains use the capture hostname). `"current"` explicitly scopes cookies to the current reference/test hostname; a domain string sets a fixed domain. | - |
@@ -361,6 +363,16 @@ after `scroll-to-bottom` in the project's `onReadyScript` list.
 Scrolling follows changes in page height as lazy content loads. `scrollTimeout`
 (defaults or scenario, default `30000` milliseconds) bounds this step, including
 pages that prevent scrolling. These timeouts also use `core.temporaryErrorRetries`.
+
+### Web fonts
+
+The `wait-for-fonts` hook waits for layout and checks for failed font faces;
+the browser's `document.fonts.ready` promise also resolves when a font download
+fails. Configure `requiredFonts` to catch a missing font stylesheet as well as
+failed font files. RSR repeats this hook after final DOM edits, just before
+capture, so late text does not silently use a fallback font. Set `fontTimeout`
+for slow loading and `core.temporaryErrorRetries` to retry in a fresh browser
+context. These checks keep the configured worker count unchanged.
 
 ### Lazy images
 
