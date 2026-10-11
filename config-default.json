@@ -1,5 +1,5 @@
 {
-  "version": "2026.10.11.02",
+  "version": "2026.10.11.03",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -48,6 +48,8 @@
     "carouselSettleDelayMs": 500,
     "keepSelectors": [],
     "lazyImageTimeout": 15000,
+    "retryImageDownloads": false,
+    "imageDownloadTimeout": 15000,
     "imageFailurePolicy": "error",
     "normalizeResponsiveImageSelectors": [
       "img",

@@ -3,6 +3,10 @@ module.exports = async function loadLazyImages(page, context = {}) {
   if (!Number.isFinite(timeout) || timeout <= 0) throw new Error('lazyImageTimeout must be a positive number.');
   const policy = context.scenario?.imageFailurePolicy ?? context.config?.defaults?.imageFailurePolicy ?? 'error';
   if (!['error', 'warn'].includes(policy)) throw new Error('imageFailurePolicy must be "error" or "warn".');
+  const retryDownloads = context.scenario?.retryImageDownloads ?? context.config?.defaults?.retryImageDownloads ?? false;
+  const downloadTimeout = context.scenario?.imageDownloadTimeout ?? context.config?.defaults?.imageDownloadTimeout ?? 15000;
+  if (typeof retryDownloads !== 'boolean') throw new Error('retryImageDownloads must be a boolean.');
+  if (!Number.isFinite(downloadTimeout) || downloadTimeout <= 0) throw new Error('imageDownloadTimeout must be a positive number.');
 
   const failures = await page.evaluate(async ({ timeoutMs, failurePolicy }) => {
     const promoteSources = () => {
@@ -53,6 +57,10 @@ module.exports = async function loadLazyImages(page, context = {}) {
           })
         ]);
       } catch (error) {
+        if (error.code === 'RSR_IMAGE_TIMEOUT') {
+          failures.push({ sources: [image.currentSrc, image.src].filter(Boolean), message: error.message, timedOut: true });
+          return;
+        }
         // A timeout leaves the image unresolved: it can still load and move
         // the layout during capture. Let the runner retry even in warning mode.
         if (failurePolicy === 'warn' && error.code !== 'RSR_IMAGE_TIMEOUT') {
@@ -72,6 +80,24 @@ module.exports = async function loadLazyImages(page, context = {}) {
     }
     throw error;
   });
+  const timedOut = failures.filter(failure => failure.timedOut);
+  if (timedOut.length) {
+    const failure = timedOut[0];
+    try {
+      if (!retryDownloads) throw new Error(failure.message);
+      await require('../recover-images')(page, timedOut, downloadTimeout);
+    } catch (cause) {
+      const error = new Error(`Cannot load image before capture: ${failure.sources[0]}\n${failure.message}\n${cause.message}`, { cause });
+      error.code = 'RSR_IMAGE_TIMEOUT';
+      throw error;
+    }
+    const pageUrl = new URL(page.url());
+    const safePage = pageUrl.origin + pageUrl.pathname;
+    const message = `Recovered ${timedOut.length} stalled image download(s) on the current page before capture. Page: ${safePage}`;
+    if (context.reportWarning) context.reportWarning('image-download-recovered:' + safePage, message);
+    else console.warn(`[reg-suit] ${message}`);
+  }
+  failures.splice(0, failures.length, ...failures.filter(failure => !failure.timedOut));
   context.failedImageSources = [...new Set(failures.flatMap(failure => failure.sources))];
   if (failures.length) {
     const safeUrl = source => {

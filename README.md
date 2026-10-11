@@ -232,6 +232,8 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `core.temporaryErrorRetries` | **Root:** retries per capture for temporary network/browser errors, navigation timeouts, image-loading timeouts, font failures, and readySelector timeouts. Each retry starts in a fresh browser context. Broken images and page HTTP errors still fail. Default `0` disables retries. | - |
 | `core.temporaryErrorRetryTimeoutMultiplier` | **Root:** multiply configured readiness timeouts on each retry. Default `1` keeps them unchanged; `2` gives attempts budgets of 1×, 2×, and 4×. Workers, delays, retry count and protocolTimeout stay unchanged. | - |
 | `fontTimeout` | Maximum wait for web fonts, default `30000` milliseconds. Font timeouts and failed font downloads fail capture and use temporary retries. | `wait-for-fonts` |
+| `retryImageDownloads` | Retry stalled HTTP image downloads on the existing page through Node, then require successful browser decoding. Default `false`. Cookies are scoped to each destination, including redirects. | `load-lazy-images` |
+| `imageDownloadTimeout` | Maximum time for each recovery download and its subsequent browser decoding, default `15000` milliseconds. | `load-lazy-images` |
 | `requiredFonts` | CSS font specifications that must resolve to declared web fonts, for example `["400 16px Inter", "700 16px Quicksand"]`. Default `[]` still checks fonts the page requested. Scenario values replace defaults. | `wait-for-fonts` |
 | `core.workers` | **Root:** maximum concurrent captures; `--workers` overrides it. Configs without this setting use `core.workers` from `config-default.json` (currently `10`). | - |
 | `core.protocolTimeout` | **Root:** timeout for browser protocol commands. | - |
@@ -397,6 +399,16 @@ Image-loading timeouts fail capture in both modes and use
 `core.temporaryErrorRetries`: an image that is still loading can change the
 layout after the screenshot. On a busy computer, reduce `core.workers` or run
 with `--workers=1` to reduce competing browser work before increasing timeouts.
+
+Set `retryImageDownloads: true` to actively recover an image after its browser
+download times out. RSR downloads the same resource through Node using the
+current browser context's cookies, serves those bytes at the original URL, and
+requires the image to decode before capture. This keeps completed readiness
+steps and JPEG normalization intact. Failed downloads or decoding still fail
+capture; warning mode does not accept a stalled image. Recovery reports the
+page without logging cookies or URL query parameters.
+Place image loading before a readiness selector that depends on the page's
+load event, so a stalled image cannot block its own recovery step.
 
 ### Scroll reveals, fading icons, and moving decorations
 
