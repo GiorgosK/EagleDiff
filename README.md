@@ -457,3 +457,42 @@ Run `eaglediff --dir tests/eaglediff test -- --filter=about --addpara`.
 
 After changing capture settings, regenerate references before running `test`.
 Existing configs need the corresponding hooks from [Default Hooks](#default-hooks).
+
+## Contributing
+
+Install the Node version in `.nvmrc` (for example, `nvm use`), pnpm, and a local
+Chrome or Chromium, then run these commands from the Eaglediff checkout:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm run test:unit
+```
+
+The automated suite uses Node's built-in test runner. Browser integration tests
+serve local fixtures and use temporary directories; a production website or
+project config is not required. If Chrome is not found automatically, set
+`CHROME_BIN` or `PUPPETEER_EXECUTABLE_PATH` to its executable path.
+
+Run one test file while developing, then run the full suite before submitting:
+
+```sh
+node --test tests/lazy-images.test.js
+pnpm run test:coverage
+```
+
+`pnpm test` runs the visual comparison command for a configured project.
+Use `pnpm run test:unit` to test Eaglediff itself.
+
+For fixes, add a regression test that demonstrates the incorrect behavior and
+checks the resulting screenshot, comparison report, exit code, or saved files.
+Hook changes should cover scenario overrides, failure handling, and interactions
+with later hooks. Keep fixtures local and deterministic; clean up browsers,
+servers, and temporary files even when a test fails.
+
+Coverage reports measure Node execution. Functions serialized into Chromium by
+`page.evaluate` need browser assertions; their low Node coverage does not mean
+they were never exercised. Check behavior coverage alongside the percentages.
+See [Node's coverage documentation](https://nodejs.org/docs/latest-v24.x/api/test.html#collecting-code-coverage).
+
+The [architecture review](docs/architecture-review.md) records confirmed gaps,
+hook-order concerns, refactoring priorities, and proposed quality measurements.
