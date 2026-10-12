@@ -1,9 +1,30 @@
 # Architecture and test review
 
 Review date: 2026-10-12. Scope: Eaglediff CLI, configuration/import, capture and
-comparison orchestration, bundled hooks, and automated tests. This is a review
-of the current implementation; the issues below have not been fixed by this
-review. No project baselines were modified during verification.
+comparison orchestration, bundled hooks, and automated tests. The findings below record the pre-fix implementation; see the
+completed follow-up for their current status. No project baselines were modified during verification.
+
+## Completed follow-up
+
+The six confirmed findings have separate fixes and regression tests: filtered
+reference preservation, complete/scoped approval, comparison exit status,
+final selector clipping, distinct reference URLs, and hook-path resolution.
+Additional fixes bound CSS background readiness, preserve selected picture
+sources, and propagate browser errors from network-idle checks. Each fix has
+its own commit. Contributor test commands are documented in the README.
+
+Post-fix verification: `pnpm run test:unit` completed with **82 passed, 0 failed**
+in about 47 seconds. Test-file concurrency is bounded at four to avoid
+oversubscribing fixture browsers; project capture workers remain unchanged.
+
+Approval now requires a capture manifest from a completed comparison; rerun
+`test` before approving reports created by an earlier version. Visual differences
+still produce reports, history, and an approvable manifest, but return exit 1.
+A failed capture or comparison engine does not produce an approvable manifest.
+
+The remaining recommendations concern validation consistency, transactional
+storage and concurrent invocations, broader phase-order policy, and incremental
+module extraction. The original measurements below are the pre-fix baseline.
 
 ## Assessment
 

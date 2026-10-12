@@ -118,7 +118,7 @@ eaglediff --dir tests/eaglediff config -- --limit=25
 - For new configs, omitted or empty `--test` defaults to `--ref`. Edit saved base URLs directly to change environments.
 - `config` also adds `.reg/` to the project's `.gitignore`.
 - `--filter` matches labels or URLs; `--workers` overrides `core.workers`. When neither is set, Eaglediff uses `core.workers` from `config-default.json` (currently `10`). Each scenario/viewport pair can run in a separate worker (one scenario with three viewports uses up to three workers). `report` only opens the latest report.
-- `--clean` is the default: `reference` rebuilds baselines. `--no-clean` retains cached files between runs.
+- `--clean` is the default: full `reference` runs rebuild baselines. Filtered reference runs replace only matching baselines. `--no-clean` retains cached files between runs.
 
 Set the root-level `excludeExtensions` array in `config.json` to skip file links
 during discovery, for example `"excludeExtensions": [".pdf", ".zip", "docx"]`.
@@ -174,6 +174,8 @@ reapply the styles before capture. `config-update` adds these hooks to existing 
 New configs include this `onReadyScript` list. Use `config-update` to add missing
 hooks to an older config, or copy the list below.
 Hooks run in the order shown.
+The bundled `keep-selectors` hook is deferred until after final DOM edits and
+font readiness, so clipping uses the final layout.
 
 ```json
 "onReadyScript": [
@@ -427,6 +429,11 @@ temporary-error retry and retains the replacement for its remaining captures.
 Context and page creation failures use the same retry limit as readiness
 failures. Cancelling the run prevents workers from restarting browsers.
 
+CSS background loading checks every URL layer using `lazyImageTimeout` and
+`imageFailurePolicy`. Stalled downloads fail even in warning mode and participate
+in capture retries. Responsive normalization pins the loaded picture candidate
+and requires successful decoding before capture.
+
 ### Scroll reveals, fading icons, and moving decorations
 
 `disable-animations` removes CSS animation delays, but JavaScript can still hide
@@ -470,7 +477,9 @@ pnpm install --frozen-lockfile
 pnpm run test:unit
 ```
 
-The automated suite uses Node's built-in test runner. Browser integration tests
+The automated suite uses Node's built-in test runner with at most four test
+files running concurrently. This limits competing fixture browsers and does
+not change the configured worker count for project captures. Browser integration tests
 serve local fixtures and use temporary directories; a production website or
 project config is not required. If Chrome is not found automatically, set
 `CHROME_BIN` or `PUPPETEER_EXECUTABLE_PATH` to its executable path.
