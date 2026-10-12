@@ -477,6 +477,9 @@ Existing configs need the corresponding hooks from [Default Hooks](#default-hook
 
 ## Contributing
 
+AI coding assistants must follow [AGENTS.md](AGENTS.md), including regression
+testing and human confirmation before committing changes.
+
 Install the Node version in `.nvmrc` (for example, `nvm use`), pnpm, and a local
 Chrome or Chromium, then run these commands from the Eaglediff checkout:
 
