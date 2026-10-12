@@ -5,30 +5,6 @@ and other browser-rendered content, using [reg-suit](https://github.com/reg-viz/
 as its comparison engine to detect visual changes between screenshots.
 It aims to be a BackstopJS alternative with more defaults built in.
 
-## Eaglediff and BackstopJS
-
-Eaglediff is a new project. The strengths below are early claims based on its
-implementation and maintainer-reported results; broader testing by the community
-is needed to validate them across websites, machines, and workloads.
-
-| Area | Eaglediff's intended strength |
-| --- | --- |
-| Stability | Font/image readiness, adaptive retries, and browser recovery aim to keep captures consistent under slow networks or busy CPUs. |
-| Modular defaults | Configurable hooks for lazy images, fonts, animations, backgrounds, and dynamic content. |
-| Comparison engine | Independently maintained reg-suit handles screenshot comparison and reports. |
-| Setup | Automatic page discovery and Backstop configuration import reduce setup work. |
-| Config maintenance | New defaults can be added while preserving saved customization. |
-| Baselines | URL-based screenshot identity survives label changes; filtered updates preserve unrelated references. |
-| Diagnostics | Page, hook, resource, and navigation details help explain capture failures. |
-
-## AI-assisted development
-
-Parts of Eaglediff's code, tests, and documentation were developed with
-assistance from AI coding tools, including OpenAI Codex. Maintainers direct the
-project and remain responsible for technical decisions, reviewing contributions,
-and validating behavior. AI-assisted contributions are subject to the same
-review and testing standards as other contributions.
-
 ## Install
 
 Requires Node.js, pnpm, and Chrome/Chromium. From a local checkout:
@@ -37,23 +13,6 @@ Requires Node.js, pnpm, and Chrome/Chromium. From a local checkout:
 pnpm install
 pnpm add -g /path/to/eaglediff
 ```
-
-### Capture environment
-
-Comparing a live site with a DDEV-hosted site does not require both sites to run
-in Docker. Rendering consistency depends on the capture browser's OS, Chrome
-version, fonts, and display settings. Hosting a site in DDEV does not standardize
-that browser environment. When sharing baselines across machines or CI, use a
-consistent browser environment, such as the same container image for captures.
-
-## Environment variables
-
-| Variable | Purpose |
-| --- | --- |
-| `EAGLEDIFF_DIR`, `EAGLEDIFF_PROJECT_DIR`, `EAGLEDIFF_ROOT` | Project directory for scripts. Prefer the CLI's `--dir` option. |
-| `EAGLEDIFF_CONFIG`, `GLOBAL_EAGLEDIFF_CONFIG` | Override the config file path. |
-| `EAGLEDIFF_SCRIPT_DIR`, `EAGLEDIFF_HELPER_DIR` | Runner checkout containing scripts and defaults. Prefer `--script-dir`. |
-| `EAGLEDIFF_INVOCATION_DIR` | Original working directory passed by the CLI to resolve import paths. |
 
 ## Quick Start
 
@@ -80,6 +39,39 @@ Once calibration passes, change `testBaseURL` to your staging or local site:
 eaglediff --dir tests/eaglediff test -- --workers=15
 eaglediff --dir tests/eaglediff report
 ```
+
+## Eaglediff and BackstopJS
+
+Eaglediff is a new project. The strengths below are early claims based on its
+implementation and maintainer-reported results; broader testing by the community
+is needed to validate them across websites, machines, and workloads.
+
+| Area | Eaglediff's intended strength |
+| --- | --- |
+| Stability | Font/image readiness, adaptive retries, and browser recovery aim to keep captures consistent under slow networks or busy CPUs. |
+| Modular defaults | Configurable hooks for lazy images, fonts, animations, backgrounds, and dynamic content. |
+| Comparison engine | Independently maintained reg-suit handles screenshot comparison and reports. |
+| Setup | Automatic page discovery and Backstop configuration import reduce setup work. |
+| Config maintenance | New defaults can be added while preserving saved customization. |
+| Baselines | URL-based screenshot identity survives label changes; filtered updates preserve unrelated references. |
+| Diagnostics | Page, hook, resource, and navigation details help explain capture failures. |
+
+## AI-assisted development
+
+Parts of Eaglediff's code, tests, and documentation were developed with
+assistance from AI coding tools, including OpenAI Codex. Maintainers direct the
+project and remain responsible for technical decisions, reviewing contributions,
+and validating behavior. AI-assisted contributions are subject to the same
+review and testing standards as other contributions.
+
+## Environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| `EAGLEDIFF_DIR`, `EAGLEDIFF_PROJECT_DIR`, `EAGLEDIFF_ROOT` | Project directory for scripts. Prefer the CLI's `--dir` option. |
+| `EAGLEDIFF_CONFIG`, `GLOBAL_EAGLEDIFF_CONFIG` | Override the config file path. |
+| `EAGLEDIFF_SCRIPT_DIR`, `EAGLEDIFF_HELPER_DIR` | Runner checkout containing scripts and defaults. Prefer `--script-dir`. |
+| `EAGLEDIFF_INVOCATION_DIR` | Original working directory passed by the CLI to resolve import paths. |
 
 ## Import From Backstop
 
@@ -160,6 +152,14 @@ and fragments. Use `[]` to allow all extensions. Running `config` uses the saved
 list and also removes matching existing scenarios; excluded links do not count
 toward `--limit`. `config-update` adds the setting when missing and preserves
 custom lists. Run `config` afterward to filter existing scenarios.
+
+## Capture environment
+
+Comparing a live site with a DDEV-hosted site does not require both sites to run
+in Docker. Rendering consistency depends on the capture browser's OS, Chrome
+version, fonts, and display settings. Hosting a site in DDEV does not standardize
+that browser environment. When sharing baselines across machines or CI, use a
+consistent browser environment, such as the same container image for captures.
 
 ## Update An Existing Config
 
