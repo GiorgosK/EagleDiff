@@ -111,7 +111,8 @@ eaglediff --dir tests/eaglediff config -- --limit=25
 ```
 
 - `--dir` selects the folder containing `config.json`, screenshots in `.reg/`, and run history in `results.json`.
-- `approve` accepts the latest captured screenshots by replacing the reference set with them. Review the report first.
+- `test` exits with code `1` for changed, new, or deleted screenshots; passing comparisons exit `0`. Reports and history are saved before returning the exit status.
+- `approve` accepts the latest completed comparison. Filtered comparisons update only their captured baselines; full comparisons replace the full reference set. `approve --filter=...` narrows approval further. Review the report first. Missing or invalid source screenshots prevent approval.
 - `results` prints pass counts, duration, and worker count for the latest two runs, plus a short history.
 - `config` discovers links and merges scenarios. It preserves saved URLs, settings, and existing scenarios except those matching `excludeExtensions`; `/` counts toward `--limit`.
 - For new configs, omitted or empty `--test` defaults to `--ref`. Edit saved base URLs directly to change environments.

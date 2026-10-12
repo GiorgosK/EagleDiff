@@ -32,7 +32,7 @@ test('full approval removes deleted baselines while an approval filter preserves
   const f = await fixture(t);
   await f.run(['reference']);
   f.config.scenarios.pop(); await f.save();
-  await f.run(['test']);
+  await f.run(['test'], 1);
   await f.run(['approve', '--filter=/one']);
   assert.equal((await f.files()).length, 2);
   await f.run(['approve']);

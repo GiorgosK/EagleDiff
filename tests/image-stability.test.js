@@ -253,11 +253,11 @@ test('comparison ignores small colour noise but detects substantial visual chang
   assert.deepEqual((await output()).newItems, []);
   assert.deepEqual((await output()).deletedItems, []);
   shade = 180;
-  await cli('test');
+  await assert.rejects(cli('test'), error => error.code === 1);
   assert.equal((await output()).failedItems.length, 2);
   delete config.core.thresholdRateColor;
   await fs.writeFile(path.join(directory, 'config.json'), JSON.stringify(config));
   shade = 105;
-  await cli('test');
+  await assert.rejects(cli('test'), error => error.code === 1);
   assert.equal((await output()).failedItems.length, 2);
 });

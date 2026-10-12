@@ -138,6 +138,13 @@ async function main() {
       });
       await prependJsonArrayEntry(resultsPath, entry);
       printResultsComparison(entry, Array.isArray(previousResults) ? previousResults[0] : null);
+      const differences = ['failedItems', 'newItems', 'deletedItems']
+        .reduce((total, key) => total + (compareResult[key]?.length || 0), 0);
+      if (differences) {
+        failed = true;
+        process.exitCode = 1;
+        console.error(`[eaglediff] ${differences} visual difference(s). Review the comparison report before approving.`);
+      }
     } catch (error) {
       throw new Error(`Comparison completed, but failed to save results history to ${resultsPath}:\n${error.message}`, { cause: error });
     }
