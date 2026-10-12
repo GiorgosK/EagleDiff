@@ -1,8 +1,9 @@
 # Eaglediff
 
-**Eaglediff** tests websites and web apps visually, using reg-suit to compare screenshots.
-It aims to be a BackstopJS alternative with more defaults built in,
-so you can get started out of the box—or as close to it as possible.
+**Eaglediff** is a visual regression testing (VRT) tool that captures web pages
+and other browser-rendered content, using [reg-suit](https://github.com/reg-viz/reg-suit)
+as its comparison engine to detect visual changes between screenshots.
+It aims to be a BackstopJS alternative with more defaults built in.
 
 ## Install
 
