@@ -305,7 +305,9 @@ async function captureScenarioScreenshot({
         await sleep(delayMs);
       }
 
-      await runScripts(activePage, readyScripts, readyContext);
+      const keepScripts = readyScripts.filter(script =>
+        resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'keep-selectors.js'));
+      await runScripts(activePage, readyScripts.filter(script => !keepScripts.includes(script)), readyContext);
       await applyHideAndRemoveSelectors(activePage, attemptScenario, attemptConfig);
       await runAddParagraph(activePage, attemptScenario, attemptConfig, addPara, command);
 
@@ -314,15 +316,16 @@ async function captureScenarioScreenshot({
       const fontScripts = readyScripts.filter(script =>
         resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'wait-for-fonts.js'));
       await runScripts(activePage, fontScripts, readyContext);
+      await runScripts(activePage, keepScripts, readyContext);
 
       const screenshotOptions = {
         path: filePath,
         fullPage: scenario.fullPage !== undefined ? scenario.fullPage : fullPage
       };
 
-      if (captureContext.keepSelectorsClip) {
+      if (readyContext.keepSelectorsClip) {
         screenshotOptions.fullPage = false;
-        screenshotOptions.clip = normalizeClip(captureContext.keepSelectorsClip);
+        screenshotOptions.clip = normalizeClip(readyContext.keepSelectorsClip);
         screenshotOptions.captureBeyondViewport = true;
       }
 
