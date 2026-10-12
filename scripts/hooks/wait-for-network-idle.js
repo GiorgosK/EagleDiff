@@ -5,6 +5,7 @@ module.exports = async function waitForNetworkIdle(page, context) {
   try {
     await page.waitForNetworkIdle({ idleTime: idleTimeMs, timeout: timeoutMs });
   } catch (error) {
-    // Ignore timeout; this is a best-effort stabilization step.
+    // Idle is best effort; disconnected browsers must reach capture recovery.
+    if (error.name !== 'TimeoutError') throw error;
   }
 };
