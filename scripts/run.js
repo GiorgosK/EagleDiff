@@ -96,7 +96,7 @@ async function main() {
     }
 
     if (command === 'reference') {
-      if (clean) {
+      if (clean && !filter) {
         await fsp.rm(referenceDir, { recursive: true, force: true });
       }
 
