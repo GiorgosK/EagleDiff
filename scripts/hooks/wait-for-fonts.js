@@ -18,16 +18,16 @@ module.exports = async function waitForFonts(page, context = {}) {
         try {
           faces = await document.fonts.load(font);
         } catch (error) {
-          return { code: error.name === 'SyntaxError' ? undefined : 'RSR_FONT_LOAD',
+          return { code: error.name === 'SyntaxError' ? undefined : 'EAGLEDIFF_FONT_LOAD',
             message: `Cannot load required font: ${font}\n${error.message}` };
         }
         // check() alone reports success for an undeclared family, which would
         // silently allow a fallback font when the font stylesheet is missing.
-        if (!faces.length) return { code: 'RSR_FONT_LOAD', message: `Required web font is not declared: ${font}. Check its font stylesheet.` };
+        if (!faces.length) return { code: 'EAGLEDIFF_FONT_LOAD', message: `Required web font is not declared: ${font}. Check its font stylesheet.` };
       }
       await document.fonts.ready;
       const failed = [...document.fonts].filter(face => face.status === 'error');
-      if (failed.length) return { code: 'RSR_FONT_LOAD', message: 'Web fonts failed to load: ' +
+      if (failed.length) return { code: 'EAGLEDIFF_FONT_LOAD', message: 'Web fonts failed to load: ' +
         [...new Set(failed.map(face => `${face.family} (weight ${face.weight}, style ${face.style})`))].join(', ') };
       return null;
     };
@@ -35,7 +35,7 @@ module.exports = async function waitForFonts(page, context = {}) {
       return await Promise.race([
         check(),
         new Promise(resolve => {
-          timer = setTimeout(() => resolve({ code: 'RSR_FONT_TIMEOUT',
+          timer = setTimeout(() => resolve({ code: 'EAGLEDIFF_FONT_TIMEOUT',
             message: `Fonts did not become ready within ${timeoutMs}ms. Adjust fontTimeout for slow font loading.` }), timeoutMs);
         })
       ]);

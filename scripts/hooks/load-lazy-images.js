@@ -51,19 +51,19 @@ module.exports = async function loadLazyImages(page, context = {}) {
           new Promise((_, reject) => {
             timer = setTimeout(() => {
               const error = new Error(`Timed out after ${timeoutMs}ms`);
-              error.code = 'RSR_IMAGE_TIMEOUT';
+              error.code = 'EAGLEDIFF_IMAGE_TIMEOUT';
               reject(error);
             }, timeoutMs);
           })
         ]);
       } catch (error) {
-        if (error.code === 'RSR_IMAGE_TIMEOUT') {
+        if (error.code === 'EAGLEDIFF_IMAGE_TIMEOUT') {
           failures.push({ sources: [image.currentSrc, image.src].filter(Boolean), message: error.message, timedOut: true });
           return;
         }
         // A timeout leaves the image unresolved: it can still load and move
         // the layout during capture. Let the runner retry even in warning mode.
-        if (failurePolicy === 'warn' && error.code !== 'RSR_IMAGE_TIMEOUT') {
+        if (failurePolicy === 'warn' && error.code !== 'EAGLEDIFF_IMAGE_TIMEOUT') {
           failures.push({ sources: [image.currentSrc, image.src].filter(Boolean), message: error.message });
           return;
         }
@@ -76,7 +76,7 @@ module.exports = async function loadLazyImages(page, context = {}) {
     return failures;
   }, { timeoutMs: timeout, failurePolicy: policy }).catch(error => {
     if (/Cannot load image before capture:[\s\S]*Timed out after \d+ms/.test(error.message)) {
-      error.code = 'RSR_IMAGE_TIMEOUT';
+      error.code = 'EAGLEDIFF_IMAGE_TIMEOUT';
     }
     throw error;
   });
@@ -88,14 +88,14 @@ module.exports = async function loadLazyImages(page, context = {}) {
       await require('../recover-images')(page, timedOut, downloadTimeout);
     } catch (cause) {
       const error = new Error(`Cannot load image before capture: ${failure.sources[0]}\n${failure.message}\n${cause.message}`, { cause });
-      error.code = 'RSR_IMAGE_TIMEOUT';
+      error.code = 'EAGLEDIFF_IMAGE_TIMEOUT';
       throw error;
     }
     const pageUrl = new URL(page.url());
     const safePage = pageUrl.origin + pageUrl.pathname;
     const message = `Recovered ${timedOut.length} stalled image download(s) on the current page before capture. Page: ${safePage}`;
     if (context.reportWarning) context.reportWarning('image-download-recovered:' + safePage, message);
-    else console.warn(`[reg-suit] ${message}`);
+    else console.warn(`[eaglediff] ${message}`);
   }
   failures.splice(0, failures.length, ...failures.filter(failure => !failure.timedOut));
   context.failedImageSources = [...new Set(failures.flatMap(failure => failure.sources))];
@@ -106,6 +106,6 @@ module.exports = async function loadLazyImages(page, context = {}) {
     const message = `Captured with ${failures.length} unresolved image(s) because imageFailurePolicy="warn". These may create visual differences. Page: ${safeUrl(page.url())}\n` +
       failures.slice(0, 5).map(failure => `  ${safeUrl(failure.sources[0])}: ${failure.message}`).join('\n');
     if (context.reportWarning) context.reportWarning(`image-load-failure:${safeUrl(page.url())}`, message);
-    else console.warn(`[reg-suit] ${message}`);
+    else console.warn(`[eaglediff] ${message}`);
   }
 };

@@ -12,7 +12,7 @@ test('recovers a stalled image on the ready page, preserves cookies, and rejects
   const requests = new Map();
   let authenticatedRecovery = false;
   let jpeg;
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-image-recovery-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-image-recovery-'));
   const server = http.createServer((req, res) => {
     const count = (requests.get(req.url) || 0) + 1;
     requests.set(req.url, count);

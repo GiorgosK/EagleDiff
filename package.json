@@ -1,13 +1,13 @@
 {
-  "name": "reg-suit-runner",
+  "name": "eaglediff",
+  "version": "0.1.0",
   "private": true,
   "bin": {
-    "reg-suit-runner": "bin/reg-suit.js",
-    "rsr": "bin/reg-suit.js"
+    "eaglediff": "bin/eaglediff.js"
   },
   "type": "commonjs",
   "scripts": {
-    "cli": "node bin/reg-suit.js",
+    "cli": "node bin/eaglediff.js",
     "config": "node scripts/config.js",
     "config-update": "node scripts/config-update.js",
     "import": "node scripts/import.js",
@@ -24,5 +24,6 @@
     "reg-simple-keygen-plugin": "^0.14.2",
     "reg-suit": "^0.14.5",
     "transliteration": "^2.6.1"
-  }
+  },
+  "description": "Capture browser views and compare visual changes."
 }

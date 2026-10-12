@@ -130,7 +130,7 @@ async function main() {
     throw error;
   } finally {
     if (command === 'reference' || command === 'test') {
-      console.log(`[reg-suit] ${command} ${failed ? 'failed' : 'completed'} in ${formatDuration(Date.now() - startedAt)}`);
+      console.log(`[eaglediff] ${command} ${failed ? 'failed' : 'completed'} in ${formatDuration(Date.now() - startedAt)}`);
     }
   }
 }
@@ -317,9 +317,9 @@ async function captureScenarioScreenshot({
       }
 
       attempt += 1;
-      console.warn(`[reg-suit] Temporary capture error on ${getScenarioLabel(scenario)} @ ${viewport.label}; retrying ${attempt}/${temporaryErrorRetries}\nPage URL: ${url}\n${error.message}`);
+      console.warn(`[eaglediff] Temporary capture error on ${getScenarioLabel(scenario)} @ ${viewport.label}; retrying ${attempt}/${temporaryErrorRetries}\nPage URL: ${url}\n${error.message}`);
       const factor = retryTimeoutFactor(runtimeConfig, attempt);
-      if (factor > 1) console.warn(`[reg-suit] Retry readiness timeouts: ${factor}x the configured budgets; worker count unchanged.`);
+      if (factor > 1) console.warn(`[eaglediff] Retry readiness timeouts: ${factor}x the configured budgets; worker count unchanged.`);
     } finally {
       activePage?.off('response', trackNavigationResponse);
       await safeClosePage(activePage);
@@ -344,7 +344,7 @@ function isTemporaryCaptureError(error) {
   // Hooks wrap errors with a cause; retain the distinction between a slow
   // resource and a broken image/HTTP error when deciding whether to retry.
   for (let cause = error; cause; cause = cause.cause) {
-    if (['RSR_NAVIGATION_TIMEOUT', 'RSR_IMAGE_TIMEOUT', 'RSR_READY_TIMEOUT', 'RSR_SCROLL_TIMEOUT', 'RSR_FONT_TIMEOUT', 'RSR_FONT_LOAD'].includes(cause.code)) return true;
+    if (['EAGLEDIFF_NAVIGATION_TIMEOUT', 'EAGLEDIFF_IMAGE_TIMEOUT', 'EAGLEDIFF_READY_TIMEOUT', 'EAGLEDIFF_SCROLL_TIMEOUT', 'EAGLEDIFF_FONT_TIMEOUT', 'EAGLEDIFF_FONT_LOAD'].includes(cause.code)) return true;
   }
   const message = String(error?.message || error || '');
   return /ERR_NETWORK_CHANGED|net::ERR_NETWORK_CHANGED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED|ERR_CONNECTION_TIMED_OUT|ERR_TIMED_OUT|ERR_ADDRESS_UNREACHABLE|ERR_CERT_COMMON_NAME_INVALID|net::ERR_CERT_COMMON_NAME_INVALID|ERR_CERT_AUTHORITY_INVALID|net::ERR_CERT_AUTHORITY_INVALID|Runtime\.callFunctionOn timed out|Protocol error[^\n]*: (?:Target|Session|Connection) closed|Connection closed\.|Navigation failed because browser has disconnected/i.test(message);
@@ -851,7 +851,7 @@ async function promoteActualsToReferences(actualDir, expectedDir, scenarios, opt
   }
 
   console.log(
-    `[reg-suit] Promoted ${fileNames.length} screenshots from ${path.relative(rootDir, actualDir)} to ${path.relative(rootDir, expectedDir)}`
+    `[eaglediff] Promoted ${fileNames.length} screenshots from ${path.relative(rootDir, actualDir)} to ${path.relative(rootDir, expectedDir)}`
   );
 }
 
@@ -1016,7 +1016,7 @@ function runRegSuit(args) {
     const child = spawn(process.execPath, [regSuitBin, ...args], { stdio: ['inherit', 'pipe', 'inherit'], cwd: rootDir, shell: false });
     const output = createInterface({ input: child.stdout, crlfDelay: Infinity });
     output.on('line', (line) => {
-      // RSR supplies local references directly; snapshot-key discovery is unused.
+      // Eaglediff supplies local references directly; snapshot-key discovery is unused.
       if (stripVTControlCharacters(line).trim() === '[reg-suit] info Skipped to detect the previous snapshot key because key generator plugin is not set up.') return;
       process.stdout.write(`${line}\n`);
     });

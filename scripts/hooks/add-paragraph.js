@@ -3,8 +3,8 @@ module.exports = async function addParagraph(page, context) {
     return;
   }
 
-  const paragraphText = context.scenario.addParagraphText || 'Reg-suit injected paragraph';
-  const containerSelector = context.scenario.addParagraphSelector || '#reg-suit-paragraph';
+  const paragraphText = context.scenario.addParagraphText || 'Eaglediff injected paragraph';
+  const containerSelector = context.scenario.addParagraphSelector || '#eaglediff-paragraph';
 
   await page.evaluate(
     ({ targetSelector, text, id }) => {

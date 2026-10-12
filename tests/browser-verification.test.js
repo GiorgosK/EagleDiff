@@ -12,7 +12,7 @@ const waitForVerification = require('../scripts/hooks/wait-for-browser-verificat
 let browser, server, baseURL, directory;
 const hits = new Map();
 before(async () => {
-  directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-verification-'));
+  directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-verification-'));
   server = http.createServer((request, response) => {
     const pathname = new URL(request.url, 'http://fixture').pathname;
     if (['/modules/contrib/botbuster/js/challenge.js', '/other-provider/verify.js'].includes(pathname)) {

@@ -57,7 +57,7 @@ async function main() {
 
   await fsp.writeFile(configPath, `${JSON.stringify(outputConfig, null, 2)}\n`);
   await ensureGitignore(rootDir);
-  console.log(`[reg-suit] Wrote ${path.relative(rootDir, configPath)} with ${discoveredScenarios.length} discovered scenarios`);
+  console.log(`[eaglediff] Wrote ${path.relative(rootDir, configPath)} with ${discoveredScenarios.length} discovered scenarios`);
 }
 
 async function ensureGitignore(projectDir) {

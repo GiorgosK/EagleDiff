@@ -8,7 +8,7 @@ const http = require('node:http');
 const { captureScreenshots, buildBrowserLaunchOptions } = require('../scripts/run');
 
 test('retries disconnected browser creation and retains its replacement for later scenarios', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-browser-recovery-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-browser-recovery-'));
   const server = http.createServer((req, res) => res.end('<p>Ready</p>'));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let browser = await puppeteer.launch(buildBrowserLaunchOptions());

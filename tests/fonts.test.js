@@ -29,10 +29,10 @@ test('font readiness rejects failed, unresolved, and undeclared web fonts', asyn
     return [...document.fonts].map(face => face.status);
   }), ['error']);
   await assert.rejects(waitForFonts(page), error =>
-    error.code === 'RSR_FONT_LOAD' && /Fixture/.test(error.message));
+    error.code === 'EAGLEDIFF_FONT_LOAD' && /Fixture/.test(error.message));
   await page.setContent(content('pending.ttf'), { waitUntil: 'domcontentloaded' });
   await assert.rejects(waitForFonts(page, { scenario: { fontTimeout: 100 } }), error =>
-    error.code === 'RSR_FONT_TIMEOUT' && /100ms/.test(error.message));
+    error.code === 'EAGLEDIFF_FONT_TIMEOUT' && /100ms/.test(error.message));
   await page.goto('about:blank');
   await page.setContent('<p>Native font only</p>');
   await assert.rejects(waitForFonts(page, { scenario: { requiredFonts: ['400 16px Missing'] } }),
@@ -50,7 +50,7 @@ test('captures retry failed font downloads and recheck fonts added by later hook
     try { font = await fs.readFile(candidate); break; } catch {}
   }
   if (!font) return t.skip('No local test font available');
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-fonts-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-fonts-'));
   let fontRequests = 0;
   let lateRequests = 0;
   const server = http.createServer((req, res) => {

@@ -33,5 +33,5 @@ test('a page that prevents scrolling fails within the configured limit', async t
   await page.setContent('<div style="height:4000px">Content</div><script>window.scrollTo = () => {};</script>');
   await assert.rejects(scroll(page, { mode: 'ready', scenario: {}, config: { defaults: {
     scrollStepDelayMs: 10, scrollSettleDelayMs: 10, scrollTimeout: 100
-  } } }), error => error.code === 'RSR_SCROLL_TIMEOUT' && /scrolling is blocked/.test(error.message));
+  } } }), error => error.code === 'EAGLEDIFF_SCROLL_TIMEOUT' && /scrolling is blocked/.test(error.message));
 });

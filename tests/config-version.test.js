@@ -10,7 +10,7 @@ const { compareVersions } = require('../scripts/config-version');
 const template = require('../config-default.json');
 
 async function fixture(t) {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-version-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-version-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   return { directory, configPath: path.join(directory, 'config.json'), scriptDir: path.join(__dirname, '..'), command: 'test' };
 }
@@ -81,9 +81,9 @@ test('CLI blocks newer configs before destructive commands; explicit override co
   const cache = path.join(options.directory, '.reg');
   await fs.mkdir(cache);
   const run = (...args) => promisify(execFile)(process.execPath, [
-    path.join(__dirname, '../bin/reg-suit.js'), '--dir', options.directory, ...args
-  ], { timeout: 5000, env: { ...process.env, REG_SUIT_DIR: options.directory,
-    REG_SUIT_CONFIG: options.configPath, GLOBAL_REG_SUIT_CONFIG: options.configPath } });
+    path.join(__dirname, '../bin/eaglediff.js'), '--dir', options.directory, ...args
+  ], { timeout: 5000, env: { ...process.env, EAGLEDIFF_DIR: options.directory,
+    EAGLEDIFF_CONFIG: options.configPath, GLOBAL_EAGLEDIFF_CONFIG: options.configPath } });
   await assert.rejects(run('clean'), error => {
     assert.match(error.stderr, /newer/);
     assert.match(error.stderr, /--allow-newer-config/);

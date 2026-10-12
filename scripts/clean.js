@@ -12,7 +12,7 @@ async function main() {
 
   await Promise.all(pathsToRemove.map((targetPath) => fsp.rm(targetPath, { recursive: true, force: true })));
 
-  console.log('[reg-suit] Cleaned .reg and legacy top-level caches');
+  console.log('[eaglediff] Cleaned .reg and legacy top-level caches');
 }
 
 main().catch((error) => {

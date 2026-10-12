@@ -82,14 +82,14 @@ test('version upgrades are numeric and newer configs cannot be downgraded', () =
 });
 
 test('config-update CLI updates only the selected config, is repeatable, and leaves invalid input untouched', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-config-update-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-config-update-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   const configPath = path.join(directory, 'config.json');
   const run = () => promisify(execFile)(process.execPath, [
-    path.join(__dirname, '../bin/reg-suit.js'), '--dir', directory,
+    path.join(__dirname, '../bin/eaglediff.js'), '--dir', directory,
     '--script-dir', path.join(__dirname, '..'), 'config-update'
-  ], { env: { ...process.env, REG_SUIT_DIR: directory,
-    REG_SUIT_CONFIG: configPath, GLOBAL_REG_SUIT_CONFIG: configPath } });
+  ], { env: { ...process.env, EAGLEDIFF_DIR: directory,
+    EAGLEDIFF_CONFIG: configPath, GLOBAL_EAGLEDIFF_CONFIG: configPath } });
   await fs.writeFile(configPath, JSON.stringify({ defaults: { delay: 7 }, scenarios: [] }));
   assert((await run()).stdout.includes(`Updated config.json to ${template.version}`));
   const saved = await fs.readFile(configPath, 'utf8');

@@ -33,7 +33,7 @@ test('navigation timeout identifies HTTP response, lifecycle and blocking reques
 });
 
 test('reference failure passes navigation details through workers and applies scenario settings', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-navigation-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-navigation-'));
   const server = http.createServer((req, res) => {
     if (req.url === '/hang.js') return;
     res.setHeader('Content-Type', 'text/html');
@@ -53,10 +53,10 @@ test('reference failure passes navigation details through workers and applies sc
     scenarios: [{ url: '/', label: 'Blocking script', waitUntil: 'domcontentloaded', navigationTimeout: 500 }]
   }));
   await assert.rejects(promisify(execFile)(process.execPath, [
-    path.join(__dirname, '../bin/reg-suit.js'), '--dir', directory,
+    path.join(__dirname, '../bin/eaglediff.js'), '--dir', directory,
     '--script-dir', path.join(__dirname, '..'), 'reference', '--', '--workers=2'
-  ], { timeout: 15000, env: { ...process.env, REG_SUIT_DIR: directory,
-    REG_SUIT_CONFIG: configPath, GLOBAL_REG_SUIT_CONFIG: configPath } }), error => {
+  ], { timeout: 15000, env: { ...process.env, EAGLEDIFF_DIR: directory,
+    EAGLEDIFF_CONFIG: configPath, GLOBAL_EAGLEDIFF_CONFIG: configPath } }), error => {
     assert.match(error.stderr, /Blocking script @ phone/);
     assert.match(error.stderr, /waitUntil="domcontentloaded"; timeout=500ms/);
     assert.match(error.stderr, /\/hang.js/);

@@ -8,7 +8,7 @@ const { promisify } = require('node:util');
 const template = require('../config-default.json');
 
 test('Backstop import adopts the capture limit and preserves existing worker overrides', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-import-workers-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-import-workers-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   const backstopPath = path.join(directory, 'backstop.json');
   const configPath = path.join(directory, 'config.json');
@@ -17,8 +17,8 @@ test('Backstop import adopts the capture limit and preserves existing worker ove
   }));
   const run = () => promisify(execFile)(process.execPath, [
     path.join(__dirname, '../scripts/import.js'), `--backstop=${backstopPath}`
-  ], { env: { ...process.env, REG_SUIT_DIR: directory, REG_SUIT_CONFIG: configPath,
-    GLOBAL_REG_SUIT_CONFIG: configPath, REG_SUIT_SCRIPT_DIR: path.join(__dirname, '..') } });
+  ], { env: { ...process.env, EAGLEDIFF_DIR: directory, EAGLEDIFF_CONFIG: configPath,
+    GLOBAL_EAGLEDIFF_CONFIG: configPath, EAGLEDIFF_SCRIPT_DIR: path.join(__dirname, '..') } });
   await run();
   assert.equal(JSON.parse(await fs.readFile(configPath)).core.workers, 5);
   await fs.writeFile(configPath, JSON.stringify({ core: { workers: 3 } }));

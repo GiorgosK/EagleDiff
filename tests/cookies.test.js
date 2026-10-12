@@ -16,7 +16,7 @@ test('Backstop import resolves shared and scenario cookie files relative to the 
       { label: 'One', url: 'https://example.test/one', cookiePath: 'engine/cookies.json' },
       { label: 'Two', url: 'https://example.test/two', cookiePath: 'engine/cookies.json' }
     ]
-  }, '/project/backstop/backstop.json', '/project/rsr/config.json');
+  }, '/project/backstop/backstop.json', '/project/eaglediff/config.json');
   assert.equal(imported.defaults.cookiePath, '../backstop/engine/cookies.json');
   assert(imported.scenarios.every(scenario => !Object.hasOwn(scenario, 'cookiePath')));
   const perScenario = buildImportedConfig(template, template, {
@@ -24,7 +24,7 @@ test('Backstop import resolves shared and scenario cookie files relative to the 
       { url: 'https://example.test/one', cookiePath: 'one.json' },
       { url: 'https://example.test/two', cookiePath: 'two.json' }
     ]
-  }, '/project/backstop/backstop.json', '/project/rsr/config.json');
+  }, '/project/backstop/backstop.json', '/project/eaglediff/config.json');
   assert.deepEqual(perScenario.scenarios.map(s => s.cookiePath), ['../backstop/one.json', '../backstop/two.json']);
   const disabled = buildImportedConfig({ ...template, defaults: {
     ...template.defaults, cookiePath: 'saved.json', cookies: [{ name: 'shared', value: 'yes' }]
@@ -33,14 +33,14 @@ test('Backstop import resolves shared and scenario cookie files relative to the 
       { url: 'https://example.test/one' },
       { url: 'https://example.test/two', cookiePath: null, cookies: [] }
     ]
-  }, '/project/backstop/backstop.json', '/project/rsr/config.json');
+  }, '/project/backstop/backstop.json', '/project/eaglediff/config.json');
   assert.equal(disabled.scenarios[0].cookiePath, '../backstop/cookies.json');
   assert.equal(disabled.scenarios[1].cookiePath, null);
   assert.deepEqual(disabled.scenarios[1].cookies, []);
 });
 
 test('cookies keep scope and expiry unless explicitly changed, and invalid files fail clearly', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-cookies-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-cookies-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   const warnings = [];
   const calls = [];
@@ -69,7 +69,7 @@ test('cookies keep scope and expiry unless explicitly changed, and invalid files
 });
 
 test('capture sends cookies on the first request and isolates each scenario', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-cookie-capture-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-cookie-capture-'));
   const seen = [];
   const server = http.createServer((req, res) => {
     if (req.url === '/favicon.ico') { res.end(); return; }

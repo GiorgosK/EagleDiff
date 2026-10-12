@@ -8,7 +8,7 @@ const puppeteer = require('puppeteer-core');
 const { buildBrowserLaunchOptions, captureScreenshots, getScreenshotFileName } = require('../scripts/run');
 
 test('captures updated page height after removal and frame-scheduled layout updates', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-layout-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-layout-'));
   const server = http.createServer((request, response) => {
     response.setHeader('Content-Type', 'text/html');
     response.end(`<!doctype html>

@@ -9,7 +9,7 @@ const { promisify } = require('node:util');
 const { readResults } = require('../scripts/results-history');
 
 test('missing and empty history are accepted; corrupt history is identified and preserved', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-history-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-history-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   const file = path.join(directory, 'results.json');
   assert.deepEqual(await readResults(file), []);
@@ -28,8 +28,8 @@ test('missing and empty history are accepted; corrupt history is identified and 
 });
 
 test('successful comparison saves a new entry when history is empty', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-empty-history-'));
-  // A different Node on PATH must not replace the runtime executing RSR.
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-empty-history-'));
+  // A different Node on PATH must not replace the runtime executing Eaglediff.
   const binDirectory = path.join(directory, 'bin');
   await fs.mkdir(binDirectory);
   await fs.writeFile(path.join(binDirectory, 'node'), '#!/bin/sh\necho "Unexpected Node from PATH" >&2\nexit 99\n', { mode: 0o755 });
@@ -48,10 +48,10 @@ test('successful comparison saves a new entry when history is empty', async t =>
     scenarios: [{ url: '/' }]
   }));
   const run = command => promisify(execFile)(process.execPath, [
-    path.join(__dirname, '../bin/reg-suit.js'), '--dir', directory, command
+    path.join(__dirname, '../bin/eaglediff.js'), '--dir', directory, command
   ], { timeout: 30000, env: { ...process.env, PATH: `${binDirectory}${path.delimiter}${process.env.PATH}`,
-    REG_SUIT_DIR: directory,
-    REG_SUIT_CONFIG: configPath, GLOBAL_REG_SUIT_CONFIG: configPath } });
+    EAGLEDIFF_DIR: directory,
+    EAGLEDIFF_CONFIG: configPath, GLOBAL_EAGLEDIFF_CONFIG: configPath } });
   await run('reference');
   const resultsPath = path.join(directory, 'results.json');
   await fs.writeFile(resultsPath, '');

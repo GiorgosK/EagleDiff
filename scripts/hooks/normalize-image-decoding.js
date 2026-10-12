@@ -103,6 +103,6 @@ module.exports = async function normalizeImageDecoding(page, context) {
   if (warnings.length) {
     const message = `Some JPEG images could not be fetched for normalization; originals loaded successfully and are unchanged, but may produce decoding differences. Page: ${page.url()}. Example: ${warnings[0]}. Cross-origin redirects or missing CORS permission can cause this. Use consistent page/image origins or allow CORS on the image server. Further warnings of this type are suppressed for this run.`;
     if (context.reportWarning) context.reportWarning('image-normalization-skipped', message);
-    else console.warn(`[reg-suit] ${message}`);
+    else console.warn(`[eaglediff] ${message}`);
   }
 };

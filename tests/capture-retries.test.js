@@ -8,7 +8,7 @@ const puppeteer = require('puppeteer-core');
 const { buildBrowserLaunchOptions, captureScreenshots } = require('../scripts/run');
 
 test('capture retries transient stylesheet and image timeouts, but not broken resources', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-retries-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-retries-'));
   const requests = new Map();
   const server = http.createServer((req, res) => {
     const count = (requests.get(req.url) || 0) + 1;

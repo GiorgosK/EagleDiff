@@ -49,7 +49,7 @@ async function navigate(page, url, { waitUntil, timeout }) {
       'Adjust defaults.navigationTimeout (or scenario.navigationTimeout) for slow navigation. Try --workers=1 to check concurrency; core.protocolTimeout is a separate browser-command timeout.'
     ];
     const failure = new Error(lines.join('\n'), { cause: error });
-    if (error.name === 'TimeoutError') failure.code = 'RSR_NAVIGATION_TIMEOUT';
+    if (error.name === 'TimeoutError') failure.code = 'EAGLEDIFF_NAVIGATION_TIMEOUT';
     throw failure;
   } finally {
     for (const [event, listener] of Object.entries(listeners)) page.off(event, listener);

@@ -55,7 +55,7 @@ function updateConfig(current, defaults) {
   if (!isObject(current) || !isObject(defaults)) throw new Error('Config must be a JSON object.');
   versionParts(defaults.version);
   if (Object.hasOwn(current, 'version') && compareVersions(current.version, defaults.version) > 0) {
-    throw new Error(`Config version ${current.version} is newer than RSR defaults ${defaults.version}. Update RSR first.`);
+    throw new Error(`Config version ${current.version} is newer than Eaglediff defaults ${defaults.version}. Update Eaglediff first.`);
   }
   const result = fillMissing(current, defaults);
   for (const key of ['onBeforeScript', 'onReadyScript']) {
@@ -73,11 +73,11 @@ async function main() {
   const defaults = JSON.parse(await fsp.readFile(path.join(helperDir, 'config-default.json'), 'utf8'));
   const updated = updateConfig(current, defaults);
   if (Object.keys(current)[0] === 'version' && isDeepStrictEqual(current, updated)) {
-    console.log(`[reg-suit] Config already up to date (${defaults.version})`);
+    console.log(`[eaglediff] Config already up to date (${defaults.version})`);
     return;
   }
   await fsp.writeFile(configPath, `${JSON.stringify(updated, null, 2)}\n`);
-  console.log(`[reg-suit] Updated ${path.relative(rootDir, configPath)} to ${defaults.version}; existing settings preserved`);
+  console.log(`[eaglediff] Updated ${path.relative(rootDir, configPath)} to ${defaults.version}; existing settings preserved`);
 }
 
 if (require.main === module) {

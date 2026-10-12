@@ -37,7 +37,7 @@ module.exports = async function scrollToBottom(page, context) {
     settleDelay: settleDelayMs,
     timeout: timeoutMs
   }).catch(error => {
-    if (/Cannot finish lazy-content scroll within/.test(error.message)) error.code = 'RSR_SCROLL_TIMEOUT';
+    if (/Cannot finish lazy-content scroll within/.test(error.message)) error.code = 'EAGLEDIFF_SCROLL_TIMEOUT';
     throw error;
   });
 };

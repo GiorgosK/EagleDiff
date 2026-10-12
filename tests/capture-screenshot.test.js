@@ -28,7 +28,7 @@ test('viewport-only screenshots need no extra capture', async () => {
 });
 
 test('rendering pass preserves viewport height, fixed elements, and clip geometry', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-paint-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-paint-'));
   const browser = await puppeteer.launch(buildBrowserLaunchOptions());
   t.after(async () => { await browser.close(); await fs.rm(directory, { recursive: true, force: true }); });
   const page = await browser.newPage();

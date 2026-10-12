@@ -29,7 +29,7 @@ test('missing readiness marker identifies the selector and remedy', async () => 
 });
 
 test('parallel captures warn once and stop other workers on missing readiness', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-diagnostics-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-diagnostics-'));
   // No CORS header: the page can reference this image but cannot fetch its bytes.
   const cdn = http.createServer((req, res) => {
     res.setHeader('Content-Type', 'image/svg+xml');
@@ -69,10 +69,10 @@ test('parallel captures warn once and stop other workers on missing readiness', 
   };
   const configPath = path.join(directory, 'config.json');
   const run = (workers = 2) => promisify(execFile)(process.execPath, [
-    path.join(__dirname, '../bin/reg-suit.js'), '--dir', directory,
+    path.join(__dirname, '../bin/eaglediff.js'), '--dir', directory,
     '--script-dir', path.join(__dirname, '..'), 'reference', '--', `--workers=${workers}`
-  ], { timeout: 20000, env: { ...process.env, REG_SUIT_DIR: directory,
-    REG_SUIT_CONFIG: configPath, GLOBAL_REG_SUIT_CONFIG: configPath } });
+  ], { timeout: 20000, env: { ...process.env, EAGLEDIFF_DIR: directory,
+    EAGLEDIFF_CONFIG: configPath, GLOBAL_EAGLEDIFF_CONFIG: configPath } });
   await fs.writeFile(configPath, JSON.stringify(config));
   const result = await run();
   assert.equal((result.stderr.match(/Some JPEG images/g) || []).length, 1);

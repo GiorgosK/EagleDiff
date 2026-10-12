@@ -43,13 +43,13 @@ async function main() {
   const resolvedScriptDir = resolveScriptDir(scriptDir);
   const resolvedProjectDir = resolveProjectDir(projectDir);
   const configPath = path.resolve(resolvedProjectDir,
-    process.env.GLOBAL_REG_SUIT_CONFIG || process.env.REG_SUIT_CONFIG
-      || process.env.npm_config_config || path.join(process.env.REG_SUIT_DIR || resolvedProjectDir, 'config.json'));
+    process.env.GLOBAL_EAGLEDIFF_CONFIG || process.env.EAGLEDIFF_CONFIG
+      || process.env.npm_config_config || path.join(process.env.EAGLEDIFF_DIR || resolvedProjectDir, 'config.json'));
   const allowNewer = forwardedArgs.includes('--allow-newer-config');
   const operationArgs = forwardedArgs.filter(arg => arg !== '--allow-newer-config');
   const { checkConfigVersion } = require('../scripts/check-config-version');
   if (!await checkConfigVersion({ configPath, scriptDir: resolvedScriptDir, command, allowNewer })) {
-    console.error('[reg-suit] Operation cancelled.');
+    console.error('[eaglediff] Operation cancelled.');
     process.exitCode = process.exitCode || 1;
     return;
   }
@@ -61,10 +61,10 @@ async function main() {
     cwd: resolvedProjectDir,
     env: {
       ...process.env,
-      REG_SUIT_INVOCATION_DIR: invocationDir,
-      REG_SUIT_SCRIPT_DIR: resolvedScriptDir,
-      REG_SUIT_PROJECT_DIR: resolvedProjectDir,
-      REG_SUIT_HELPER_DIR: resolvedScriptDir
+      EAGLEDIFF_INVOCATION_DIR: invocationDir,
+      EAGLEDIFF_SCRIPT_DIR: resolvedScriptDir,
+      EAGLEDIFF_PROJECT_DIR: resolvedProjectDir,
+      EAGLEDIFF_HELPER_DIR: resolvedScriptDir
     },
     stdio: 'inherit'
   });
@@ -77,7 +77,7 @@ async function main() {
 }
 
 function resolveScriptDir(scriptDir) {
-  const candidate = scriptDir || process.env.REG_SUIT_SCRIPT_DIR;
+  const candidate = scriptDir || process.env.EAGLEDIFF_SCRIPT_DIR;
   if (candidate) {
     return path.resolve(invocationDir, candidate);
   }
@@ -91,8 +91,8 @@ function resolveProjectDir(projectDir) {
   }
 
   const cwd = invocationDir;
-  if (cwd === defaultScriptDir && !process.env.REG_SUIT_PROJECT_DIR && !process.env.REG_SUIT_ROOT && !process.env.REG_SUIT_DIR) {
-    throw new Error('Refusing to use the shared helper directory as a project directory. Pass --dir or set REG_SUIT_DIR.');
+  if (cwd === defaultScriptDir && !process.env.EAGLEDIFF_PROJECT_DIR && !process.env.EAGLEDIFF_ROOT && !process.env.EAGLEDIFF_DIR) {
+    throw new Error('Refusing to use the shared helper directory as a project directory. Pass --dir or set EAGLEDIFF_DIR.');
   }
 
   return cwd;
@@ -198,29 +198,29 @@ function parseArgs(argv) {
 }
 
 function printUsage(write = console.error) {
-  write(`Usage: rsr [--dir <project-dir>] <command> [options]
+  write(`Usage: eaglediff [--dir <project-dir>] <command> [options]
 
-Run inside the folder containing config.json, or add --dir tests/reg-suit-runner.
+Run inside the folder containing config.json, or add --dir tests/eaglediff.
 
 Commands and examples:
-  rsr config --ref=https://example.com --limit=25  Discover pages and create or extend config.json.
-  rsr config-update                             Add missing settings/hooks; preserve existing values.
-  rsr import --backstop=/path/to/backstop        Import scenarios and settings from Backstop.
-  rsr reference                                 Capture reference screenshots, replacing the baseline.
-  rsr test --filter=homepage --workers=3         Capture matching pages and compare with references.
-  rsr approve                                   Replace references with the latest captures after review.
-  rsr results                                   Show recent pass counts, timings, and run history.
-  rsr report                                    Open the latest comparison report in your browser.
-  rsr clean                                     Delete screenshots, references, reports, and legacy caches.
-  rsr help                                      Show this help (also --help or -h).
+  eaglediff config --ref=https://example.com --limit=25 Discover pages and create or extend config.json.
+  eaglediff config-update                                   Add missing settings/hooks; preserve existing values.
+  eaglediff import --backstop=/path/to/backstop             Import scenarios and settings from Backstop.
+  eaglediff reference                                       Capture reference screenshots, replacing the baseline.
+  eaglediff test --filter=homepage --workers=3              Capture matching pages and compare with references.
+  eaglediff approve                                         Replace references with the latest captures after review.
+  eaglediff results                                         Show recent pass counts, timings, and run history.
+  eaglediff report                                          Open the latest comparison report in your browser.
+  eaglediff clean                                           Delete screenshots, references, reports, and legacy caches.
+  eaglediff help                                            Show this help (also --help or -h).
 
 Options:
   --dir <path>         Project folder; defaults to the current directory.
-  --script-dir <path>  Use scripts from another RSR checkout.
+  --script-dir <path>  Use scripts from another Eaglediff checkout.
   --filter <text>      Match scenario labels or URLs for reference/test.
   --workers <count>    Limit concurrent captures; overrides core.workers.
   --no-clean          Keep cached screenshots when running reference/test.
-  --allow-newer-config  Continue with a config newer than this RSR without prompting.`);
+  --allow-newer-config  Continue with a config newer than this Eaglediff without prompting.`);
 }
 
 Promise.resolve(main()).catch((error) => {

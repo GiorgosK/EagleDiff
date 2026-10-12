@@ -21,7 +21,7 @@ function confirm(question) {
 async function checkConfigVersion({ configPath, scriptDir, command, allowNewer = false }, {
   interactive = Boolean(process.stdin.isTTY && process.stderr.isTTY),
   ask = confirm,
-  warn = message => console.error(`[reg-suit] ${message}`)
+  warn = message => console.error(`[eaglediff] ${message}`)
 } = {}) {
   // The explicit update command already validates versions and refuses downgrades.
   if (command === 'config-update') return true;
@@ -42,17 +42,17 @@ async function checkConfigVersion({ configPath, scriptDir, command, allowNewer =
   const versionDetails = [
     `  Config: ${relativePath}`,
     `  Config version: ${current.version || 'unversioned'}`,
-    `  RSR version:    ${defaults.version}`
+    `  Eaglediff version:    ${defaults.version}`
   ].join('\n');
   if (comparison > 0) {
-    warn(`Config is newer than this RSR.\n${versionDetails}\n\n  The operation may be incompatible.\n`);
+    warn(`Config is newer than this Eaglediff.\n${versionDetails}\n\n  The operation may be incompatible.\n`);
     if (allowNewer) return true;
     if (!interactive) {
-      throw new Error('Cannot confirm in a non-interactive session. Update RSR, or pass --allow-newer-config to continue explicitly.');
+      throw new Error('Cannot confirm in a non-interactive session. Update Eaglediff, or pass --allow-newer-config to continue explicitly.');
     }
     return ask('Continue with this newer config?');
   }
-  warn(`Config is ${current.version ? 'older than this RSR' : 'unversioned'}.\n${versionDetails}\n\n  Missing settings and hooks can be added with config-update.\n`);
+  warn(`Config is ${current.version ? 'older than this Eaglediff' : 'unversioned'}.\n${versionDetails}\n\n  Missing settings and hooks can be added with config-update.\n`);
   if (!interactive) {
     warn('Continuing without changes. Run config-update to add missing settings and hooks.');
     return true;

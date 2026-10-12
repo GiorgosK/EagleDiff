@@ -9,7 +9,7 @@ const { promisify } = require('node:util');
 const { getScreenshotFileName } = require('../scripts/run');
 
 test('workers distribute scenario/viewport pairs without duplicate or missing captures', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-workers-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-workers-'));
   const server = http.createServer((req, res) => {
     res.setHeader('Content-Type', 'text/html');
     res.end(`<h1>${req.url}</h1>`);
@@ -37,11 +37,11 @@ test('workers distribute scenario/viewport pairs without duplicate or missing ca
     }
     await fs.writeFile(configPath, JSON.stringify(omitConfigWorkers ? { ...config, core: {} } : config));
     const { stdout } = await promisify(execFile)(process.execPath, [
-      path.join(__dirname, '../bin/reg-suit.js'), ...(fromProject ? [] : ['--dir', directory]),
+      path.join(__dirname, '../bin/eaglediff.js'), ...(fromProject ? [] : ['--dir', directory]),
       '--script-dir', path.join(__dirname, '..'), 'reference', '--', ...(workers === undefined ? [] : [`--workers=${workers}`])
     ], { timeout: 30000, cwd: fromProject ? directory : path.join(__dirname, '..'),
-      env: { ...process.env, npm_config_workers: '', INIT_CWD: '', REG_SUIT_DIR: '', REG_SUIT_CONFIG: '',
-        GLOBAL_REG_SUIT_CONFIG: '', npm_config_config: '' } });
+      env: { ...process.env, npm_config_workers: '', INIT_CWD: '', EAGLEDIFF_DIR: '', EAGLEDIFF_CONFIG: '',
+        GLOBAL_EAGLEDIFF_CONFIG: '', npm_config_config: '' } });
     const progress = stdout.split('\n').filter(line => /^\[\d+\/\d+\]/.test(line));
     assert.equal(progress.length, scenarioCount * config.viewports.length);
     assert.equal(new Set(progress.map(line => line.match(/\[w(\d+)\]/)?.[1] || '1')).size, expectedWorkers);

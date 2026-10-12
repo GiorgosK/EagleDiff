@@ -48,7 +48,7 @@ test('retry budgets preserve the original configuration, worker count, delays an
 });
 
 test('a slow image still completes after both retries were spent on earlier readiness failures', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-retry-budget-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-retry-budget-'));
   const requests = new Map();
   const server = http.createServer((req, res) => {
     if (req.url.endsWith('.svg')) {

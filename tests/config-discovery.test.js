@@ -42,7 +42,7 @@ test('filters existing and discovered scenarios while preserving allowed overrid
 });
 
 test('config CLI saves defaults and uses existing exclusions before applying the discovery limit', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-discovery-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-discovery-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   const configPath = path.join(directory, 'config.json');
   const preloadPath = path.join(directory, 'browser.cjs');
@@ -63,8 +63,8 @@ test('config CLI saves defaults and uses existing exclusions before applying the
   const run = () => promisify(execFile)(process.execPath, [
     '--require', preloadPath, path.join(__dirname, '../scripts/config.js'),
     '--ref=https://example.org', '--links=https://example.org', '--limit=2'
-  ], { env: { ...process.env, REG_SUIT_DIR: directory, REG_SUIT_CONFIG: configPath,
-    GLOBAL_REG_SUIT_CONFIG: configPath, REG_SUIT_SCRIPT_DIR: path.join(__dirname, '..'),
+  ], { env: { ...process.env, EAGLEDIFF_DIR: directory, EAGLEDIFF_CONFIG: configPath,
+    GLOBAL_EAGLEDIFF_CONFIG: configPath, EAGLEDIFF_SCRIPT_DIR: path.join(__dirname, '..'),
     PUPPETEER_EXECUTABLE_PATH: process.execPath } });
 
   await run();

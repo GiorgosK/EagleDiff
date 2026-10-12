@@ -48,19 +48,19 @@ const serve = (request, response) => {
 };
 const listen = server => new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const cli = (...args) => exec(process.execPath, [
-  path.join(__dirname, '../bin/reg-suit.js'), '--dir', directory,
+  path.join(__dirname, '../bin/eaglediff.js'), '--dir', directory,
   '--script-dir', path.join(__dirname, '..'), ...args
 ], {
   env: {
     ...process.env,
-    REG_SUIT_DIR: directory,
-    REG_SUIT_CONFIG: path.join(directory, 'config.json'),
-    GLOBAL_REG_SUIT_CONFIG: path.join(directory, 'config.json')
+    EAGLEDIFF_DIR: directory,
+    EAGLEDIFF_CONFIG: path.join(directory, 'config.json'),
+    GLOBAL_EAGLEDIFF_CONFIG: path.join(directory, 'config.json')
   }
 });
 
 before(async () => {
-  directory = await fs.mkdtemp(path.join(os.tmpdir(), 'rsr-image-test-'));
+  directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-image-test-'));
   server = http.createServer(serve);
   cdn = http.createServer(serve);
   await listen(server);

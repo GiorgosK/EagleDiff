@@ -1,6 +1,6 @@
-# reg-suit-runner
+# Eaglediff
 
-**reg-suit-runner (RSR)** tests websites and web apps visually, using reg-suit to compare screenshots.
+**Eaglediff** tests websites and web apps visually, using reg-suit to compare screenshots.
 It aims to be a BackstopJS alternative with more defaults built in,
 so you can get started out of the box—or as close to it as possible.
 
@@ -10,8 +10,17 @@ Requires Node.js, pnpm, and Chrome/Chromium. From a local checkout:
 
 ```bash
 pnpm install
-pnpm add -g /path/to/reg-suit-runner
+pnpm add -g /path/to/eaglediff
 ```
+
+## Environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| `EAGLEDIFF_DIR`, `EAGLEDIFF_PROJECT_DIR`, `EAGLEDIFF_ROOT` | Project directory for scripts. Prefer the CLI's `--dir` option. |
+| `EAGLEDIFF_CONFIG`, `GLOBAL_EAGLEDIFF_CONFIG` | Override the config file path. |
+| `EAGLEDIFF_SCRIPT_DIR`, `EAGLEDIFF_HELPER_DIR` | Runner checkout containing scripts and defaults. Prefer `--script-dir`. |
+| `EAGLEDIFF_INVOCATION_DIR` | Original working directory passed by the CLI to resolve import paths. |
 
 ## Quick Start
 
@@ -20,13 +29,13 @@ pnpm add -g /path/to/reg-suit-runner
 Create config and calibrate by comparing the same site against itself:
 
 ```bash
-rsr --dir tests/reg-suit-runner config -- --limit=25 --ref=https://example.com
-rsr --dir tests/reg-suit-runner reference -- --workers=15
-rsr --dir tests/reg-suit-runner test -- --workers=15
-rsr --dir tests/reg-suit-runner report
+eaglediff --dir tests/eaglediff config -- --limit=25 --ref=https://example.com
+eaglediff --dir tests/eaglediff reference -- --workers=15
+eaglediff --dir tests/eaglediff test -- --workers=15
+eaglediff --dir tests/eaglediff report
 ```
 
-All tests should pass. If they don't, adjust `tests/reg-suit-runner/config.json`,
+All tests should pass. If they don't, adjust `tests/eaglediff/config.json`,
 then rerun `reference` and `test`. For an existing config, set both base URLs to
 the same site before calibrating.
 
@@ -35,22 +44,22 @@ the same site before calibrating.
 Once calibration passes, change `testBaseURL` to your staging or local site:
 
 ```bash
-rsr --dir tests/reg-suit-runner test -- --workers=15
-rsr --dir tests/reg-suit-runner report
+eaglediff --dir tests/eaglediff test -- --workers=15
+eaglediff --dir tests/eaglediff report
 ```
 
 ## Import From Backstop
 
 ```bash
-rsr --dir tests/reg-suit-runner import --backstop=/path/to/tests/backstop
+eaglediff --dir tests/eaglediff import --backstop=/path/to/tests/backstop
 ```
 
 Reads `backstop.json` and derives the base URLs from its scenarios. Review the
 imported config before capturing references. Backstop `cookiePath` entries are
-imported as paths relative to the RSR config, resolving the source paths relative
+imported as paths relative to the Eaglediff config, resolving the source paths relative
 to `backstop.json`. A shared file becomes `defaults.cookiePath`; different files
-remain on their scenarios. Custom Backstop scripts are not executed by RSR.
-Backstop's `asyncCaptureLimit` becomes `core.workers` unless the existing RSR
+remain on their scenarios. Custom Backstop scripts are not executed by Eaglediff.
+Backstop's `asyncCaptureLimit` becomes `core.workers` unless the existing Eaglediff
 config already specifies workers, avoiding an increase in capture concurrency
 on import.
 
@@ -70,7 +79,7 @@ For reusable consent fixtures that should apply to both environments:
 }
 ```
 
-These options explicitly change the domain and expiry; without them, RSR
+These options explicitly change the domain and expiry; without them, Eaglediff
 preserves both. Cookie values are never logged. File cookies are applied first,
 followed by inline `cookies`, which can override cookies with the same scope.
 
@@ -84,7 +93,7 @@ also prevents `test` from running when connected with `&&`.
 To isolate a failing page:
 
 ```bash
-rsr reference -- --filter=Inspire --workers=1
+eaglediff reference -- --filter=Inspire --workers=1
 ```
 
 For slow pages, increase `defaults.navigationTimeout` (for example to `60000`)
@@ -94,10 +103,10 @@ controls browser protocol commands and does not increase the navigation timeout.
 ## Commands And Config
 
 ```bash
-rsr --dir tests/reg-suit-runner test -- --filter=homepage --workers=15
-rsr --dir tests/reg-suit-runner approve
-rsr --dir tests/reg-suit-runner results
-rsr --dir tests/reg-suit-runner config -- --limit=25
+eaglediff --dir tests/eaglediff test -- --filter=homepage --workers=15
+eaglediff --dir tests/eaglediff approve
+eaglediff --dir tests/eaglediff results
+eaglediff --dir tests/eaglediff config -- --limit=25
 ```
 
 - `--dir` selects the folder containing `config.json`, screenshots in `.reg/`, and run history in `results.json`.
@@ -106,7 +115,7 @@ rsr --dir tests/reg-suit-runner config -- --limit=25
 - `config` discovers links and merges scenarios. It preserves saved URLs, settings, and existing scenarios except those matching `excludeExtensions`; `/` counts toward `--limit`.
 - For new configs, omitted or empty `--test` defaults to `--ref`. Edit saved base URLs directly to change environments.
 - `config` also adds `.reg/` to the project's `.gitignore`.
-- `--filter` matches labels or URLs; `--workers` overrides `core.workers`. When neither is set, RSR uses `core.workers` from `config-default.json` (currently `10`). Each scenario/viewport pair can run in a separate worker (one scenario with three viewports uses up to three workers). `report` only opens the latest report.
+- `--filter` matches labels or URLs; `--workers` overrides `core.workers`. When neither is set, Eaglediff uses `core.workers` from `config-default.json` (currently `10`). Each scenario/viewport pair can run in a separate worker (one scenario with three viewports uses up to three workers). `report` only opens the latest report.
 - `--clean` is the default: `reference` rebuilds baselines. `--no-clean` retains cached files between runs.
 
 Set the root-level `excludeExtensions` array in `config.json` to skip file links
@@ -120,10 +129,10 @@ custom lists. Run `config` afterward to filter existing scenarios.
 
 ## Update An Existing Config
 
-After updating RSR:
+After updating Eaglediff:
 
 ```bash
-rsr --dir tests/reg-suit-runner config-update
+eaglediff --dir tests/eaglediff config-update
 ```
 
 Adds missing settings (including nested defaults) and default hooks from
@@ -137,7 +146,7 @@ are kept unchanged. Recalibrate after updating.
 `NN` increments for changes on the same date. The command updates this field
 and refuses to downgrade a config from a newer revision.
 
-Before running a command, RSR compares the config version with its bundled defaults.
+Before running a command, Eaglediff compares the config version with its bundled defaults.
 Newer configs require confirmation; older or unversioned configs offer an update.
 Declining the update keeps your config and continues. In non-interactive runs,
 older configs continue with a warning; newer configs stop unless you pass
@@ -199,7 +208,7 @@ must appear in `onReadyScript`; use the [default list](#default-hooks) for order
 ### Familiar to Backstop users
 
 These share names or concepts with [Backstop settings](https://github.com/garris/BackstopJS#scenario-properties).
-The descriptions show how RSR uses them.
+The descriptions show how Eaglediff uses them.
 
 | Setting | Where | Purpose | Hook |
 | --- | --- | --- | --- |
@@ -220,7 +229,7 @@ The descriptions show how RSR uses them.
 | `keepSelectors` | Defaults or scenario | Similar to Backstop's `selectors`, but produces one crop enclosing all matches. Missing selectors fail capture. | `keep-selectors` |
 | `core.thresholdRate` | Root | Allowed fraction of changed pixels. `0.001` means 0.1%; Backstop's `misMatchThreshold` uses percentages instead. | - |
 
-### RSR-specific settings
+### Eaglediff-specific settings
 
 Unless marked **Root** or **Scenario only**, put these in `defaults` or a scenario.
 Nested names such as `browserVerification.timeout` belong inside that object's JSON.
@@ -265,7 +274,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `networkIdleTime` / `networkIdleTimeout` | Required network quiet time and maximum wait. Timing out here does not fail capture. | `wait-for-network-idle` |
 | `addParagraph` | **Scenario only:** enable a deliberate visual change during `test -- --addpara`. | `add-paragraph` (called automatically) |
 | `addParagraphTarget` | **Scenario only:** element to append the test paragraph to; defaults to `main`, falling back to `body`. | `add-paragraph` |
-| `addParagraphText` / `addParagraphSelector` | **Scenario only:** injected text and wrapper ID; defaults are `Reg-suit injected paragraph` and `#reg-suit-paragraph`. | `add-paragraph` |
+| `addParagraphText` / `addParagraphSelector` | **Scenario only:** injected text and wrapper ID; defaults are `Eaglediff injected paragraph` and `#eaglediff-paragraph`. | `add-paragraph` |
 
 Scenario values generally replace defaults. `hideSelectors` and `removeSelectors`
 are added to the default lists; `browserVerification` and `waitForStableContent`
@@ -328,7 +337,7 @@ Use this when testing the surrounding page, since map content is no longer compa
 Avoid `removeSelectors` here: removing the iframe shifts the content below it.
 
 For a changing reCAPTCHA badge, also add `.grecaptcha-badge`. Regenerate references
-and rerun `test` after adding these settings. RSR leaves embeds visible by default.
+and rerun `test` after adding these settings. Eaglediff leaves embeds visible by default.
 
 ### `replaceContent`
 
@@ -358,7 +367,7 @@ CSS; `""` disables it for that scenario.
 For a randomized CAPTCHA, a project can keep its layout stable with
 `fieldset.captcha { visibility: hidden !important; height: 160px !important; overflow: hidden !important; }`.
 This excludes the challenge from visual comparison. Choose the height for the site;
-RSR does not hide CAPTCHAs by default. For asynchronous newsletter forms, set
+Eaglediff does not hide CAPTCHAs by default. For asynchronous newsletter forms, set
 `readySelector` to the rendered submit button and `readyVisible` to `true`, with
 a suitable `readyTimeout`, so missing forms fail capture instead of producing a misleading screenshot.
 If the form loads only when it enters the viewport, place `wait-for-element`
@@ -372,7 +381,7 @@ pages that prevent scrolling. These timeouts also use `core.temporaryErrorRetrie
 The `wait-for-fonts` hook waits for layout and checks for failed font faces;
 the browser's `document.fonts.ready` promise also resolves when a font download
 fails. Configure `requiredFonts` to catch a missing font stylesheet as well as
-failed font files. RSR repeats this hook after final DOM edits, just before
+failed font files. Eaglediff repeats this hook after final DOM edits, just before
 capture, so late text does not silently use a fallback font. Set `fontTimeout`
 for slow loading and `core.temporaryErrorRetries` to retry in a fresh browser
 context. These checks keep the configured worker count unchanged.
@@ -401,7 +410,7 @@ layout after the screenshot. On a busy computer, reduce `core.workers` or run
 with `--workers=1` to reduce competing browser work before increasing timeouts.
 
 Set `retryImageDownloads: true` to actively recover an image after its browser
-download times out. RSR downloads the same resource through Node using the
+download times out. Eaglediff downloads the same resource through Node using the
 current browser context's cookies, serves those bytes at the original URL, and
 requires the image to decode before capture. This keeps completed readiness
 steps and JPEG normalization intact. Failed downloads or decoding still fail
@@ -410,7 +419,7 @@ page without logging cookies or URL query parameters.
 Place image loading before a readiness selector that depends on the page's
 load event, so a stalled image cannot block its own recovery step.
 
-If Chromium disconnects, RSR restarts the affected worker's browser on a
+If Chromium disconnects, Eaglediff restarts the affected worker's browser on a
 temporary-error retry and retains the replacement for its remaining captures.
 Context and page creation failures use the same retry limit as readiness
 failures. Cancelling the run prevents workers from restarting browsers.
@@ -443,7 +452,7 @@ Example scenario for checking that a deliberate change is detected:
 }
 ```
 
-Run `rsr --dir tests/reg-suit-runner test -- --filter=about --addpara`.
+Run `eaglediff --dir tests/eaglediff test -- --filter=about --addpara`.
 
 After changing capture settings, regenerate references before running `test`.
 Existing configs need the corresponding hooks from [Default Hooks](#default-hooks).
