@@ -5,6 +5,22 @@ and other browser-rendered content, using [reg-suit](https://github.com/reg-viz/
 as its comparison engine to detect visual changes between screenshots.
 It aims to be a BackstopJS alternative with more defaults built in.
 
+## Eaglediff and BackstopJS
+
+Eaglediff is a new project. The strengths below are early claims based on its
+implementation and maintainer-reported results; broader testing by the community
+is needed to validate them across websites, machines, and workloads.
+
+| Area | Eaglediff's intended strength |
+| --- | --- |
+| Stability | Font/image readiness, adaptive retries, and browser recovery aim to keep captures consistent under slow networks or busy CPUs. |
+| Modular defaults | Configurable hooks for lazy images, fonts, animations, backgrounds, and dynamic content. |
+| Comparison engine | Independently maintained reg-suit handles screenshot comparison and reports. |
+| Setup | Automatic page discovery and Backstop configuration import reduce setup work. |
+| Config maintenance | New defaults can be added while preserving saved customization. |
+| Baselines | URL-based screenshot identity survives label changes; filtered updates preserve unrelated references. |
+| Diagnostics | Page, hook, resource, and navigation details help explain capture failures. |
+
 ## AI-assisted development
 
 Parts of Eaglediff's code, tests, and documentation were developed with
@@ -21,6 +37,14 @@ Requires Node.js, pnpm, and Chrome/Chromium. From a local checkout:
 pnpm install
 pnpm add -g /path/to/eaglediff
 ```
+
+### Capture environment
+
+Comparing a live site with a DDEV-hosted site does not require both sites to run
+in Docker. Rendering consistency depends on the capture browser's OS, Chrome
+version, fonts, and display settings. Hosting a site in DDEV does not standardize
+that browser environment. When sharing baselines across machines or CI, use a
+consistent browser environment, such as the same container image for captures.
 
 ## Environment variables
 
