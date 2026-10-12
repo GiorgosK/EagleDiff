@@ -505,5 +505,5 @@ Coverage reports measure Node execution. Functions serialized into Chromium by
 they were never exercised. Check behavior coverage alongside the percentages.
 See [Node's coverage documentation](https://nodejs.org/docs/latest-v24.x/api/test.html#collecting-code-coverage).
 
-The [architecture review](docs/architecture-review.md) records confirmed gaps,
-hook-order concerns, refactoring priorities, and proposed quality measurements.
+The [architecture overview](docs/overview.md) explains the components, capture
+lifecycle, hook responsibilities, testing approach, and future improvements.
