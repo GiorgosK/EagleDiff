@@ -5,6 +5,14 @@ and other browser-rendered content, using [reg-suit](https://github.com/reg-viz/
 as its comparison engine to detect visual changes between screenshots.
 It aims to be a BackstopJS alternative with more defaults built in.
 
+## AI-assisted development
+
+Parts of Eaglediff's code, tests, and documentation were developed with
+assistance from AI coding tools, including OpenAI Codex. Maintainers direct the
+project and remain responsible for technical decisions, reviewing contributions,
+and validating behavior. AI-assisted contributions are subject to the same
+review and testing standards as other contributions.
+
 ## Install
 
 Requires Node.js, pnpm, and Chrome/Chromium. From a local checkout:
