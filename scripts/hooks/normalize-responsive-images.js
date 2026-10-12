@@ -1,4 +1,6 @@
 module.exports = async function normalizeResponsiveImages(page, context) {
+  const timeout = context.scenario.lazyImageTimeout ?? context.config.defaults?.lazyImageTimeout ?? 15000;
+  if (!Number.isFinite(timeout) || timeout <= 0) throw new Error('lazyImageTimeout must be a positive number.');
   const selectorList =
     context.scenario.normalizeResponsiveImageSelectors ||
     context.config.defaults?.normalizeResponsiveImageSelectors ||
@@ -11,13 +13,13 @@ module.exports = async function normalizeResponsiveImages(page, context) {
     return;
   }
 
-  await page.evaluate(async (currentSelectors, failedSources) => {
+  const failure = await page.evaluate(async (currentSelectors, failedSources, timeout) => {
     const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
     const animationFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
     const elements = Array.from(document.querySelectorAll(currentSelectors.join(',')));
     const images = elements.filter((element) => element.tagName === 'IMG' &&
-      !failedSources.includes(element.currentSrc) && !failedSources.includes(element.src));
+      (element.currentSrc || element.getAttribute('src') || element.srcset) && !failedSources.includes(element.currentSrc) && !failedSources.includes(element.src));
     const sources = elements.filter((element) => element.tagName === 'SOURCE');
 
     for (const image of images) {
@@ -34,39 +36,35 @@ module.exports = async function normalizeResponsiveImages(page, context) {
     for (const source of sources) {
       const image = source.closest('picture')?.querySelector('img');
       if (image && (failedSources.includes(image.currentSrc) || failedSources.includes(image.src))) continue;
-      const srcset = source.getAttribute('srcset');
-      if (!srcset) {
-        continue;
+      if (image && !images.includes(image)) {
+        image.src = image.currentSrc || image.src;
+        image.removeAttribute('srcset'); image.removeAttribute('sizes');
+        images.push(image);
       }
-
-      const firstCandidate = srcset
-        .split(',')
-        .map((item) => item.trim())
-        .find(Boolean);
-
-      if (!firstCandidate) {
-        continue;
-      }
-
-      const url = firstCandidate.split(/\s+/)[0];
-      if (url) {
-        source.setAttribute('srcset', url);
-      }
+      source.removeAttribute('srcset');
     }
 
-    const waitForDecode = async (image) => {
+    const failures = await Promise.all(images.map(async image => {
+      let timer;
       try {
-        if (image.decode) {
-          await image.decode();
-        }
+        await Promise.race([image.decode(), new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Responsive image timed out.')), timeout);
+        })]);
+        return null;
       } catch (error) {
-        // Ignore decode failures; the image may already be complete.
-      }
-    };
-
-    await Promise.all(images.map(waitForDecode));
+        return { source: image.src, timedOut: error.message === 'Responsive image timed out.' };
+      } finally { clearTimeout(timer); }
+    }));
+    const failure = failures.find(Boolean);
+    if (failure) return failure;
     await animationFrame();
     await sleep(50);
     await animationFrame();
-  }, filteredSelectors, context.failedImageSources || []);
+    return null;
+  }, filteredSelectors, context.failedImageSources || [], timeout);
+  if (failure) {
+    const error = new Error(`Cannot decode responsive image before capture: ${failure.source}`);
+    if (failure.timedOut) error.code = 'EAGLEDIFF_IMAGE_TIMEOUT';
+    throw error;
+  }
 };
