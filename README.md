@@ -55,6 +55,7 @@ is needed to validate them across websites, machines, and workloads.
 | Config maintenance | New defaults can be added while preserving saved customization. |
 | Baselines | URL-based screenshot identity survives label changes; filtered updates preserve unrelated references. |
 | Diagnostics | Page, hook, resource, and navigation details help explain capture failures. |
+| Automation | End-of-run summaries, dated structured results, and meaningful exit codes help CI jobs track outcomes and highlight visual changes. |
 
 ## AI-assisted development
 
