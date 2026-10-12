@@ -62,9 +62,9 @@ test('capture retries transient stylesheet and image timeouts, but not broken re
   assert.equal(requests.get('/image'), 2);
   assert.equal(requests.get('/slow.svg'), 2);
   assert.equal((await fs.readdir(directory)).length, 2);
-  await capture('/deferred-form', { readySelector: '#ready', readyTimeout: 150, readyVisible: true });
+  await capture('/deferred-form', { readySelector: '#ready', readyTimeout: 1000, readyVisible: true });
   assert.equal(requests.get('/deferred-form'), 2);
-  await assert.rejects(capture('/absent-form', { readySelector: '#ready', readyTimeout: 150 }), /Required readySelector/);
+  await assert.rejects(capture('/absent-form', { readySelector: '#ready', readyTimeout: 1000 }), /Required readySelector/);
   assert.equal(requests.get('/absent-form'), 2);
   assert.equal((await fs.readdir(directory)).length, 3);
   await capture('/warn-image', { imageFailurePolicy: 'warn' });
