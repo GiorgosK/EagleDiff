@@ -283,8 +283,9 @@ are added to the default lists; `browserVerification` and `waitForStableContent`
 merge their fields. Parallel captures raise the default `readyTimeout` and
 `waitUntilGoneTimeout` to at least 30000; explicit scenario timeouts still apply.
 
-Compatibility fields: scenario `referenceUrl` is a fallback when `url` is missing,
-not a separate reference destination. Use the base URLs for environment changes.
+Scenario `referenceUrl` overrides the reference capture path; `url` selects the
+test capture path and provides the comparison identity. Relative paths use their
+respective base URLs. Absolute URLs are also supported.
 Root `readySelector`, `readyTimeout`, and `failOnResponseStatusCodes` are also
 accepted as fallbacks. Older `waitForTriggerSelectors`, `waitForSelectors`,
 `waitForTimeout`, and `waitForSettleDelayMs` map to the corresponding

@@ -112,6 +112,7 @@ function normalizeScenarios(scenarios, referenceBaseURL, testBaseURL, defaults =
     normalized.push(stripScenarioToRunnerShape({
       label: scenario.label,
       url,
+      ...(referenceUrl !== url ? { referenceUrl } : {}),
       ...pickScenarioOverrides(scenario, defaults)
     }));
   }
@@ -123,6 +124,7 @@ function stripScenarioToRunnerShape(scenario) {
   const keepKeys = new Set([
     'label',
     'url',
+    'referenceUrl',
     'delay',
     'readySelector',
     'readyTimeout',

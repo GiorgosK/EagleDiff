@@ -186,7 +186,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
       currentScreenshot += 1;
       const fileName = getScreenshotFileName(scenario, viewport);
       const filePath = path.join(actualDir, fileName);
-      const url = buildScenarioUrl(baseUrl, getScenarioUrl(scenario));
+      const url = buildScenarioUrl(baseUrl, command === 'reference' ? getScenarioReferenceUrl(scenario) : getScenarioUrl(scenario));
       const beforeScripts = [...globalBeforeScripts, ...normalizeScriptList(scenario.onBeforeScript)];
       const readyScripts = [...globalReadyScripts, ...normalizeScriptList(scenario.onReadyScript)];
       const readySelector = scenario.readySelector || runtimeConfig.defaults?.readySelector;
