@@ -1,6 +1,7 @@
 const fsp = require('fs/promises');
 const path = require('path');
 const { isDeepStrictEqual } = require('util');
+const { hookKey } = require('./hook-path');
 const { compareVersions, versionParts } = require('./config-version');
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
 
@@ -21,10 +22,6 @@ function fillMissing(current, defaults) {
     }
   }
   return result;
-}
-
-function hookKey(hook) {
-  return typeof hook === 'string' ? hook.replace(/^scripts\/hooks\//, 'hooks/').replace(/\.js$/, '') : hook;
 }
 
 function addMissingHooks(current, defaults) {

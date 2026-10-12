@@ -13,6 +13,7 @@ const { navigate } = require('./navigation');
 const { applyCookies } = require('./cookies');
 const { withRetryTimeouts, retryTimeoutFactor } = require('./retry-timeouts');
 const { readResults } = require('./results-history');
+const { resolveHookPath } = require('./hook-path');
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
 
 const configPath = getConfigPath();
@@ -1032,18 +1033,7 @@ async function runScripts(page, scriptSpecs, context) {
 }
 
 function resolveScriptPath(scriptSpec) {
-  const raw = String(scriptSpec);
-  const relativePath = raw.endsWith('.js') ? raw : `${raw}.js`;
-
-  if (path.isAbsolute(raw) || raw.startsWith('.')) {
-    return path.isAbsolute(relativePath) ? relativePath : path.join(rootDir, relativePath);
-  }
-
-  if (raw.startsWith('scripts/') || raw.startsWith('hooks/')) {
-    return path.join(helperDir, 'scripts', relativePath);
-  }
-
-  return path.join(helperDir, 'scripts', relativePath);
+  return resolveHookPath(scriptSpec, { helperDir, rootDir });
 }
 
 function runRegSuit(args) {
