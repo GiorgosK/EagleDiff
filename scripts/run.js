@@ -48,8 +48,19 @@ async function main() {
   try {
     if (command === 'approve') {
       await normalizeReferenceDir(referenceDir);
-      const approvalSourceDir = (await directoryExists(runActualDir)) ? runActualDir : actualCacheDir;
-      await promoteActualsToReferences(approvalSourceDir, referenceDir, null, { overwriteAll: true });
+      const manifest = await readJson(path.join(workingDir, 'capture-manifest.json'));
+      if (manifest.version !== 1 || typeof manifest.fullRun !== 'boolean' || !Array.isArray(manifest.fileNames)
+        || !manifest.fileNames.length || manifest.fileNames.some(name => typeof name !== 'string'
+          || path.basename(name) !== name || !name.endsWith('.png'))) {
+        throw new Error('Invalid capture manifest. Run test again before approving.');
+      }
+      const fileNames = filter
+        ? manifest.fileNames.filter(name => selectedScenarios.scenarios.some(scenario =>
+          selectedScenarios.viewports.some(viewport => getScreenshotFileName(scenario, viewport) === name)))
+        : manifest.fileNames;
+      await promoteActualsToReferences(runActualDir, referenceDir, null, {
+        overwriteAll: manifest.fullRun && !filter, fileNames
+      });
       return;
     }
 
@@ -110,6 +121,11 @@ async function main() {
     await populateExpectedSnapshots(workingDir, referenceDir, selectedScenarios, filter);
     await runRegSuit(['compare', '--config', generatedRegConfigPath]);
     const compareResult = await readCompareResult();
+    await fsp.writeFile(path.join(workingDir, 'capture-manifest.json'), JSON.stringify({
+      version: 1, fullRun: !filter,
+      fileNames: selectedScenarios.scenarios.flatMap(scenario =>
+        selectedScenarios.viewports.map(viewport => getScreenshotFileName(scenario, viewport)))
+    }) + '\n');
     try {
       const previousResults = await readResults(resultsPath);
       const entry = buildResultEntry({
@@ -838,6 +854,14 @@ async function promoteActualsToReferences(actualDir, expectedDir, scenarios, opt
     throw new Error(`No screenshots found in ${path.relative(rootDir, actualDir)}`);
   }
 
+  // Validate every source before modifying any baseline.
+  for (const fileName of fileNames) {
+    const image = await fsp.readFile(path.join(actualDir, fileName));
+    if (!image.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+      throw new Error(`Invalid actual screenshot: ${fileName}`);
+    }
+  }
+
   if (options.overwriteAll) {
     await fsp.rm(expectedDir, { recursive: true, force: true });
   }
@@ -856,6 +880,7 @@ async function promoteActualsToReferences(actualDir, expectedDir, scenarios, opt
 }
 
 async function getSelectedActualFileNames(actualDir, scenarios, options = {}) {
+  if (options.fileNames) return options.fileNames;
   if (options.overwriteAll) {
     return listImageFiles(actualDir);
   }
