@@ -661,7 +661,7 @@ function buildRegSuitConfig(config) {
   return {
     core: {
       workingDir,
-      actualDir: path.join('.reg', 'staging', 'screenshots'),
+      actualDir: stagingActualDir,
       thresholdRate,
       matchingThreshold
     }
