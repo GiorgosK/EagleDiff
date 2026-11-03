@@ -111,3 +111,22 @@ test('config-update CLI updates only the selected config, is repeatable, and lea
   await assert.rejects(run());
   assert.deepEqual(await fs.readdir(directory), []);
 });
+
+test('config updates add an empty readiness default but retain saved footer, custom, empty, and legacy selectors', () => {
+  assert.equal(updateConfig({}, template).defaults.readySelector, '');
+  for (const readySelector of ['#footer,.footer,footer', '.page-ready', '']) {
+    const current = {
+      version: '2026.10.11.03',
+      defaults: { readySelector },
+      scenarios: [{ url: '/one', readySelector: '' }]
+    };
+    const updated = updateConfig(current, template);
+    assert.equal(updated.defaults.readySelector, readySelector);
+    assert.equal(updated.scenarios[0].readySelector, '');
+    assert.equal(updated.version, template.version);
+    assert.deepEqual(updateConfig(updated, template), updated);
+  }
+  const legacy = updateConfig({ readySelector: '.legacy-ready' }, template);
+  assert.equal(legacy.readySelector, '.legacy-ready');
+  assert.equal(legacy.defaults.readySelector, '');
+});

@@ -14,6 +14,7 @@ const { applyCookies } = require('./cookies');
 const { withRetryTimeouts, retryTimeoutFactor } = require('./retry-timeouts');
 const { readResults } = require('./results-history');
 const { resolveHookPath } = require('./hook-path');
+const { resolveReadySelector } = require('./ready-selector');
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
 
 const configPath = getConfigPath();
@@ -190,7 +191,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
       const url = buildScenarioUrl(baseUrl, command === 'reference' ? getScenarioReferenceUrl(scenario) : getScenarioUrl(scenario));
       const beforeScripts = [...globalBeforeScripts, ...normalizeScriptList(scenario.onBeforeScript)];
       const readyScripts = [...globalReadyScripts, ...normalizeScriptList(scenario.onReadyScript)];
-      const readySelector = scenario.readySelector || runtimeConfig.defaults?.readySelector;
+      const readySelector = resolveReadySelector(runtimeConfig, scenario);
       const readyTimeout = scenario.readyTimeout || runtimeConfig.defaults?.readyTimeout;
       const delayMs = scenario.delay ?? defaultDelayMs;
       const captureContext = { scenario, mode: 'ready', config: runtimeConfig, readySelector, readyTimeout, reportWarning };
@@ -268,6 +269,7 @@ async function captureScenarioScreenshot({
       ...captureContext,
       config: attemptConfig,
       scenario: attemptScenario,
+      readySelector: resolveReadySelector(attemptConfig, attemptScenario),
       readyTimeout: attemptScenario.readyTimeout ?? attemptConfig.defaults?.readyTimeout,
       navigationResponseStatus: null,
       navigationResponseUrl: null,

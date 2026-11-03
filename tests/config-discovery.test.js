@@ -130,6 +130,7 @@ test('CLI discovers 25 pages by default in the current directory and keeps expli
   await run(['--ref=' + fixture.baseURL]);
   const created = JSON.parse(await fs.readFile(configPath));
   assert.equal(created.scenarios.length, 25);
+  assert.equal(created.defaults.readySelector, '');
   assert.equal(created.scenarios[0].url, '/');
   assert.equal(created.scenarios[24].url, '/page-23');
   assert.equal(created.referenceBaseURL, fixture.baseURL);

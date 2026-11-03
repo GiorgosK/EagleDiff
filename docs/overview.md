@@ -57,6 +57,12 @@ until after final DOM edits and font readiness. Project-specific order matters:
 a selector initialized on `window.load`, for example, can depend on images
 finishing first.
 
+`readySelector` is empty by default: pages do not need a footer to be captured.
+Set it to a meaningful element when application content must appear before capture.
+A scenario's empty string disables an inherited selector wait; other readiness
+hooks still run. Existing configs keep saved selectors during updates, including
+legacy root selectors when the nested default is blank.
+
 CSS hooks intentionally run before navigation and again during readiness.
 Early styles influence page initialization; later application covers document
 replacement and subsequent edits. The final font recheck handles requests

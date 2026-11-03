@@ -185,7 +185,7 @@ function pickScenarioOverrides(scenario, defaults) {
     }
 
     const value = scenario[key];
-    if (!isMeaningfulValue(value) && key !== 'cookies' && key !== 'cookiePath') {
+    if (!isSettingValue(key, value) && key !== 'cookies' && key !== 'cookiePath') {
       continue;
     }
 
@@ -223,7 +223,7 @@ function buildSharedDefaults(scenarios, fallbackDefaults) {
 
   for (const field of sharedFields) {
     const value = commonScenarioValue(scenarios, field);
-    if (isMeaningfulValue(value)) {
+    if (isSettingValue(field, value)) {
       defaults[field] = value;
     }
   }
@@ -255,7 +255,7 @@ function commonScenarioValue(scenarios, key) {
     }
 
     const value = scenario[key];
-    if (!isMeaningfulValue(value)) {
+    if (!isSettingValue(key, value)) {
       return undefined;
     }
 
@@ -271,6 +271,10 @@ function commonScenarioValue(scenarios, key) {
   }
 
   return found ? firstValue : undefined;
+}
+
+function isSettingValue(key, value) {
+  return isMeaningfulValue(value) || (key === 'readySelector' && value === '');
 }
 
 function isMeaningfulValue(value) {

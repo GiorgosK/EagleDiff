@@ -17,7 +17,7 @@ test('retry budgets preserve the original configuration, worker count, delays an
       browserVerification: { timeout: 30000, challengeSelectors: ['.challenge'] },
       waitForStableContent: { timeout: 15000, settleDelayMs: 750 } }
   };
-  const scenario = { url: '/', readyTimeout: 100, navigationTimeout: 0, delay: 10,
+  const scenario = { url: '/', readySelector: '', readyTimeout: 100, navigationTimeout: 0, delay: 10,
     browserVerification: null, waitForStableContent: { timeout: 200, selectors: ['.footer'] } };
   const original = structuredClone({ config, scenario });
   const result = withRetryTimeouts(config, scenario, 2);
@@ -32,6 +32,7 @@ test('retry budgets preserve the original configuration, worker count, delays an
   assert.equal(result.config.defaults.waitForStableContent.timeout, 60000);
   assert.equal(result.config.defaults.waitForStableContent.settleDelayMs, 750);
   assert.equal(result.scenario.readyTimeout, 400);
+  assert.equal(result.scenario.readySelector, '');
   assert.equal(result.scenario.navigationTimeout, 0);
   assert.equal(result.scenario.waitForStableContent.timeout, 800);
   assert.equal(result.scenario.browserVerification, null);

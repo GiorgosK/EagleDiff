@@ -1,8 +1,7 @@
+const { resolveReadySelector } = require('../ready-selector');
+
 module.exports = async function waitForElement(page, context) {
-  const selector =
-    context.scenario.readySelector ||
-    context.config.defaults?.readySelector ||
-    context.config.readySelector;
+  const selector = resolveReadySelector(context.config, context.scenario);
   const timeoutMs =
     context.scenario.readyTimeout ||
     context.config.defaults?.readyTimeout ||

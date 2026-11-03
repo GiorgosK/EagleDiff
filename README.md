@@ -176,6 +176,10 @@ existing hook order. Missing hooks are inserted beside their default neighbours;
 this also restores default hooks you previously removed. Other existing arrays
 are kept unchanged. Recalibrate after updating.
 
+New configs leave `readySelector` empty. Updating an existing config keeps its
+saved selector, including the old footer selector. To stop waiting for it, set
+`defaults.readySelector` to `""` (and clear root `readySelector` if present).
+
 `version` records the runner/config revision, starting at `2026.09.26.01`
 (`YYYY.MM.DD.NN`). Bump it in `config-default.json` when runner or config changes need a new revision;
 `NN` increments for changes on the same date. The command updates this field
@@ -255,7 +259,7 @@ The descriptions show how Eaglediff uses them.
 | `defaults` | Root | Container for shared capture settings, like Backstop's `scenarioDefaults`. Each setting's hook is listed in its own row. | - |
 | `onBeforeScript` / `onReadyScript` | Root or scenario | Script lists run before navigation or after navigation and `delay`. Scenario scripts run after the root list. | Listed scripts |
 | `delay` | Defaults or scenario | Pause after navigation, before ready hooks run. | - |
-| `readySelector` | Defaults or scenario | Wait for a matching element; fail if it never appears. | `wait-for-element` |
+| `readySelector` | Defaults or scenario | Optional element to wait for; empty by default. A missing required element fails capture. | `wait-for-element` |
 | `readyTimeout` | Defaults or scenario | Maximum wait for `readySelector`. | `wait-for-element` |
 | `hideSelectors` | Defaults or scenario | Hide matching elements, keeping their space. | - |
 | `removeSelectors` | Defaults or scenario | Remove matching elements and their space from the DOM. | - |
@@ -322,7 +326,9 @@ Scenario `referenceUrl` overrides the reference capture path; `url` selects the
 test capture path and provides the comparison identity. Relative paths use their
 respective base URLs. Absolute URLs are also supported.
 Root `readySelector`, `readyTimeout`, and `failOnResponseStatusCodes` are also
-accepted as fallbacks. Older `waitForTriggerSelectors`, `waitForSelectors`,
+accepted as fallbacks. A scenario's `readySelector: ""` disables the selector
+wait for that page. Otherwise, a blank default still allows a root selector.
+Older `waitForTriggerSelectors`, `waitForSelectors`,
 `waitForTimeout`, and `waitForSettleDelayMs` map to the corresponding
 `waitForStableContent` fields when those nested fields are absent.
 
@@ -408,6 +414,8 @@ This excludes the challenge from visual comparison. Choose the height for the si
 Eaglediff does not hide CAPTCHAs by default. For asynchronous newsletter forms, set
 `readySelector` to the rendered submit button and `readyVisible` to `true`, with
 a suitable `readyTimeout`, so missing forms fail capture instead of producing a misleading screenshot.
+The other readiness hooks still run when `readySelector` is empty, but cannot
+know which application-specific content should appear later.
 If the form loads only when it enters the viewport, place `wait-for-element`
 after `scroll-to-bottom` in the project's `onReadyScript` list.
 Scrolling follows changes in page height as lazy content loads. `scrollTimeout`

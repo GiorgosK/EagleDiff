@@ -1,5 +1,5 @@
 {
-  "version": "2026.10.11.03",
+  "version": "2026.11.02.01",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -23,7 +23,7 @@
     "readyTimeout": 10000,
     "fontTimeout": 30000,
     "requiredFonts": [],
-    "readySelector": "#footer,.footer,footer",
+    "readySelector": "",
     "readyVisible": false,
     "browserVerification": {
       "challengeSelectors": ["script[src*=\"/botbuster/js/challenge.js\"]"],
