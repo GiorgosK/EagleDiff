@@ -1,10 +1,13 @@
+const withImagePlaceholderCheck = require('../image-placeholder');
+
 module.exports = async function waitForBackgroundImages(page, context = {}) {
   const timeout = context.scenario?.lazyImageTimeout ?? context.config?.defaults?.lazyImageTimeout ?? 15000;
   const policy = context.scenario?.imageFailurePolicy ?? context.config?.defaults?.imageFailurePolicy ?? 'error';
   if (!Number.isFinite(timeout) || timeout <= 0) throw new Error('lazyImageTimeout must be a positive number.');
   if (!['error', 'warn'].includes(policy)) throw new Error('imageFailurePolicy must be "error" or "warn".');
-  const failures = await page.evaluate(async ({ failedSources, timeout }) => {
+  const failures = await withImagePlaceholderCheck(page, check => page.evaluate(async ({ failedSources, timeout }, isPlaceholder) => {
     const images = [...document.images].filter(image =>
+      !isPlaceholder(image) &&
       (image.currentSrc || image.getAttribute('src') || image.srcset) && !failedSources.includes(image.currentSrc) && !failedSources.includes(image.src));
     const seen = new Set();
     for (const element of document.querySelectorAll('*')) {
@@ -29,7 +32,7 @@ module.exports = async function waitForBackgroundImages(page, context = {}) {
       } finally { clearTimeout(timer); }
     }));
     return results.filter(Boolean);
-  }, { failedSources: context.failedImageSources || [], timeout });
+  }, { failedSources: context.failedImageSources || [], timeout }, check));
   for (const failure of failures) {
     const url = new URL(failure.source);
     const source = url.origin + url.pathname;

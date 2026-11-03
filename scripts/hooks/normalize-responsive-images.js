@@ -1,3 +1,5 @@
+const withImagePlaceholderCheck = require('../image-placeholder');
+
 module.exports = async function normalizeResponsiveImages(page, context) {
   const timeout = context.scenario.lazyImageTimeout ?? context.config.defaults?.lazyImageTimeout ?? 15000;
   if (!Number.isFinite(timeout) || timeout <= 0) throw new Error('lazyImageTimeout must be a positive number.');
@@ -13,12 +15,13 @@ module.exports = async function normalizeResponsiveImages(page, context) {
     return;
   }
 
-  const failure = await page.evaluate(async (currentSelectors, failedSources, timeout) => {
+  const failure = await withImagePlaceholderCheck(page, check => page.evaluate(async (currentSelectors, failedSources, timeout, isPlaceholder) => {
     const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
     const animationFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
     const elements = Array.from(document.querySelectorAll(currentSelectors.join(',')));
     const images = elements.filter((element) => element.tagName === 'IMG' &&
+      !isPlaceholder(element) &&
       (element.currentSrc || element.getAttribute('src') || element.srcset) && !failedSources.includes(element.currentSrc) && !failedSources.includes(element.src));
     const sources = elements.filter((element) => element.tagName === 'SOURCE');
 
@@ -35,6 +38,7 @@ module.exports = async function normalizeResponsiveImages(page, context) {
 
     for (const source of sources) {
       const image = source.closest('picture')?.querySelector('img');
+      if (image && isPlaceholder(image)) continue;
       if (image && (failedSources.includes(image.currentSrc) || failedSources.includes(image.src))) continue;
       if (image && !images.includes(image)) {
         image.src = image.currentSrc || image.src;
@@ -61,7 +65,7 @@ module.exports = async function normalizeResponsiveImages(page, context) {
     await sleep(50);
     await animationFrame();
     return null;
-  }, filteredSelectors, context.failedImageSources || [], timeout);
+  }, filteredSelectors, context.failedImageSources || [], timeout, check));
   if (failure) {
     const error = new Error(`Cannot decode responsive image before capture: ${failure.source}`);
     if (failure.timedOut) error.code = 'EAGLEDIFF_IMAGE_TIMEOUT';

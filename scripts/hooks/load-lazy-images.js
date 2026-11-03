@@ -1,3 +1,5 @@
+const withImagePlaceholderCheck = require('../image-placeholder');
+
 module.exports = async function loadLazyImages(page, context = {}) {
   const timeout = context.scenario?.lazyImageTimeout ?? context.config?.defaults?.lazyImageTimeout ?? 15000;
   if (!Number.isFinite(timeout) || timeout <= 0) throw new Error('lazyImageTimeout must be a positive number.');
@@ -8,7 +10,7 @@ module.exports = async function loadLazyImages(page, context = {}) {
   if (typeof retryDownloads !== 'boolean') throw new Error('retryImageDownloads must be a boolean.');
   if (!Number.isFinite(downloadTimeout) || downloadTimeout <= 0) throw new Error('imageDownloadTimeout must be a positive number.');
 
-  const failures = await page.evaluate(async ({ timeoutMs, failurePolicy }) => {
+  const failures = await withImagePlaceholderCheck(page, check => page.evaluate(async ({ timeoutMs, failurePolicy }, isPlaceholder) => {
     const promoteSources = () => {
       // Common lazy-loader attributes, independent of any particular library.
       for (const element of document.querySelectorAll('img, picture source')) {
@@ -43,6 +45,7 @@ module.exports = async function loadLazyImages(page, context = {}) {
 
     const failures = [];
     await Promise.all(Array.from(document.images).map(async image => {
+      if (isPlaceholder(image)) return;
       if (!image.getAttribute('src') && !image.srcset && !image.closest('picture')?.querySelector('source[srcset]')) return;
       let timer;
       try {
@@ -74,7 +77,7 @@ module.exports = async function loadLazyImages(page, context = {}) {
     }));
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     return failures;
-  }, { timeoutMs: timeout, failurePolicy: policy }).catch(error => {
+  }, { timeoutMs: timeout, failurePolicy: policy }, check)).catch(error => {
     if (/Cannot load image before capture:[\s\S]*Timed out after \d+ms/.test(error.message)) {
       error.code = 'EAGLEDIFF_IMAGE_TIMEOUT';
     }
