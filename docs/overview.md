@@ -90,6 +90,9 @@ Image hooks have distinct responsibilities:
 
 Stalled image waits fail even in warning mode because unresolved downloads can
 change layout after capture. Broken image handling follows `imageFailurePolicy`.
+The runner records image response status, content type, and network failures from
+before navigation. Capture errors include matching resource details when available;
+tracking is disposed with each capture attempt and does not add requests or retries.
 Network-idle waiting is best effort for expected timeouts; browser failures
 propagate to capture recovery.
 

@@ -9,6 +9,7 @@ const { stripVTControlCharacters } = require('util');
 
 const puppeteer = require('puppeteer-core');
 const captureScreenshot = require('./capture-screenshot');
+const trackImageRequests = require('./image-request-diagnostics');
 const { navigate } = require('./navigation');
 const { applyCookies } = require('./cookies');
 const { withRetryTimeouts, retryTimeoutFactor } = require('./retry-timeouts');
@@ -268,6 +269,7 @@ async function captureScenarioScreenshot({
     const { config: attemptConfig, scenario: attemptScenario } = withRetryTimeouts(runtimeConfig, scenario, attempt);
     let browserContext;
     let activePage;
+    let imageDiagnostics;
     const readyContext = {
       ...captureContext,
       config: attemptConfig,
@@ -296,6 +298,7 @@ async function captureScenarioScreenshot({
       if (!browser.connected && relaunchBrowser) browser = await relaunchBrowser();
       browserContext = await browser.createBrowserContext();
       activePage = await browserContext.newPage();
+      imageDiagnostics = trackImageRequests(activePage);
       activePage.on('response', trackNavigationResponse);
       await activePage.setViewport({
         width: viewport.width,
@@ -354,6 +357,8 @@ async function captureScenarioScreenshot({
         error = challengeError(provider, readyContext.navigationResponseUrl, error);
       }
       const retryable = !isCancelled?.() && attempt < temporaryErrorRetries && isTemporaryCaptureError(error);
+      const imageDetails = imageDiagnostics?.explain(error);
+      if (imageDetails) error = new Error(`${error.message}\n${imageDetails}`, { cause: error });
 
       if (!retryable) {
         const finalUrl = activePage?.url();
@@ -368,6 +373,7 @@ async function captureScenarioScreenshot({
       const factor = retryTimeoutFactor(runtimeConfig, attempt);
       if (factor > 1) console.warn(`[eaglediff] Retry readiness timeouts: ${factor}x the configured budgets; worker count unchanged.`);
     } finally {
+      imageDiagnostics?.dispose();
       activePage?.off('response', trackNavigationResponse);
       // Disposing the context also cancels navigation rejected by the challenge guard.
       // Closing its page first can wait indefinitely for a navigation to commit.

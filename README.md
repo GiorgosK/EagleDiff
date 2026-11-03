@@ -513,6 +513,10 @@ does not skip readiness checks or accept incomplete screenshots.
 The `load-lazy-images` hook loads common `data-src`, `data-srcset`, and `data-sizes`
 attributes (including `data-lazy-*`) and waits for images to decode before
 responsive-image normalization. Broken or timed-out images report their URL.
+Capture errors also show the observed image HTTP status, content type, or
+Chrome network error when available. For example, `HTTP 403 (text/html)` means
+the server returned an error page instead of an image. `HTTP 200` alone does
+not prove the image data is valid. These diagnostics add no downloads or retries.
 Hidden empty `data:,` placeholders, such as Cookiebot branding images, are
 ignored when they have no real image candidate. Lazy replacement sources are
 loaded first. Visible empty images and real broken images still fail capture.
