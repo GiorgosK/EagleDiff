@@ -32,7 +32,8 @@ module.exports = async function normalizeImageDecoding(page, context) {
         // Warning mode keeps broken originals for comparison; do not try to
         // fetch those same failed images again during optional JPEG normalization.
         if (failedSources.includes(source) || failedSources.includes(image.src)) continue;
-        if (!/\.jpe?g(?:[?#]|$)/i.test(source)) continue;
+        const isGif = /\.gif(?:[?#]|$)/i.test(source) || /^data:image\/gif[;,]/i.test(source);
+        if (!isGif && !/\.jpe?g(?:[?#]|$)/i.test(source)) continue;
         if (skipped.has(source)) continue;
 
         let stage = 'fetching';
@@ -57,10 +58,11 @@ module.exports = async function normalizeImageDecoding(page, context) {
             if (!response.ok) throw new Error(`Cannot normalize image (${response.status}): ${source}`);
             stage = 'reading response';
             const blob = await response.blob();
-            if (blob.type !== 'image/jpeg') continue;
+            if (blob.type !== 'image/jpeg' && blob.type !== 'image/gif') continue;
 
             // Decode at intrinsic resolution before the browser scales the displayed image.
-            stage = 'decoding JPEG';
+            // The HTML standard defines an animated bitmap's default/first frame.
+            stage = blob.type === 'image/gif' ? 'decoding GIF' : 'decoding JPEG';
             const bitmap = await createImageBitmap(blob);
             try {
               stage = 'encoding PNG';
@@ -99,6 +101,13 @@ module.exports = async function normalizeImageDecoding(page, context) {
   } finally {
     page.off('requestfailed', onRequestFailed);
     page.off('console', onConsole);
+  }
+  const gifWarnings = warnings.filter(source => /\.gif(?:[?#]|$)|^data:image\/gif[;,]/i.test(source));
+  warnings = warnings.filter(source => !gifWarnings.includes(source));
+  if (gifWarnings.length) {
+    const message = `Some GIF images could not be fetched to freeze their first frame; originals loaded successfully but may keep animating. Allow CORS on the image server or use a same-origin image. Page: ${page.url()}.`;
+    if (context.reportWarning) context.reportWarning('gif-normalization-skipped', message);
+    else console.warn(`[eaglediff] ${message}`);
   }
   if (warnings.length) {
     const message = `Some JPEG images could not be fetched for normalization; originals loaded successfully and are unchanged, but may produce decoding differences. Page: ${page.url()}. Example: ${warnings[0]}. Cross-origin redirects or missing CORS permission can cause this. Use consistent page/image origins or allow CORS on the image server. Further warnings of this type are suppressed for this run.`;

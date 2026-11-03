@@ -355,7 +355,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `keepCookiebot` | **Scenario only:** skip the entire `hideDynamicSelectors` hook for this page. | `hide-dynamic-elements` |
 | `lazyImageTimeout` | Maximum wait in milliseconds for each image to decode after lazy loading. | `load-lazy-images` |
 | `normalizeResponsiveImageSelectors` | Freeze image/source choices and remove responsive sizing attributes. | `normalize-responsive-images` |
-| `normalizeImageDecodingSelectors` | Convert selected JPEGs to PNGs for capture. If fetching is blocked but the original image loads, keep it and warn. Broken images still fail. | `normalize-image-decoding` |
+| `normalizeImageDecodingSelectors` | Convert selected JPEGs and GIFs to PNGs for capture; GIFs use their first frame. If fetching is blocked but the original image loads, keep it and warn. Broken images still fail. | `normalize-image-decoding` |
 | `randomImage` | Replace selected images with fixed placeholders; use a background placeholder when the target contains no images. | `replace-random-content` |
 | `randomContent` | Replace selected elements' children with placeholder text. | `replace-random-content` |
 | `replaceContent` | Map selectors to specific replacement text. | `replace-random-content` |
@@ -393,6 +393,12 @@ Use an explicit selector list to restrict detection, or `[]` to turn it off.
 Config updates preserve existing `[]` settings; change them to `null` to enable
 automatic detection. `carouselSettleDelayMs` controls the wait after resetting
 slides (default 500 ms).
+
+The image-decoding hook also freezes GIF `<img>` elements at their first frame.
+It does not freeze CSS background GIFs or images inside iframes. Cross-origin
+images need CORS permission to be converted; otherwise Eaglediff keeps a working
+original and warns that it may still animate. Set
+`"normalizeImageDecodingSelectors": []` to disable conversion.
 
 ### `waitUntilGone`, `carouselSelectors`, and `keepSelectors`
 
