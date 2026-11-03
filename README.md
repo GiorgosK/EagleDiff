@@ -79,7 +79,7 @@ is needed to validate them across websites, machines, and workloads. Your report
 | Comparison engine | Independently maintained reg-suit handles screenshot comparison and reports. |
 | Setup | Automatic page discovery and Backstop configuration import reduce setup work. |
 | Config maintenance | New defaults can be added while preserving saved customization. |
-| Baselines | URL-based screenshot identity survives label changes; filtered updates preserve unrelated references. |
+| Baselines | URL and label distinguish scenarios; filtered updates preserve unrelated references. |
 | Diagnostics | Page, hook, resource, and navigation details help explain capture failures. |
 | Concise output | Short progress updates and clear summaries keep runs easy to follow. |
 | Automation | End-of-run summaries, dated structured results, and meaningful exit codes help CI jobs track outcomes and highlight visual changes. |
@@ -115,6 +115,24 @@ remain on their scenarios. Custom Backstop scripts are not executed by Eaglediff
 Backstop's `asyncCaptureLimit` becomes `core.workers` unless the existing Eaglediff
 config already specifies workers, avoiding an increase in capture concurrency
 on import.
+
+Import reports repeated URLs and keeps each scenario when its label is distinct:
+
+```json
+[
+  { "url": "/courses", "label": "Courses" },
+  { "url": "/courses", "label": "Expanded courses" }
+]
+```
+
+If both URL and label repeat, import adds unique IDs to those scenarios and
+shows them in the warning. Otherwise, no extra ID is added. Re-importing rebuilds
+the scenario list, so back up manual scenario edits first.
+
+Screenshot filenames now include the label in their identity. Existing labeled
+scenarios need fresh references after upgrading; renaming a label also changes
+its screenshot filename. Unlabeled scenarios without IDs keep their existing filenames.
+For scenarios with an `id`, keep it unchanged to preserve its screenshot filename.
 
 For existing imports, add `defaults.cookiePath` manually to preserve calibration
 changes rather than replacing scenarios with another import. Cookie files contain
@@ -170,7 +188,7 @@ eaglediff config
 - `config` discovers links and merges scenarios. It preserves saved URLs, settings, and existing scenarios except those matching `excludeExtensions`; `/` counts toward `--limit`.
 - For new configs, omitted or empty `--test` defaults to `--ref`. Edit saved base URLs directly to change environments.
 - `config` also adds `.reg/` to the project's `.gitignore`.
-- `--filter` matches labels or URLs; `--workers` overrides `core.workers`. When neither is set, Eaglediff uses `core.workers` from `config-default.json` (currently `10`). Each scenario/viewport pair can run in a separate worker (one scenario with three viewports uses up to three workers). `report` only opens the latest report.
+- `--filter` matches labels, IDs, or URLs; `--workers` overrides `core.workers`. When neither is set, Eaglediff uses `core.workers` from `config-default.json` (currently `10`). Each scenario/viewport pair can run in a separate worker (one scenario with three viewports uses up to three workers). `report` only opens the latest report.
 - `--clean` is the default: full `reference` runs rebuild baselines. Filtered reference runs replace only matching baselines. `--no-clean` retains cached files between runs.
 
 Set the root-level `excludeExtensions` array in `config.json` to skip file links
@@ -284,6 +302,7 @@ The descriptions show how Eaglediff uses them.
 | `viewports` | Root | Screen sizes: each entry has `label`, `width`, `height`, and optional `deviceScaleFactor` (1 by default). | - |
 | `scenarios` | Root | Pages to capture; each entry has a `url` and optional `label`. | - |
 | `url` / `label` | Scenario | Page path or absolute URL, and display name. Paths use the selected environment's base URL. | - |
+| `id` | Scenario | Optional extra name to distinguish scenarios with the same URL and label. Import adds it only when needed. | - |
 | `defaults` | Root | Container for shared capture settings, like Backstop's `scenarioDefaults`. Each setting's hook is listed in its own row. | - |
 | `onBeforeScript` / `onReadyScript` | Root or scenario | Script lists run before navigation or after navigation and `delay`. Scenario scripts run after the root list. | Listed scripts |
 | `delay` | Defaults or scenario | Pause after navigation, before ready hooks run. | - |

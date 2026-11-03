@@ -31,8 +31,12 @@ fill missing values rather than replacing saved customization.
 
 A capture runs in a fresh browser context, isolating cookies and browser storage
 from other scenarios. Reference captures use `referenceUrl` when supplied;
-test captures use `url`. The test URL and viewport define screenshot identity
+test captures use `url`. The test URL, label, and viewport define screenshot identity
 so different reference destinations still compare under the same filename.
+Backstop import reports repeated URLs and keeps variants with distinct labels.
+Only repeated URL/label combinations receive unique scenario IDs during import.
+Unlabeled scenarios without IDs retain their existing filenames; labeled scenarios
+need fresh references after upgrading.
 
 The orchestrator applies cookies and before-navigation hooks, navigates, then
 runs readiness hooks. It applies final hide/remove selectors and optional test

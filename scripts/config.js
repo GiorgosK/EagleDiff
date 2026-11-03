@@ -245,15 +245,18 @@ function hasExcludedExtension(url, excludeExtensions) {
 
 function mergeScenarios(existingScenarios, discoveredScenarios, excludeExtensions = defaultExcludeExtensions) {
   const knownUrls = new Set();
+  const knownIdentities = new Set();
   const merged = [];
 
   for (const scenario of existingScenarios) {
     const url = getScenarioUrl(scenario) || scenario.referenceUrl || '';
-    if (!url || knownUrls.has(url) || hasExcludedExtension(url, excludeExtensions)) {
+    const identity = JSON.stringify([url, String(scenario.label || ''), scenario.id ?? null]);
+    if (!url || knownIdentities.has(identity) || hasExcludedExtension(url, excludeExtensions)) {
       continue;
     }
 
     knownUrls.add(url);
+    knownIdentities.add(identity);
     merged.push(scenario);
   }
 

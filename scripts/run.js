@@ -494,19 +494,31 @@ function getScreenshotFileName(scenario, viewport) {
   }
   const name = slugify(transliterate(readableUrl)).slice(0, 120) || 'homepage';
   const viewportName = slugify(transliterate(String(viewport.label || 'viewport'))).slice(0, 32) || 'viewport';
-  // Hash the original URL, not its lossy transliteration, and include viewport geometry.
-  const identity = JSON.stringify([url, viewport.label, viewport.width, viewport.height, viewport.deviceScaleFactor || 1]);
+  // Keep the original URL and label so variants remain distinct despite lossy slugs.
+  const identityParts = [url, viewport.label, viewport.width, viewport.height, viewport.deviceScaleFactor || 1];
+  const id = getScenarioId(scenario);
+  if (scenario.label || id !== undefined) identityParts.push(String(scenario.label || ''));
+  if (id !== undefined) identityParts.push(id);
+  const identity = JSON.stringify(identityParts);
   const hash = createHash('sha256').update(identity).digest('hex').slice(0, 16);
   return `${name}--${hash}__${viewportName}.png`;
+}
+
+function getScenarioId(scenario) {
+  if (scenario.id !== undefined && (typeof scenario.id !== 'string' || !scenario.id.trim())) {
+    throw new Error(`Invalid scenario id for URL ${getScenarioUrl(scenario)}. Expected a non-empty string.`);
+  }
+  return scenario.id;
 }
 
 function validateScreenshotNames(selection) {
   const names = new Set();
   for (const scenario of selection.scenarios) {
+    getScenarioId(scenario);
     for (const viewport of selection.viewports || []) {
       const name = getScreenshotFileName(scenario, viewport);
       if (names.has(name)) {
-        throw new Error(`Duplicate screenshot identity for URL ${getScenarioUrl(scenario)} at viewport ${viewport.label}. Remove duplicate scenarios/viewports or give variants distinct URLs/viewports.`);
+        throw new Error(`Duplicate screenshot identity for URL ${getScenarioUrl(scenario)} with label ${JSON.stringify(scenario.label || '')} at viewport ${viewport.label}. Use distinct labels or IDs for same-URL scenarios, or remove duplicate scenarios/viewports.`);
       }
       names.add(name);
     }
@@ -714,6 +726,7 @@ function filterScenarios(scenarios, filter, config) {
   const selected = scenarios.filter((scenario) => {
     const values = [
       getScenarioLabel(scenario),
+      scenario.id,
       scenario.url,
       scenario.referenceUrl,
       buildScenarioUrl(config.referenceBaseURL || '', getScenarioReferenceUrl(scenario)),

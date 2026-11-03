@@ -73,7 +73,7 @@ function capture(url, browserVerification) {
 test('a 503 challenge completes normally and checks the final main-document status', async () => {
   await capture('/challenge-503');
   assert.equal(hits.get('/challenge-503'), 2);
-  const filename = getScreenshotFileName({ url: '/challenge-503' }, { label: 'phone', width: 360, height: 640 });
+  const filename = getScreenshotFileName({ url: '/challenge-503', label: '/challenge-503' }, { label: 'phone', width: 360, height: 640 });
   assert((await fs.stat(path.join(directory, filename))).size > 0);
 });
 

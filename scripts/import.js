@@ -1,5 +1,7 @@
 const fsp = require('fs/promises');
 const path = require('path');
+const { createHash } = require('crypto');
+const { getScenarioUrl, validateScreenshotNames } = require('./run');
 
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
 
@@ -13,12 +15,22 @@ async function main() {
   const templateConfig = await readJson(defaultConfigPath);
   const existingConfig = await readJsonIfExists(configPath);
   const baseConfig = mergeDeep(templateConfig, existingConfig || {});
+  const duplicates = [];
   const importedConfig = buildImportedConfig(baseConfig, templateConfig, backstopConfig, backstopPath,
-    configPath, { preserveWorkers: Object.hasOwn(existingConfig?.core || {}, 'workers') });
+    configPath, {
+      preserveWorkers: Object.hasOwn(existingConfig?.core || {}, 'workers'),
+      onDuplicate: duplicate => duplicates.push(duplicate)
+    });
 
   await fsp.mkdir(path.dirname(configPath), { recursive: true });
   await fsp.writeFile(configPath, `${JSON.stringify(importedConfig, null, 2)}\n`);
   await ensureGitignore(path.dirname(configPath));
+
+  for (const { url, labels, ids } of duplicates) {
+    const details = labels.map((label, index) => `${JSON.stringify(label)}${ids?.[index] !== undefined ? ` (id: ${JSON.stringify(ids[index])})` : ''}`);
+    const explanation = new Set(labels).size < labels.length ? '; repeated labels use unique IDs' : ' with distinct labels';
+    console.warn(`[eaglediff] Duplicate URL ${JSON.stringify(url)}: kept ${labels.length} scenarios${explanation}: ${details.join(', ')}.`);
+  }
 
   const scenarioCount = Array.isArray(importedConfig.scenarios) ? importedConfig.scenarios.length : 0;
   console.log(`[eaglediff] Imported ${scenarioCount} scenarios from ${backstopPath}`);
@@ -26,7 +38,7 @@ async function main() {
 }
 
 function buildImportedConfig(baseConfig, templateConfig, backstopConfig, backstopPath,
-  configPath = getConfigPath(), { preserveWorkers = false } = {}) {
+  configPath = getConfigPath(), { preserveWorkers = false, onDuplicate = () => {} } = {}) {
   const scenarios = (Array.isArray(backstopConfig.scenarios) ? backstopConfig.scenarios : []).map(scenario => {
     if (!scenario || typeof scenario !== 'object') return scenario;
     const cookiePath = Object.hasOwn(scenario, 'cookiePath') ? scenario.cookiePath : backstopConfig.cookiePath;
@@ -68,9 +80,10 @@ function buildImportedConfig(baseConfig, templateConfig, backstopConfig, backsto
   });
   const thresholdRate = deriveThresholdRate(scenarios, baseConfig.core?.thresholdRate);
   const translatedScenarios = normalizeScenarios(scenarios, referenceBaseURL, testBaseURL, sharedDefaults);
+  resolveDuplicateScenarios(translatedScenarios, onDuplicate);
   const captureLimit = Number(backstopConfig.asyncCaptureLimit);
 
-  return {
+  const importedConfig = {
     ...baseConfig,
     referenceBaseURL,
     testBaseURL,
@@ -89,10 +102,11 @@ function buildImportedConfig(baseConfig, templateConfig, backstopConfig, backsto
     viewports: Array.isArray(backstopConfig.viewports) ? backstopConfig.viewports : baseConfig.viewports,
     scenarios: translatedScenarios
   };
+  validateScreenshotNames(importedConfig);
+  return importedConfig;
 }
 
 function normalizeScenarios(scenarios, referenceBaseURL, testBaseURL, defaults = {}) {
-  const seen = new Set();
   const normalized = [];
 
   for (const scenario of scenarios) {
@@ -102,14 +116,8 @@ function normalizeScenarios(scenarios, referenceBaseURL, testBaseURL, defaults =
 
     const referenceUrl = normalizeScenarioUrl(scenario.referenceUrl || scenario.url, referenceBaseURL);
     const url = normalizeScenarioUrl(scenario.url || scenario.referenceUrl, testBaseURL);
-    const key = `${referenceUrl || ''}::${url || ''}::${scenario.label || ''}`;
-
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
     normalized.push(stripScenarioToRunnerShape({
+      id: scenario.id,
       label: scenario.label,
       url,
       ...(referenceUrl !== url ? { referenceUrl } : {}),
@@ -120,8 +128,46 @@ function normalizeScenarios(scenarios, referenceBaseURL, testBaseURL, defaults =
   return normalized;
 }
 
+function resolveDuplicateScenarios(scenarios, onDuplicate) {
+  const groups = new Map();
+  for (const scenario of scenarios) {
+    const url = getScenarioUrl(scenario) || '/';
+    if (!groups.has(url)) groups.set(url, []);
+    groups.get(url).push(scenario);
+  }
+  for (const [url, variants] of groups) {
+    if (variants.length < 2) continue;
+    const labels = variants.map(scenario => String(scenario.label || ''));
+    const byLabel = new Map();
+    for (const [index, scenario] of variants.entries()) {
+      const label = labels[index];
+      if (!byLabel.has(label)) byLabel.set(label, []);
+      byLabel.get(label).push(scenario);
+    }
+    for (const sameLabel of byLabel.values()) {
+      if (sameLabel.length < 2) continue;
+      const used = new Set(sameLabel.filter(scenario => scenario.id !== undefined).map(scenario => scenario.id));
+      const retained = new Set();
+      for (const scenario of sameLabel) {
+        if (scenario.id !== undefined && !retained.has(scenario.id)) {
+          retained.add(scenario.id);
+          continue;
+        }
+        const content = { ...scenario, id: undefined };
+        const baseId = `variant-${createHash('sha256').update(JSON.stringify(content)).digest('hex').slice(0, 12)}`;
+        let id = baseId;
+        for (let suffix = 2; used.has(id); suffix += 1) id = `${baseId}-${suffix}`;
+        scenario.id = id;
+        used.add(id);
+      }
+    }
+    onDuplicate({ url, labels, ...(variants.some(scenario => scenario.id !== undefined) ? { ids: variants.map(scenario => scenario.id) } : {}) });
+  }
+}
+
 function stripScenarioToRunnerShape(scenario) {
   const keepKeys = new Set([
+    'id',
     'label',
     'url',
     'referenceUrl',
