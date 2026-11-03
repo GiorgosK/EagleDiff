@@ -13,7 +13,13 @@ module.exports = async function cliFixture(t) {
   const server = http.createServer((request, response) => {
     requests.push(request.url);
     response.setHeader('Content-Type', 'text/html');
-    response.end(pages[request.url] || '<h1>Unknown</h1>');
+    const content = pages[request.url];
+    if (content && typeof content === 'object') {
+      response.writeHead(content.status ?? 200, content.headers ?? {});
+      response.end(content.body ?? '');
+    } else {
+      response.end(content || '<h1>Unknown</h1>');
+    }
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(async () => {

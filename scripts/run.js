@@ -15,6 +15,7 @@ const { withRetryTimeouts, retryTimeoutFactor } = require('./retry-timeouts');
 const { readResults } = require('./results-history');
 const { resolveHookPath } = require('./hook-path');
 const { resolveReadySelector } = require('./ready-selector');
+const { detectChallengeHeaders, challengeError, assertNoChallenge } = require('./challenge-detector');
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
 
 const configPath = getConfigPath();
@@ -228,6 +229,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
           filePath,
           fullPage,
           temporaryErrorRetries,
+          isCancelled: options.isCancelled,
           relaunchBrowser: options.relaunchBrowser ? async () => {
             browser = await options.relaunchBrowser();
             return browser;
@@ -257,6 +259,7 @@ async function captureScenarioScreenshot({
   filePath,
   fullPage,
   temporaryErrorRetries,
+  isCancelled,
   relaunchBrowser
 }) {
   let attempt = 0;
@@ -275,6 +278,8 @@ async function captureScenarioScreenshot({
       navigationResponseUrl: null,
       navigationResponseOk: null
     };
+    let signalChallenge;
+    const challengeDetected = new Promise(resolve => { signalChallenge = resolve; });
     const trackNavigationResponse = response => {
       const request = response.request();
       if (!request.isNavigationRequest() || request.frame() !== activePage.mainFrame()) return;
@@ -282,6 +287,9 @@ async function captureScenarioScreenshot({
       readyContext.navigationResponseStatus = response.status();
       readyContext.navigationResponseUrl = response.url();
       readyContext.navigationResponseOk = response.ok();
+      readyContext.navigationResponseHeaders = response.headers();
+      const provider = detectChallengeHeaders(readyContext.navigationResponseHeaders);
+      if (provider) signalChallenge({ provider, url: response.url() });
     };
     // Browser-verification pages can reload after goto has already returned.
     try {
@@ -300,17 +308,23 @@ async function captureScenarioScreenshot({
       if (!Number.isFinite(navigationTimeout) || navigationTimeout < 0) {
         throw new Error('navigationTimeout must be a non-negative number of milliseconds.');
       }
-      const navigationResponse = await navigate(activePage, url, { waitUntil, timeout: navigationTimeout });
+      const navigationResponse = await Promise.race([
+        navigate(activePage, url, { waitUntil, timeout: navigationTimeout }),
+        challengeDetected.then(({ provider, url: challengeUrl }) => { throw challengeError(provider, challengeUrl); })
+      ]);
       if (readyContext.navigationResponseStatus === null && navigationResponse) {
         trackNavigationResponse(navigationResponse);
       }
+      await assertNoChallenge(activePage, readyContext);
       if (delayMs) {
         await sleep(delayMs);
+        await assertNoChallenge(activePage, readyContext);
       }
 
       const keepScripts = readyScripts.filter(script =>
         resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'keep-selectors.js'));
       await runScripts(activePage, readyScripts.filter(script => !keepScripts.includes(script)), readyContext);
+      await assertNoChallenge(activePage, readyContext);
       await applyHideAndRemoveSelectors(activePage, attemptScenario, attemptConfig);
       await runAddParagraph(activePage, attemptScenario, attemptConfig, addPara, command);
 
@@ -332,10 +346,14 @@ async function captureScenarioScreenshot({
         screenshotOptions.captureBeyondViewport = true;
       }
 
-      await captureScreenshot(activePage, screenshotOptions);
+      await captureScreenshot(activePage, screenshotOptions, () => assertNoChallenge(activePage, readyContext));
       return;
     } catch (error) {
-      const retryable = attempt < temporaryErrorRetries && isTemporaryCaptureError(error);
+      const provider = detectChallengeHeaders(readyContext.navigationResponseHeaders);
+      if (provider && error.code !== 'EAGLEDIFF_CHALLENGE_DETECTED') {
+        error = challengeError(provider, readyContext.navigationResponseUrl, error);
+      }
+      const retryable = !isCancelled?.() && attempt < temporaryErrorRetries && isTemporaryCaptureError(error);
 
       if (!retryable) {
         const finalUrl = activePage?.url();
@@ -351,8 +369,10 @@ async function captureScenarioScreenshot({
       if (factor > 1) console.warn(`[eaglediff] Retry readiness timeouts: ${factor}x the configured budgets; worker count unchanged.`);
     } finally {
       activePage?.off('response', trackNavigationResponse);
-      await safeClosePage(activePage);
+      // Disposing the context also cancels navigation rejected by the challenge guard.
+      // Closing its page first can wait indefinitely for a navigation to commit.
       await browserContext?.close().catch(() => {});
+      await safeClosePage(activePage);
     }
   }
 }
@@ -372,6 +392,9 @@ async function safeClosePage(page) {
 function isTemporaryCaptureError(error) {
   // Hooks wrap errors with a cause; retain the distinction between a slow
   // resource and a broken image/HTTP error when deciding whether to retry.
+  for (let cause = error; cause; cause = cause.cause) {
+    if (cause.code === 'EAGLEDIFF_CHALLENGE_DETECTED') return false;
+  }
   for (let cause = error; cause; cause = cause.cause) {
     if (['EAGLEDIFF_NAVIGATION_TIMEOUT', 'EAGLEDIFF_IMAGE_TIMEOUT', 'EAGLEDIFF_READY_TIMEOUT', 'EAGLEDIFF_SCROLL_TIMEOUT', 'EAGLEDIFF_FONT_TIMEOUT', 'EAGLEDIFF_FONT_LOAD'].includes(cause.code)) return true;
   }

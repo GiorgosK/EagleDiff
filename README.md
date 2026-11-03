@@ -81,6 +81,7 @@ is needed to validate them across websites, machines, and workloads. Your report
 | Config maintenance | New defaults can be added while preserving saved customization. |
 | Baselines | URL and label distinguish scenarios; filtered updates preserve unrelated references. |
 | Diagnostics | Page, hook, resource, and navigation details help explain capture failures. |
+| Challenge detection | Stops captures when known CDN or bot-protection challenges are detected, avoiding verification pages as reference screenshots. |
 | Concise output | Short progress updates and clear summaries keep runs easy to follow. |
 | Automation | End-of-run summaries, dated structured results, and meaningful exit codes help CI jobs track outcomes and highlight visual changes. |
 
@@ -678,6 +679,21 @@ For a browser installed elsewhere, set its full executable path, for example
 `export CHROME_BIN=/path/to/chrome`, and verify it with `"$CHROME_BIN" --version`.
 
 ## Known problems and fixes
+
+### CDN or security verification pages
+
+Built-in checks detect known challenges from **Cloudflare, AWS WAF, DataDome,
+and HUMAN/PerimeterX**. When detected, `reference` and `test` stop with a warning
+and exit code `1`; existing references are kept. These checks also run without
+readiness hooks. Detection is not exhaustive: customized or unfamiliar challenges
+may go unrecognized. Ordinary CAPTCHA widgets and CDN scripts alone do not
+trigger it.
+
+Use a staging/development environment, or ask the site's administrator about
+an exception for authorized test traffic. See
+[Cloudflare's exception setup instructions](https://developers.cloudflare.com/waf/custom-rules/skip/).
+Available exceptions depend on the service and plan. Eaglediff does not solve
+or bypass challenges.
 
 ### `env: 'node': No such file or directory`
 

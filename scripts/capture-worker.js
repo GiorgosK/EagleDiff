@@ -17,6 +17,7 @@ process.once('message', async (job) => {
 
   try {
     const options = {
+      isCancelled: () => cancelled,
       relaunchBrowser: async () => {
         if (cancelled) throw new Error('Capture worker cancelled.');
         await browser.close().catch(() => {});

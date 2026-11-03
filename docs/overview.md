@@ -44,6 +44,12 @@ content, rechecks configured fonts, calculates selector clipping, and saves the
 screenshot. Full-page and clipped captures include a preliminary rendering pass
 to settle layout before saving the final image.
 
+Built-in challenge checks inspect main-document Cloudflare/AWS WAF response
+headers and known Cloudflare, DataDome, and HUMAN/PerimeterX page markers. They
+run independently of configured hooks, including before the final screenshot
+write. A detected challenge stops captures without retries or baseline promotion;
+failed captures cannot be approved. Detection is intentionally non-exhaustive.
+
 Temporary navigation, readiness, image, font, and browser failures can retry
 within the configured limit. Each retry creates a fresh context; configured
 readiness budgets can increase without changing worker count. Disconnected

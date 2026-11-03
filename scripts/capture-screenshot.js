@@ -5,7 +5,7 @@ async function settleLayout(page) {
   });
 }
 
-module.exports = async function captureScreenshot(page, options) {
+module.exports = async function captureScreenshot(page, options, beforeCapture) {
   // Final DOM edits can invalidate layout after the readiness hooks ran.
   await settleLayout(page);
   if (options.fullPage || options.captureBeyondViewport) {
@@ -15,5 +15,6 @@ module.exports = async function captureScreenshot(page, options) {
     await page.screenshot(previewOptions);
     await settleLayout(page);
   }
+  if (beforeCapture) await beforeCapture();
   return page.screenshot(options);
 };
