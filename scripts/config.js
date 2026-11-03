@@ -11,6 +11,7 @@ const { getConfigPath, helperDir, rootDir } = require('./config-path');
 
 const defaultConfigPath = path.join(helperDir, 'config-default.json');
 const defaultExcludeExtensions = require('../config-default.json').excludeExtensions;
+const defaultDiscoveryLimit = 25;
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -29,7 +30,7 @@ async function main() {
     : explicitTestBaseURL || outputReferenceBaseURL;
 
   if (!hasExistingConfig && (!outputReferenceBaseURL || !outputTestBaseURL)) {
-    throw new Error('Usage: node scripts/config.js --ref=<reference-url> [--test=<test-url>] [--limit=15]');
+    throw new Error('Usage: node scripts/config.js --ref=<reference-url> [--test=<test-url>] [--limit=<count>]');
   }
 
   const discoverySources = resolveDiscoverySources(
@@ -38,7 +39,7 @@ async function main() {
       : [outputReferenceBaseURL, outputTestBaseURL]
   );
 
-  const limit = Math.max(1, Number(args.limit || 15) || 15);
+  const limit = Math.max(1, Number(args.limit || defaultDiscoveryLimit) || defaultDiscoveryLimit);
   const discoveredScenarios = await discoverScenarios({
     discoverySources,
     limit,

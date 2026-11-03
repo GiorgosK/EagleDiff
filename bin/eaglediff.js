@@ -203,7 +203,7 @@ function printUsage(write = console.error) {
 Run inside the folder containing config.json, or add --dir tests/eaglediff.
 
 Commands and examples:
-  eaglediff config --ref=https://example.com --limit=25 Discover pages and create or extend config.json.
+  eaglediff config --ref=https://example.com            Discover pages and create or extend config.json.
   eaglediff config-update                                   Add missing settings/hooks; preserve existing values.
   eaglediff import --backstop=/path/to/backstop             Import scenarios and settings from Backstop.
   eaglediff reference                                       Capture reference screenshots, replacing the baseline.

@@ -116,3 +116,32 @@ test('keeps valid internal links, queries, fragments and balanced brackets', () 
     assert.equal(normalizeLink(base, { href }), null);
   }
 });
+
+test('CLI discovers 25 pages by default in the current directory and keeps explicit limit/directory options', async t => {
+  const fixture = await require('./helpers/cli-fixture')(t);
+  fixture.pages['/'] = Array.from({ length: 35 }, (_, index) => `<a href="/page-${index}">Page ${index}</a>`).join('');
+  const project = path.join(fixture.directory, 'project');
+  await fs.mkdir(project);
+  const configPath = path.join(project, 'config.json');
+  const run = args => promisify(execFile)(process.execPath, [path.join(__dirname, '../bin/eaglediff.js'), 'config', ...args], {
+    cwd: project, timeout: 15000,
+    env: { ...process.env, INIT_CWD: '', EAGLEDIFF_DIR: '', EAGLEDIFF_PROJECT_DIR: '', EAGLEDIFF_ROOT: '', EAGLEDIFF_CONFIG: '', GLOBAL_EAGLEDIFF_CONFIG: '', EAGLEDIFF_SCRIPT_DIR: '', EAGLEDIFF_HELPER_DIR: '', npm_config_config: '', npm_config_limit: '', npm_config_test: '', npm_config_testurl: '', npm_node_execpath: process.execPath }
+  });
+  await run(['--ref=' + fixture.baseURL]);
+  const created = JSON.parse(await fs.readFile(configPath));
+  assert.equal(created.scenarios.length, 25);
+  assert.equal(created.scenarios[0].url, '/');
+  assert.equal(created.scenarios[24].url, '/page-23');
+  assert.equal(created.referenceBaseURL, fixture.baseURL);
+  assert.equal(created.testBaseURL, fixture.baseURL);
+  await assert.rejects(fs.access(path.join(project, 'tests/eaglediff')), { code: 'ENOENT' });
+
+  await fs.unlink(configPath);
+  await run(['--', '--ref=' + fixture.baseURL, '--limit=4']);
+  const saved = await fs.readFile(configPath, 'utf8');
+  assert.equal(JSON.parse(saved).scenarios.length, 4);
+  await run(['--ref=' + fixture.baseURL, '--limit=3', '--dir', 'custom']);
+  const custom = JSON.parse(await fs.readFile(path.join(project, 'custom/config.json')));
+  assert.equal(custom.scenarios.length, 3);
+  assert.equal(await fs.readFile(configPath, 'utf8'), saved);
+});
