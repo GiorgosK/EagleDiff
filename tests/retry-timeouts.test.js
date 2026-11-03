@@ -12,7 +12,7 @@ test('retry budgets preserve the original configuration, worker count, delays an
   const config = {
     core: { workers: 10, temporaryErrorRetryTimeoutMultiplier: 2, protocolTimeout: 300000 },
     defaults: { navigationTimeout: 60000, readyTimeout: 60000, lazyImageTimeout: 30000,
-      fontTimeout: 60000, scrollTimeout: 30000, waitUntilGoneTimeout: 10000,
+      fontTimeout: 60000, iframeTimeout: 30000, scrollTimeout: 30000, waitUntilGoneTimeout: 10000,
       networkIdleTimeout: 5000, delay: 500, requiredFonts: ['400 16px Inter'],
       browserVerification: { timeout: 30000, challengeSelectors: ['.challenge'] },
       waitForStableContent: { timeout: 15000, settleDelayMs: 750 } }
@@ -25,6 +25,7 @@ test('retry budgets preserve the original configuration, worker count, delays an
   assert.equal(result.config.defaults.lazyImageTimeout, 120000);
   assert.equal(result.config.defaults.readyTimeout, 240000);
   assert.equal(result.config.defaults.fontTimeout, 240000);
+  assert.equal(result.config.defaults.iframeTimeout, 120000);
   assert.equal(result.config.defaults.scrollTimeout, 120000);
   assert.equal(result.config.defaults.waitUntilGoneTimeout, 40000);
   assert.equal(result.config.defaults.networkIdleTimeout, 20000);

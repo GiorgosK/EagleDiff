@@ -10,7 +10,7 @@ module.exports = async function captureScreenshot(page, options, beforeCapture) 
   await settleLayout(page);
   if (options.fullPage || options.captureBeyondViewport) {
     // Chrome can omit offscreen paint tiles on the first capture after restyling.
-    // Prime the same capture area without writing it or resizing the viewport.
+    // Prime the same area using the chosen capture mode, without writing it.
     const { path, ...previewOptions } = options;
     await page.screenshot(previewOptions);
     await settleLayout(page);

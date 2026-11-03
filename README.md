@@ -245,8 +245,30 @@ hook. Redirected pages also include the final URL. Image errors include the imag
 URL, processing step, and Chrome's network error when available.
 
 Full-page and clipped captures include a preliminary rendering pass to reduce
-missing offscreen content in Chrome. Only the final screenshot is saved; viewport
-dimensions and comparison thresholds stay unchanged.
+missing offscreen content in Chrome. Only the final screenshot is saved.
+`captureBeyondViewport` controls the capture mode.
+
+### Blank or incomplete iframe screenshots
+
+An iframe can finish loading and still be missing from Chrome's full-page PNG.
+The default `prepare-iframes` hook handles visible iframes automatically.
+To force the workaround on a scenario:
+
+```json
+{
+  "label": "Iframe page",
+  "url": "/iframe",
+  "waitUntil": "load",
+  "captureBeyondViewport": false
+}
+```
+
+This lets Chrome temporarily expand the viewport to capture the whole page,
+then restores its size. The default, `"auto"`, expands only pages with visible
+iframes. Set `true` to keep the layout viewport unchanged.
+The setting can also be placed in `defaults`; a scenario value takes precedence.
+It only affects full-page captures; selector clipping keeps its existing mode.
+
 
 ## Default Hooks
 
@@ -260,6 +282,10 @@ hooks to an older config, or copy the list below.
 Hooks run in the order shown.
 The bundled `keep-selectors` hook is deferred until after final DOM edits and
 font readiness, so clipping uses the final layout.
+`prepare-iframes` also runs after page edits, before final fonts and clipping.
+Remove it from `onReadyScript` to skip iframe waiting and automatic viewport
+adjustment. Explicit `captureBeyondViewport` values still work.
+As with other default hooks, `config-update` adds it back if missing.
 
 ```json
 "onReadyScript": [
@@ -281,7 +307,8 @@ font readiness, so clipping uses the final layout.
   "hooks/keep-selectors",
   "hooks/wait-for-background-images",
   "hooks/wait-for-network-idle",
-  "hooks/stabilize-carousels"
+  "hooks/stabilize-carousels",
+  "hooks/prepare-iframes"
 ]
 ```
 
@@ -312,7 +339,7 @@ The descriptions show how Eaglediff uses them.
 | `hideSelectors` | Defaults or scenario | Hide matching elements, keeping their space. | - |
 | `removeSelectors` | Defaults or scenario | Remove matching elements and their space from the DOM. | - |
 | `fullPage` | Defaults or scenario | Capture the whole page; `false` captures the viewport. | - |
-| `waitUntil` | Defaults or scenario | Navigation readiness: `domcontentloaded`, `load`, `networkidle0`, or `networkidle2`. | - |
+| `waitUntil` | Defaults or scenario | Navigation readiness: `domcontentloaded` (default), `load` (also waits for initial iframe loads), `networkidle0`, or `networkidle2`. | - |
 | `navigationTimeout` | Defaults or scenario | Navigation timeout, default `30000`. Separate from `core.protocolTimeout`; `0` disables the timeout. | - |
 | `cookiePath` / `cookies` | Defaults or scenario | JSON cookie file relative to `config.json`, plus optional inline cookie array. Applied before navigation in an isolated browser context for each capture. Set `cookiePath: null` and `cookies: []` on a scenario to disable shared cookies. | - |
 | `keepSelectors` | Defaults or scenario | Similar to Backstop's `selectors`, but produces one crop enclosing all matches. Missing selectors fail capture. | `keep-selectors` |
@@ -337,6 +364,9 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `core.protocolTimeout` | **Root:** timeout for browser protocol commands. | - |
 | `cookieDomain` | `null` preserves cookie domains (missing domains use the capture hostname). `"current"` explicitly scopes cookies to the current reference/test hostname; a domain string sets a fixed domain. | - |
 | `cookieExpiry` | `null` preserves expiry and warns when expired cookies are skipped. `"session"` removes expiry for reusable test fixtures. | - |
+| `captureBeyondViewport` | Default `"auto"`: expand the viewport for full-page captures with visible iframes. `true` keeps the layout viewport unchanged; `false` always expands it. Expanding can affect height-dependent layouts. | `prepare-iframes` for `"auto"` |
+| `waitForIframes` | Wait for visible iframe documents to finish loading, including nested frames. Default `true`; `false` disables the wait. Content added after loading may need a project hook. | `prepare-iframes` |
+| `iframeTimeout` | Maximum total wait for visible iframes, default `30000` milliseconds. A timeout stops capture and uses configured temporary retries. | `prepare-iframes` |
 | `readyVisible` | Require the ready element to be visible as well as present. | `wait-for-element` |
 | `failOnResponseStatusCodes` | Main-page HTTP status codes that fail capture. | `fail-on-response-status` |
 | `browserVerification.challengeSelectors` | Detect a browser-verification page; wait for these markers to disappear. | `wait-for-browser-verification` |

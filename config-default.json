@@ -1,5 +1,5 @@
 {
-  "version": "2026.11.03.05",
+  "version": "2026.11.03.07",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -14,6 +14,9 @@
   "defaults": {
     "delay": 1500,
     "fullPage": true,
+    "captureBeyondViewport": "auto",
+    "waitForIframes": true,
+    "iframeTimeout": 30000,
     "waitUntil": "domcontentloaded",
     "navigationTimeout": 30000,
     "cookiePath": null,
@@ -106,7 +109,8 @@
     "hooks/keep-selectors",
     "hooks/wait-for-background-images",
     "hooks/wait-for-network-idle",
-    "hooks/stabilize-carousels"
+    "hooks/stabilize-carousels",
+    "hooks/prepare-iframes"
   ],
   "viewports": [
     {

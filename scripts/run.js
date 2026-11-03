@@ -9,6 +9,7 @@ const { stripVTControlCharacters } = require('util');
 
 const puppeteer = require('puppeteer-core');
 const captureScreenshot = require('./capture-screenshot');
+const { resolveOptions: resolveIframeOptions } = require('./iframe-capture');
 const trackImageRequests = require('./image-request-diagnostics');
 const { navigate } = require('./navigation');
 const { applyCookies } = require('./cookies');
@@ -47,6 +48,9 @@ async function main() {
   }
   const selectedScenarios = filterScenarios(config.scenarios || [], filter, config);
   validateScreenshotNames(selectedScenarios);
+  if (command !== 'approve') {
+    for (const scenario of selectedScenarios.scenarios) resolveIframeOptions(config, scenario);
+  }
 
   let failed = false;
   try {
@@ -164,6 +168,7 @@ async function main() {
 
 async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl, addPara, command, options = {}) {
   validateScreenshotNames(scenarios);
+  for (const scenario of scenarios.scenarios) resolveIframeOptions(config, scenario);
   const reportWarning = options.warningReporter || require('./warnings').createWarningReporter();
   const defaultDelayMs = Number(config.defaults?.delay || 0);
   const waitUntil = config.defaults?.waitUntil || 'networkidle2';
@@ -326,10 +331,16 @@ async function captureScenarioScreenshot({
 
       const keepScripts = readyScripts.filter(script =>
         resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'keep-selectors.js'));
-      await runScripts(activePage, readyScripts.filter(script => !keepScripts.includes(script)), readyContext);
+      const iframeScripts = readyScripts.filter(script =>
+        resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'prepare-iframes.js'));
+      await runScripts(activePage, readyScripts.filter(script =>
+        !keepScripts.includes(script) && !iframeScripts.includes(script)), readyContext);
       await assertNoChallenge(activePage, readyContext);
       await applyHideAndRemoveSelectors(activePage, attemptScenario, attemptConfig);
       await runAddParagraph(activePage, attemptScenario, attemptConfig, addPara, command);
+
+      await runScripts(activePage, iframeScripts, readyContext);
+      const iframeOptions = resolveIframeOptions(attemptConfig, attemptScenario);
 
       // Late content and final DOM changes can request additional font faces.
       // Recheck configured font readiness immediately before rendering.
@@ -340,7 +351,9 @@ async function captureScenarioScreenshot({
 
       const screenshotOptions = {
         path: filePath,
-        fullPage: scenario.fullPage !== undefined ? scenario.fullPage : fullPage
+        fullPage: scenario.fullPage !== undefined ? scenario.fullPage : fullPage,
+        captureBeyondViewport: iframeOptions.captureBeyondViewport === 'auto'
+          ? !readyContext.hasVisibleIframes : iframeOptions.captureBeyondViewport
       };
 
       if (readyContext.keepSelectorsClip) {
@@ -402,7 +415,7 @@ function isTemporaryCaptureError(error) {
     if (cause.code === 'EAGLEDIFF_CHALLENGE_DETECTED') return false;
   }
   for (let cause = error; cause; cause = cause.cause) {
-    if (['EAGLEDIFF_NAVIGATION_TIMEOUT', 'EAGLEDIFF_IMAGE_TIMEOUT', 'EAGLEDIFF_READY_TIMEOUT', 'EAGLEDIFF_SCROLL_TIMEOUT', 'EAGLEDIFF_FONT_TIMEOUT', 'EAGLEDIFF_FONT_LOAD'].includes(cause.code)) return true;
+    if (['EAGLEDIFF_NAVIGATION_TIMEOUT', 'EAGLEDIFF_IMAGE_TIMEOUT', 'EAGLEDIFF_IFRAME_TIMEOUT', 'EAGLEDIFF_READY_TIMEOUT', 'EAGLEDIFF_SCROLL_TIMEOUT', 'EAGLEDIFF_FONT_TIMEOUT', 'EAGLEDIFF_FONT_LOAD'].includes(cause.code)) return true;
   }
   const message = String(error?.message || error || '');
   return /ERR_NETWORK_CHANGED|net::ERR_NETWORK_CHANGED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED|ERR_CONNECTION_TIMED_OUT|ERR_TIMED_OUT|ERR_ADDRESS_UNREACHABLE|ERR_CERT_COMMON_NAME_INVALID|net::ERR_CERT_COMMON_NAME_INVALID|ERR_CERT_AUTHORITY_INVALID|net::ERR_CERT_AUTHORITY_INVALID|Runtime\.callFunctionOn timed out|Protocol error[^\n]*: (?:Target|Session|Connection) closed|Connection closed\.|Navigation failed because browser has disconnected/i.test(message);

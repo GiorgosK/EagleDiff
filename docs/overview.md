@@ -43,6 +43,16 @@ runs readiness hooks. It applies final hide/remove selectors and optional test
 content, rechecks configured fonts, calculates selector clipping, and saves the
 screenshot. Full-page and clipped captures include a preliminary rendering pass
 to settle layout before saving the final image.
+`captureBeyondViewport` defaults to "auto": full-page captures with visible
+iframes use Puppeteer's viewport-expanding mode, then restore the viewport.
+Explicit true/false force either mode. Height-dependent layouts can change.
+`hooks/prepare-iframes` waits for visible nested frame documents when
+`waitForIframes` is true (the default). It is deferred until after other ready
+hooks and page edits, before final font checks and clipping. Removing the hook
+skips waiting and automatic iframe capture adjustment; explicit true/false
+capture modes still work. `iframeTimeout` bounds the total wait;
+timeouts use temporary capture retries. Hidden and one-pixel frames are ignored.
+Selector clipping keeps its existing capture mode.
 
 Built-in challenge checks inspect main-document Cloudflare/AWS WAF response
 headers and known Cloudflare, DataDome, and HUMAN/PerimeterX page markers. They
