@@ -7,8 +7,8 @@ const fixture = require('./helpers/cli-fixture');
 test('changed, new, and deleted captures fail the CLI while preserving reports and history', async t => {
   const f = await fixture(t);
   const out = () => fs.readFile(path.join(f.directory, '.reg/run/out.json')).then(JSON.parse);
-  await f.run(['reference']);
-  await f.run(['test']);
+  await f.run(['reference', '--workers=2']);
+  await f.run(['test', '--workers=2']);
   f.pages['/one'] = '<h1>A different page</h1>';
   await f.run(['test'], 1);
   assert.equal((await out()).failedItems.length, 1);

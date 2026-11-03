@@ -7,27 +7,50 @@ It aims to be a BackstopJS alternative with more defaults built in.
 
 ## Install
 
-Requires Node.js, pnpm, and Chrome/Chromium. From a local checkout:
+Requires Git, Node.js **22.12.0 or newer** (recommended: **22.19.0**, see `.nvmrc`),
+pnpm **9.0.0 or newer**, and Chrome/Chromium. See [Prerequisites](#prerequisites)
+for installation and verification instructions.
+
+Clone the repository first, then install from inside its folder:
 
 ```bash
+# Download Eaglediff (requires GitLab SSH access)
+git clone git@gitlab.com:n3tt/eaglediff.git
+cd eaglediff
+
+# Install dependencies
 pnpm install
-pnpm add -g /path/to/eaglediff
+
+# Install the eaglediff command globally from this folder
+pnpm add -g "$PWD"
 ```
+
+`$PWD` means the current folder. The global
+installation lets you run `eaglediff` from anywhere.
 
 ## Quick Start
 
 ### Calibrate
 
-Create config and calibrate by comparing the same site against itself:
+From your project's test folder, compare the site against itself first:
 
 ```bash
-eaglediff --dir tests/eaglediff config -- --limit=25 --ref=https://example.com
-eaglediff --dir tests/eaglediff reference -- --workers=15
-eaglediff --dir tests/eaglediff test -- --workers=15
-eaglediff --dir tests/eaglediff report
+cd tests/eaglediff
+
+# Find up to 25 pages and create config.json
+eaglediff config --ref=https://example.com
+
+# Save the reference screenshots
+eaglediff reference
+
+# Take new screenshots and compare them with the references
+eaglediff test
+
+# Open the comparison report
+eaglediff report
 ```
 
-All tests should pass. If they don't, adjust `tests/eaglediff/config.json`,
+All tests should pass. If they don't, adjust `config.json` settings,
 then rerun `reference` and `test`. For an existing config, set both base URLs to
 the same site before calibrating.
 
@@ -36,15 +59,18 @@ the same site before calibrating.
 Once calibration passes, change `testBaseURL` to your staging or local site:
 
 ```bash
-eaglediff --dir tests/eaglediff test -- --workers=15
-eaglediff --dir tests/eaglediff report
+# Compare the changed environment with your references
+eaglediff test
+
+# Open the report to review the differences
+eaglediff report
 ```
 
 ## Eaglediff and BackstopJS
 
 Eaglediff is a new project. The strengths below are early claims based on its
 implementation and maintainer-reported results; broader testing by the community
-is needed to validate them across websites, machines, and workloads.
+is needed to validate them across websites, machines, and workloads. Your reports on this matters would be appreciated.
 
 | Area | Eaglediff's intended strength |
 | --- | --- |
@@ -55,6 +81,7 @@ is needed to validate them across websites, machines, and workloads.
 | Config maintenance | New defaults can be added while preserving saved customization. |
 | Baselines | URL-based screenshot identity survives label changes; filtered updates preserve unrelated references. |
 | Diagnostics | Page, hook, resource, and navigation details help explain capture failures. |
+| Concise output | Short progress updates and clear summaries keep runs easy to follow. |
 | Automation | End-of-run summaries, dated structured results, and meaningful exit codes help CI jobs track outcomes and highlight visual changes. |
 
 ## AI-assisted development
@@ -77,7 +104,7 @@ review and testing standards as other contributions.
 ## Import From Backstop
 
 ```bash
-eaglediff --dir tests/eaglediff import --backstop=/path/to/tests/backstop
+eaglediff import --backstop=/path/to/tests/backstop
 ```
 
 Reads `backstop.json` and derives the base URLs from its scenarios. Review the
@@ -119,7 +146,7 @@ also prevents `test` from running when connected with `&&`.
 To isolate a failing page:
 
 ```bash
-eaglediff reference -- --filter=Inspire --workers=1
+eaglediff reference --filter=Inspire --workers=1
 ```
 
 For slow pages, increase `defaults.navigationTimeout` (for example to `60000`)
@@ -129,10 +156,11 @@ controls browser protocol commands and does not increase the navigation timeout.
 ## Commands And Config
 
 ```bash
-eaglediff --dir tests/eaglediff test -- --filter=homepage --workers=15
-eaglediff --dir tests/eaglediff approve
-eaglediff --dir tests/eaglediff results
-eaglediff --dir tests/eaglediff config -- --limit=25
+# Test matching pages with up to 15 workers
+eaglediff test --filter=homepage --workers=15
+eaglediff approve
+eaglediff results
+eaglediff config
 ```
 
 - `--dir` selects the folder containing `config.json`, screenshots in `.reg/`, and run history in `results.json`.
@@ -167,7 +195,7 @@ consistent browser environment, such as the same container image for captures.
 After updating Eaglediff:
 
 ```bash
-eaglediff --dir tests/eaglediff config-update
+eaglediff config-update
 ```
 
 Adds missing settings (including nested defaults) and default hooks from
@@ -313,7 +341,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `replaceContent` | Map selectors to specific replacement text. | `replace-random-content` |
 | `cssOverrides` | Apply custom CSS to both reference and test captures. | `apply-css-overrides` |
 | `networkIdleTime` / `networkIdleTimeout` | Required network quiet time and maximum wait. Timing out here does not fail capture. | `wait-for-network-idle` |
-| `addParagraph` | **Scenario only:** enable a deliberate visual change during `test -- --addpara`. | `add-paragraph` (called automatically) |
+| `addParagraph` | **Scenario only:** enable a deliberate visual change during `test --addpara`. | `add-paragraph` (called automatically) |
 | `addParagraphTarget` | **Scenario only:** element to append the test paragraph to; defaults to `main`, falling back to `body`. | `add-paragraph` |
 | `addParagraphText` / `addParagraphSelector` | **Scenario only:** injected text and wrapper ID; defaults are `Eaglediff injected paragraph` and `#eaglediff-paragraph`. | `add-paragraph` |
 
@@ -503,7 +531,7 @@ Example scenario for checking that a deliberate change is detected:
 }
 ```
 
-Run `eaglediff --dir tests/eaglediff test -- --filter=about --addpara`.
+Run `eaglediff test --filter=about --addpara`.
 
 After changing capture settings, regenerate references before running `test`.
 Existing configs need the corresponding hooks from [Default Hooks](#default-hooks).
@@ -513,10 +541,11 @@ Existing configs need the corresponding hooks from [Default Hooks](#default-hook
 AI coding assistants must follow [AGENTS.md](AGENTS.md), including regression
 testing and human confirmation before committing changes.
 
-Install the Node version in `.nvmrc` (for example, `nvm use`), pnpm, and a local
-Chrome or Chromium, then run these commands from the Eaglediff checkout:
+Complete [Prerequisites](#prerequisites), then activate the version in `.nvmrc`
+and run these commands from the Eaglediff checkout:
 
 ```sh
+nvm use
 pnpm install --frozen-lockfile
 pnpm run test:unit
 ```
@@ -551,3 +580,94 @@ See [Node's coverage documentation](https://nodejs.org/docs/latest-v24.x/api/tes
 
 The [architecture overview](docs/overview.md) explains the components, capture
 lifecycle, hook responsibilities, testing approach, and future improvements.
+
+## Prerequisites
+
+Install these before installing Eaglediff. The commands below are for Linux
+with Bash or Zsh.
+
+| Tool | Minimum / supported version | Recommended setup |
+| --- | --- | --- |
+| Node.js | **22.12.0**, required by the installed Puppeteer dependency. | **22.19.0**, recorded in `.nvmrc`. |
+| pnpm | **9.0.0**, which supports this repository's version 9 lockfile. | **11.17.0**, used for current development. |
+| Chrome / Chromium | No verified minimum. Puppeteer **25.12.0** targets Chrome **154.0.8037.57**. | Current Chromium **156.0.8078.47** passed our automated suite. |
+| Git | No project-specific version requirement; used to clone the code. | A maintained version from your system's package manager. |
+
+Node **22.12.0** passed all **99 automated tests**. pnpm **9.0.0** completed a
+clean install from the existing lockfile without changing it. npm comes with
+Node; nvm is an optional helper for installing and selecting Node versions.
+
+See [Puppeteer's Node requirements](https://pptr.dev/guides/system-requirements)
+and [browser compatibility table](https://pptr.dev/supported-browsers).
+An older browser may work, but has not been verified. Keep the same browser
+version when sharing reference screenshots across machines.
+
+### Install missing tools
+
+On Ubuntu/Debian, install Git and curl:
+
+```bash
+sudo apt update
+sudo apt install git curl
+```
+
+Install [nvm using its official instructions](https://github.com/nvm-sh/nvm#installing-and-updating),
+then open a new terminal. If nvm is already installed, skip that installation.
+Install Node and [pnpm](https://pnpm.io/installation):
+
+```bash
+# Install and activate the project's recommended Node version
+nvm install 22.19.0
+nvm use 22.19.0
+
+# Use it automatically in new terminals (changes your user's default Node)
+nvm alias default 22.19.0
+
+# Install the package manager under this Node version
+npm install -g pnpm@11.17.0
+```
+
+`nvm use` affects only the current terminal. The default applies to new terminals
+only if they load nvm. Its installer normally adds this to `~/.zshrc` (Zsh) or
+`~/.bashrc` (Bash); if missing, add it once:
+
+```bash
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+```
+
+Install [Google Chrome](https://www.google.com/chrome/) or Chromium through your
+system's package manager. Eaglediff uses your installed browser; `pnpm install`
+does not download one.
+
+### Verify before continuing
+
+Open a **new terminal** and run these without first running `nvm use`:
+
+```bash
+git --version
+node --version
+npm --version
+pnpm --version
+google-chrome --version || chromium --version || chromium-browser --version
+```
+
+Each should print a version. With the setup above, Node should print `v22.19.0`
+and pnpm `11.17.0`. If Node is missing, check the nvm startup lines and default
+above. If pnpm is missing, reinstall it after activating Node.
+For a browser installed elsewhere, set its full executable path, for example
+`export CHROME_BIN=/path/to/chrome`, and verify it with `"$CHROME_BIN" --version`.
+
+## Known problems and fixes
+
+### `env: 'node': No such file or directory`
+
+Node.js is missing or unavailable in this terminal. Check [Prerequisites](#prerequisites)
+to install it and set it up for new terminals. If Node **22.19.0** is already
+installed through nvm, activate it temporarily for this terminal:
+
+```bash
+nvm use 22.19.0
+```
+
+Then retry your Eaglediff command.
