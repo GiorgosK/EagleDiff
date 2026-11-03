@@ -320,7 +320,8 @@ function commonScenarioValue(scenarios, key) {
 }
 
 function isSettingValue(key, value) {
-  return isMeaningfulValue(value) || (key === 'readySelector' && value === '');
+  return isMeaningfulValue(value) || (key === 'readySelector' && value === '')
+    || (key === 'carouselSelectors' && Array.isArray(value) && value.length === 0);
 }
 
 function isMeaningfulValue(value) {

@@ -349,7 +349,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `waitUntilGone` | Wait for all matches to disappear or become hidden. | `wait-until-gone` |
 | `waitUntilGoneTimeout` | Maximum wait per selector. | `wait-until-gone` |
 | `scrollStepDelayMs` / `scrollSettleDelayMs` | Pause between scroll steps and after returning to the top; defaults are 100 and 300. | `scroll-to-bottom` |
-| `carouselSelectors` | Pause supported carousels and return them to the first slide. | `stabilize-carousels` |
+| `carouselSelectors` | Pause supported carousels and return them to the first slide. `null` detects known libraries; `[]` disables it. | `stabilize-carousels` |
 | `carouselSettleDelayMs` | Pause after resetting carousels. | `stabilize-carousels` |
 | `hideDynamicSelectors` | Apply `display: none`, including to elements added later. | `hide-dynamic-elements` |
 | `keepCookiebot` | **Scenario only:** skip the entire `hideDynamicSelectors` hook for this page. | `hide-dynamic-elements` |
@@ -379,6 +379,20 @@ wait for that page. Otherwise, a blank default still allows a root selector.
 Older `waitForTriggerSelectors`, `waitForSelectors`,
 `waitForTimeout`, and `waitForSettleDelayMs` map to the corresponding
 `waitForStableContent` fields when those nested fields are absent.
+
+### Automatic carousel detection
+
+With `"carouselSelectors": null` (the new default), Eaglediff looks for Swiper,
+Slick, Owl Carousel, Bootstrap Carousel, Fotorama, Flickity, FlexSlider, and
+Unite Gallery. It checks for a supported instance or controls, pauses playback,
+and selects the first slide. It then checks images introduced by that change.
+Class names alone do not initialize a carousel. Custom galleries and library
+versions with different APIs may need a project hook.
+
+Use an explicit selector list to restrict detection, or `[]` to turn it off.
+Config updates preserve existing `[]` settings; change them to `null` to enable
+automatic detection. `carouselSettleDelayMs` controls the wait after resetting
+slides (default 500 ms).
 
 ### `waitUntilGone`, `carouselSelectors`, and `keepSelectors`
 

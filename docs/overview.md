@@ -93,6 +93,10 @@ change layout after capture. Broken image handling follows `imageFailurePolicy`.
 Network-idle waiting is best effort for expected timeouts; browser failures
 propagate to capture recovery.
 
+Carousel stabilization detects supported instances through known selectors when
+`carouselSelectors` is null; explicit lists restrict it and `[]` disables it.
+After resetting a gallery, it rechecks lazy sources, decoding, and backgrounds.
+
 Hooks can hide dynamic content, replace random content, pause media, stabilize
 carousels, or apply project CSS. These transformations are configuration choices:
 they determine which visual behavior the project compares.

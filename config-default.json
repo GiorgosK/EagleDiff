@@ -1,5 +1,5 @@
 {
-  "version": "2026.11.03.04",
+  "version": "2026.11.03.05",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -44,7 +44,7 @@
     "waitUntilGone": [],
     "waitUntilGoneTimeout": 10000,
     "scrollTimeout": 30000,
-    "carouselSelectors": [],
+    "carouselSelectors": null,
     "carouselSettleDelayMs": 500,
     "keepSelectors": [],
     "lazyImageTimeout": 15000,
