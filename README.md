@@ -368,7 +368,8 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `waitForIframes` | Wait for visible iframe documents to finish loading, including nested frames. Default `true`; `false` disables the wait. Content added after loading may need a project hook. | `prepare-iframes` |
 | `iframeTimeout` | Maximum total wait for visible iframes, default `30000` milliseconds. A timeout stops capture and uses configured temporary retries. | `prepare-iframes` |
 | `readyVisible` | Require the ready element to be visible as well as present. | `wait-for-element` |
-| `failOnResponseStatusCodes` | Main-page HTTP status codes that fail capture. | `fail-on-response-status` |
+| `http404Policy` | Main-page 404 handling: `"warn"` (default) logs a warning and continues; `"error"` stops capture. Scenario values override defaults. | `fail-on-response-status` |
+| `failOnResponseStatusCodes` | Other main-page HTTP status codes that fail capture; 404 uses `http404Policy`. | `fail-on-response-status` |
 | `browserVerification.challengeSelectors` | Detect a browser-verification page; wait for these markers to disappear. | `wait-for-browser-verification` |
 | `browserVerification.errorSelectors` | Visible error markers that fail capture during verification. | `wait-for-browser-verification` |
 | `browserVerification.timeout` | Maximum wait for verification to finish. | `wait-for-browser-verification` |
@@ -403,6 +404,10 @@ merge their fields. Parallel captures raise the default `readyTimeout` and
 Scenario `referenceUrl` overrides the reference capture path; `url` selects the
 test capture path and provides the comparison identity. Relative paths use their
 respective base URLs. Absolute URLs are also supported.
+A 404 page is still captured and compared in warning mode, so visual changes can
+still fail the test. To stop on 404, set `"http404Policy": "error"` in `defaults`
+or an individual scenario.
+
 Root `readySelector`, `readyTimeout`, and `failOnResponseStatusCodes` are also
 accepted as fallbacks. A scenario's `readySelector: ""` disables the selector
 wait for that page. Otherwise, a blank default still allows a root selector.

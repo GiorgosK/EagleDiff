@@ -54,6 +54,12 @@ capture modes still work. `iframeTimeout` bounds the total wait;
 timeouts use temporary capture retries. Hidden and one-pixel frames are ignored.
 Selector clipping keeps its existing capture mode.
 
+The `fail-on-response-status` hook uses `http404Policy` for main-document 404s:
+`warn` (the default) reports the URL and continues capture; `error` stops it.
+Scenario values override defaults, including for configs that already list 404
+in `failOnResponseStatusCodes`. Other configured HTTP errors still stop capture;
+image failures and challenge detection retain their separate policies.
+
 Built-in challenge checks inspect main-document Cloudflare/AWS WAF response
 headers and known Cloudflare, DataDome, and HUMAN/PerimeterX page markers. They
 run independently of configured hooks, including before the final screenshot

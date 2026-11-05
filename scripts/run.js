@@ -9,6 +9,7 @@ const { stripVTControlCharacters } = require('util');
 
 const puppeteer = require('puppeteer-core');
 const captureScreenshot = require('./capture-screenshot');
+const { resolveHttp404Policy } = require('./hooks/fail-on-response-status');
 const { resolveOptions: resolveIframeOptions } = require('./iframe-capture');
 const trackImageRequests = require('./image-request-diagnostics');
 const { navigate } = require('./navigation');
@@ -49,7 +50,10 @@ async function main() {
   const selectedScenarios = filterScenarios(config.scenarios || [], filter, config);
   validateScreenshotNames(selectedScenarios);
   if (command !== 'approve') {
-    for (const scenario of selectedScenarios.scenarios) resolveIframeOptions(config, scenario);
+    for (const scenario of selectedScenarios.scenarios) {
+      resolveIframeOptions(config, scenario);
+      resolveHttp404Policy(config, scenario);
+    }
   }
 
   let failed = false;
@@ -168,7 +172,10 @@ async function main() {
 
 async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl, addPara, command, options = {}) {
   validateScreenshotNames(scenarios);
-  for (const scenario of scenarios.scenarios) resolveIframeOptions(config, scenario);
+  for (const scenario of scenarios.scenarios) {
+    resolveIframeOptions(config, scenario);
+    resolveHttp404Policy(config, scenario);
+  }
   const reportWarning = options.warningReporter || require('./warnings').createWarningReporter();
   const defaultDelayMs = Number(config.defaults?.delay || 0);
   const waitUntil = config.defaults?.waitUntil || 'networkidle2';

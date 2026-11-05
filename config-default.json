@@ -1,5 +1,5 @@
 {
-  "version": "2026.11.03.07",
+  "version": "2026.11.05.01",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -75,7 +75,8 @@
     ],
     "networkIdleTime": 500,
     "networkIdleTimeout": 5000,
-    "failOnResponseStatusCodes": [404,500,502,503,504],
+    "http404Policy": "warn",
+    "failOnResponseStatusCodes": [500,502,503,504],
     "hideSelectors": [
       "[id^=\"div-gpt-ad\"]",
       "iframe[src^=\"https://www.google.com/maps/embed\"]"
