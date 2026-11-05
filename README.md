@@ -178,6 +178,12 @@ controls browser protocol commands and does not increase the navigation timeout.
 # Test matching pages with up to 15 workers
 eaglediff test --filter=homepage --workers=15
 
+# Retest the failed pages from the latest completed comparison
+eaglediff test --last-failed
+
+# Replace references for those pages, if the references need correcting
+eaglediff reference --last-failed
+
 # Review the latest saved result for every available screenshot
 eaglediff report --all
 
@@ -189,6 +195,8 @@ eaglediff config
 - `--dir` selects the folder containing `config.json`, screenshots in `.reg/`, and run history in `results.json`.
 - `test` exits with code `1` for changed, new, or deleted screenshots; passing comparisons exit `0`. Reports and history are saved before returning the exit status.
 - `approve` accepts the latest completed comparison. Filtered comparisons update only their captured baselines; full comparisons replace the full reference set. `approve --filter=...` narrows approval further. Review the report first. Missing or invalid source screenshots prevent approval.
+- `--last-failed` selects changed or new pages from the latest completed comparison, at all their configured screen sizes. It works with `test` and `reference`; use it separately from `--filter`. Removed pages or changed screenshot identities cannot be selected. With no failures, it does nothing. An interrupted capture does not replace the last completed comparison.
+- `reference --last-failed` replaces only those pages' references. Review the screenshots first; unrelated references are preserved.
 - `report --all` shows each screenshot's latest saved result and test time, keeping untouched results after filtered reruns. It uses saved images and does not run tests or change references. Run a full `test` once to populate it; older overwritten reports cannot be recovered. Plain `report` opens only the latest comparison.
 - `results` prints pass counts, duration, and worker count for the latest two runs, plus a short history.
 - `config` discovers links and merges scenarios. It preserves saved URLs, settings, and existing scenarios except those matching `excludeExtensions`; `/` counts toward `--limit`.

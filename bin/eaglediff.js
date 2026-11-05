@@ -208,6 +208,8 @@ Commands and examples:
   eaglediff import --backstop=/path/to/backstop             Import scenarios and settings from Backstop.
   eaglediff reference                                       Capture reference screenshots, replacing the baseline.
   eaglediff test --filter=homepage --workers=3              Capture matching pages and compare with references.
+  eaglediff test --last-failed                              Retest the last comparison's failed pages.
+  eaglediff reference --last-failed                         Replace references for those pages only.
   eaglediff approve                                         Replace references with the latest captures after review.
   eaglediff results                                         Show recent pass counts, timings, and run history.
   eaglediff report                                          Open the latest comparison report in your browser.
@@ -219,9 +221,10 @@ Options:
   --dir <path>         Project folder; defaults to the current directory.
   --script-dir <path>  Use scripts from another Eaglediff checkout.
   --filter <text>      Match scenario labels or URLs for reference/test.
+  --last-failed        Select failed pages from the latest comparison (reference/test).
   --all                Show all available results (report only).
   --workers <count>    Limit concurrent captures; overrides core.workers.
-  --no-clean          Keep cached screenshots when running reference/test.
+  --no-clean          Keep cached screenshots for reference/test.
   --allow-newer-config  Continue with a config newer than this Eaglediff without prompting.`);
 }
 

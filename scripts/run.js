@@ -16,7 +16,7 @@ const { navigate } = require('./navigation');
 const { applyCookies } = require('./cookies');
 const { withRetryTimeouts, retryTimeoutFactor } = require('./retry-timeouts');
 const { readResults } = require('./results-history');
-const { retainPreviousComparison, saveComparison } = require('./comparison-reports');
+const { readLastComparison, retainPreviousComparison, saveComparison } = require('./comparison-reports');
 const { resolveHookPath } = require('./hook-path');
 const { resolveReadySelector } = require('./ready-selector');
 const { detectChallengeHeaders, challengeError, assertNoChallenge } = require('./challenge-detector');
@@ -35,11 +35,13 @@ const workingDir = path.join(controlledRootDir, 'run');
 const runActualDir = path.join(workingDir, 'actual');
 
 async function main() {
-  const { command, filter, addPara, clean, workers: requestedWorkers } = parseArgs(process.argv.slice(2));
+  const { command, filter, lastFailed, addPara, clean, workers: requestedWorkers } = parseArgs(process.argv.slice(2));
 
   if (!command || !['reference', 'test', 'approve'].includes(command)) {
     throw new Error('Usage: node scripts/run.js <reference|test|approve>');
   }
+  if (lastFailed && command === 'approve') throw new Error('--last-failed is available for test and reference only.');
+  if (lastFailed && filter) throw new Error('Use either --last-failed or --filter, not both.');
 
   const startedAt = Date.now();
   const config = await readJson(configPath);
@@ -48,7 +50,25 @@ async function main() {
   if (!Number.isInteger(workers) || workers < 1) {
     throw new Error(`Invalid workers count: ${workers}. Expected a positive integer.`);
   }
-  const selectedScenarios = filterScenarios(config.scenarios || [], filter, config);
+  let selectedScenarios = filterScenarios(config.scenarios || [], filter, config);
+  if (lastFailed) {
+    const previous = await readLastComparison(rootDir);
+    if (!previous) throw new Error('No completed comparison found. Run eaglediff test first.');
+    const failures = new Set(['failedItems', 'newItems', 'deletedItems'].flatMap(key => previous[key]));
+    if (!failures.size) {
+      console.log('[eaglediff] No failed pages in the latest comparison. Nothing to capture.');
+      return;
+    }
+    const matched = new Set();
+    selectedScenarios = { ...selectedScenarios, scenarios: selectedScenarios.scenarios.filter(scenario => {
+      const names = (selectedScenarios.viewports || []).map(viewport => getScreenshotFileName(scenario, viewport));
+      for (const name of names) if (failures.has(name)) matched.add(name);
+      return names.some(name => failures.has(name));
+    }) };
+    if (!selectedScenarios.scenarios.length) throw new Error('No current pages match the last failures. Run a full test to refresh the results.');
+    if (matched.size < failures.size) console.warn(`[eaglediff] ${failures.size - matched.size} last failure(s) no longer match the current config and were skipped.`);
+  }
+  const partial = !!filter || lastFailed;
   validateScreenshotNames(selectedScenarios);
   if (command !== 'approve') {
     for (const scenario of selectedScenarios.scenarios) {
@@ -121,7 +141,7 @@ async function main() {
     }
 
     if (command === 'reference') {
-      if (clean && !filter) {
+      if (clean && !partial) {
         await fsp.rm(referenceDir, { recursive: true, force: true });
       }
 
@@ -132,16 +152,16 @@ async function main() {
     await fsp.rm(stagingActualDir, { recursive: true, force: true });
     await fsp.mkdir(stagingActualDir, { recursive: true });
     await stageActuals(actualCacheDir, stagingActualDir, selectedScenarios);
-    await populateExpectedSnapshots(workingDir, referenceDir, selectedScenarios, filter);
+    await populateExpectedSnapshots(workingDir, referenceDir, selectedScenarios, partial);
     await runRegSuit(['compare', '--config', generatedRegConfigPath]);
     const compareResult = await readCompareResult();
     await fsp.writeFile(path.join(workingDir, 'capture-manifest.json'), JSON.stringify({
-      version: 1, fullRun: !filter,
+      version: 1, fullRun: !partial,
       fileNames: selectedScenarios.scenarios.flatMap(scenario =>
         selectedScenarios.viewports.map(viewport => getScreenshotFileName(scenario, viewport)))
     }) + '\n');
     await saveComparison({ root: rootDir, run: workingDir, result: compareResult,
-      fullRun: !filter, metadata: comparisonMetadata(selectedScenarios) });
+      fullRun: !partial, metadata: comparisonMetadata(selectedScenarios) });
     try {
       const previousResults = await readResults(resultsPath);
       const entry = buildResultEntry({
@@ -680,6 +700,7 @@ function parseArgs(argv) {
   const parsed = {
     command: argv[0] || null,
     filter: process.env.npm_config_filter || null,
+    lastFailed: false,
     addPara: process.env.npm_config_addpara === 'true' || process.env.npm_config_addpara === '1',
     clean: true,
     workers: process.env.npm_config_workers ? Number(process.env.npm_config_workers) : undefined
@@ -688,7 +709,13 @@ function parseArgs(argv) {
   for (let index = 1; index < argv.length; index += 1) {
     const value = argv[index];
 
-    if (value.startsWith('--filter=')) {
+    if (value === '--last-failed') {
+      parsed.lastFailed = true;
+    }
+    else if (value.startsWith('--last-failed=')) {
+      throw new Error('Use --last-failed without a value.');
+    }
+    else if (value.startsWith('--filter=')) {
       parsed.filter = value.slice('--filter='.length).trim();
     }
     else if (value === '--filter') {

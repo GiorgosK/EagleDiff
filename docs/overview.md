@@ -132,6 +132,12 @@ selected captures and references for reg-suit comparison.
 Passing comparisons exit with code `0`; changed, new, or deleted screenshots
 return `1`. Reports and history remain available when differences are found.
 
+`--last-failed` maps changed/new screenshot names from the latest completed
+comparison back to current scenarios, selecting those pages at every configured
+viewport. Missing identities are reported; an empty failure set is a no-op.
+It cannot be combined with `--filter`. Both forms are partial operations and
+preserve unrelated references and approval scope.
+
 Completed comparisons also publish immutable image generations under
 `.reg/reports`, with one atomic pointer to the latest combined state and HTML.
 Filtered runs replace only their entries; full comparisons replace the set.
