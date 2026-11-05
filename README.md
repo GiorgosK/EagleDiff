@@ -177,6 +177,10 @@ controls browser protocol commands and does not increase the navigation timeout.
 ```bash
 # Test matching pages with up to 15 workers
 eaglediff test --filter=homepage --workers=15
+
+# Review the latest saved result for every available screenshot
+eaglediff report --all
+
 eaglediff approve
 eaglediff results
 eaglediff config
@@ -185,11 +189,12 @@ eaglediff config
 - `--dir` selects the folder containing `config.json`, screenshots in `.reg/`, and run history in `results.json`.
 - `test` exits with code `1` for changed, new, or deleted screenshots; passing comparisons exit `0`. Reports and history are saved before returning the exit status.
 - `approve` accepts the latest completed comparison. Filtered comparisons update only their captured baselines; full comparisons replace the full reference set. `approve --filter=...` narrows approval further. Review the report first. Missing or invalid source screenshots prevent approval.
+- `report --all` shows each screenshot's latest saved result and test time, keeping untouched results after filtered reruns. It uses saved images and does not run tests or change references. Run a full `test` once to populate it; older overwritten reports cannot be recovered. Plain `report` opens only the latest comparison.
 - `results` prints pass counts, duration, and worker count for the latest two runs, plus a short history.
 - `config` discovers links and merges scenarios. It preserves saved URLs, settings, and existing scenarios except those matching `excludeExtensions`; `/` counts toward `--limit`.
 - For new configs, omitted or empty `--test` defaults to `--ref`. Edit saved base URLs directly to change environments.
 - `config` also adds `.reg/` to the project's `.gitignore`.
-- `--filter` matches labels, IDs, or URLs; `--workers` overrides `core.workers`. When neither is set, Eaglediff uses `core.workers` from `config-default.json` (currently `10`). Each scenario/viewport pair can run in a separate worker (one scenario with three viewports uses up to three workers). `report` only opens the latest report.
+- `--filter` matches labels, IDs, or URLs; `--workers` overrides `core.workers`. When neither is set, Eaglediff uses `core.workers` from `config-default.json` (currently `10`). Each scenario/viewport pair can run in a separate worker (one scenario with three viewports uses up to three workers).
 - `--clean` is the default: full `reference` runs rebuild baselines. Filtered reference runs replace only matching baselines. `--no-clean` retains cached files between runs.
 
 Set the root-level `excludeExtensions` array in `config.json` to skip file links
@@ -404,6 +409,7 @@ merge their fields. Parallel captures raise the default `readyTimeout` and
 Scenario `referenceUrl` overrides the reference capture path; `url` selects the
 test capture path and provides the comparison identity. Relative paths use their
 respective base URLs. Absolute URLs are also supported.
+
 A 404 page is still captured and compared in warning mode, so visual changes can
 still fail the test. To stop on 404, set `"http404Policy": "error"` in `defaults`
 or an individual scenario.

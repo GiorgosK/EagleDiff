@@ -86,6 +86,8 @@ test('reference and test stop without retries, baseline changes, or an approvabl
   const references = await readReferences();
   const historyPath = path.join(f.directory, 'results.json');
   const history = await fs.readFile(historyPath, 'utf8');
+  const reportPointerPath = path.join(f.directory, '.reg/reports/latest.json');
+  const reportPointer = await fs.readFile(reportPointerPath);
   f.config.core.temporaryErrorRetries = 2;
   await f.save();
   const challenges = [
@@ -96,6 +98,11 @@ test('reference and test stop without retries, baseline changes, or an approvabl
     f.pages['/two'] = { headers, status, body: '<h1>Verification instead of the website</h1>' };
     for (const command of ['reference', 'test']) {
       for (const workers of [1, 2]) {
+        const comparisonPath = path.join(f.directory, '.reg/run/out.json');
+        const previousComparison = await fs.readFile(comparisonPath).catch(error => {
+          if (error.code === 'ENOENT') return null;
+          throw error;
+        });
         f.requests.length = 0;
         const failed = await f.run([command, `--workers=${workers}`], 1);
         assert(failed.stderr.includes(provider));
@@ -105,8 +112,13 @@ test('reference and test stop without retries, baseline changes, or an approvabl
         assert.equal(f.requests.filter(url => url === '/two').length, 1);
         assert.deepEqual(await readReferences(), references);
         assert.equal(await fs.readFile(historyPath, 'utf8'), history);
+        assert.deepEqual(await fs.readFile(reportPointerPath), reportPointer, 'challenge captures do not replace saved results');
         await assert.rejects(fs.access(path.join(f.directory, '.reg/run/capture-manifest.json')), { code: 'ENOENT' });
-        await assert.rejects(fs.access(path.join(f.directory, '.reg/run/out.json')), { code: 'ENOENT' });
+        if (command === 'reference' && previousComparison) {
+          assert.deepEqual(await fs.readFile(comparisonPath), previousComparison, 'reference failures preserve the preceding report');
+        } else {
+          await assert.rejects(fs.access(comparisonPath), { code: 'ENOENT' });
+        }
       }
     }
   }

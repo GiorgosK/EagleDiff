@@ -211,6 +211,7 @@ Commands and examples:
   eaglediff approve                                         Replace references with the latest captures after review.
   eaglediff results                                         Show recent pass counts, timings, and run history.
   eaglediff report                                          Open the latest comparison report in your browser.
+  eaglediff report --all                                    Show the latest saved result for every available screenshot.
   eaglediff clean                                           Delete screenshots, references, reports, and legacy caches.
   eaglediff help                                            Show this help (also --help or -h).
 
@@ -218,6 +219,7 @@ Options:
   --dir <path>         Project folder; defaults to the current directory.
   --script-dir <path>  Use scripts from another Eaglediff checkout.
   --filter <text>      Match scenario labels or URLs for reference/test.
+  --all                Show all available results (report only).
   --workers <count>    Limit concurrent captures; overrides core.workers.
   --no-clean          Keep cached screenshots when running reference/test.
   --allow-newer-config  Continue with a config newer than this Eaglediff without prompting.`);

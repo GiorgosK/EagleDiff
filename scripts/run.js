@@ -16,6 +16,7 @@ const { navigate } = require('./navigation');
 const { applyCookies } = require('./cookies');
 const { withRetryTimeouts, retryTimeoutFactor } = require('./retry-timeouts');
 const { readResults } = require('./results-history');
+const { retainPreviousComparison, saveComparison } = require('./comparison-reports');
 const { resolveHookPath } = require('./hook-path');
 const { resolveReadySelector } = require('./ready-selector');
 const { detectChallengeHeaders, challengeError, assertNoChallenge } = require('./challenge-detector');
@@ -55,7 +56,6 @@ async function main() {
       resolveHttp404Policy(config, scenario);
     }
   }
-
   let failed = false;
   try {
     if (command === 'approve') {
@@ -76,12 +76,14 @@ async function main() {
       return;
     }
 
+    await retainPreviousComparison(rootDir, comparisonMetadata(selectedScenarios));
     if (clean) {
       await fsp.rm(actualCacheDir, { recursive: true, force: true });
     }
 
     const captureBaseUrl = getCaptureBaseUrl(config, command);
-    await fsp.rm(workingDir, { recursive: true, force: true });
+    if (command === 'test') await fsp.rm(workingDir, { recursive: true, force: true });
+    else await fsp.rm(path.join(workingDir, 'capture-manifest.json'), { force: true });
     await fsp.rm(stagingRootDir, { recursive: true, force: true });
     await fsp.mkdir(actualCacheDir, { recursive: true });
     await fsp.mkdir(path.dirname(generatedRegConfigPath), { recursive: true });
@@ -138,6 +140,8 @@ async function main() {
       fileNames: selectedScenarios.scenarios.flatMap(scenario =>
         selectedScenarios.viewports.map(viewport => getScreenshotFileName(scenario, viewport)))
     }) + '\n');
+    await saveComparison({ root: rootDir, run: workingDir, result: compareResult,
+      fullRun: !filter, metadata: comparisonMetadata(selectedScenarios) });
     try {
       const previousResults = await readResults(resultsPath);
       const entry = buildResultEntry({
@@ -474,6 +478,15 @@ function resolveChromePath() {
   }
 
   throw new Error('No Chrome/Chromium executable found. Set CHROME_BIN or PUPPETEER_EXECUTABLE_PATH.');
+}
+
+function comparisonMetadata(selection) {
+  return Object.fromEntries((selection.scenarios || []).flatMap(scenario => (selection.viewports || []).map(viewport => [
+    getScreenshotFileName(scenario, viewport), {
+      label: getScenarioLabel(scenario), url: getScenarioUrl(scenario),
+      viewport: `${viewport.label} (${viewport.width}×${viewport.height})`
+    }
+  ])));
 }
 
 function getCaptureBaseUrl(scenarios, mode) {

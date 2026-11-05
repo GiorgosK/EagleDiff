@@ -21,7 +21,8 @@ and comparison behavior across projects.
 | `scripts/capture-worker.js` | Execute assigned captures in a worker-owned browser and relay progress, warnings, and errors. |
 | `scripts/hooks/` | Prepare page content, wait for resources, normalize variable rendering, and define capture regions. |
 | `scripts/hook-path.js` | Resolve bundled hook spellings and project-relative or absolute custom hooks consistently. |
-| `scripts/results.js` and `scripts/report.js` | Display run history and open the latest comparison report. |
+| `scripts/results.js` and `scripts/report.js` | Display run history and open the latest or combined comparison report. |
+| `scripts/comparison-reports.js` | Retain completed comparisons and the latest available images for each screenshot. |
 
 Configuration lives in the project's `config.json`; bundled defaults live in
 `config-default.json`. Scenario settings can override defaults. Config updates
@@ -128,9 +129,20 @@ Screenshots and reports are stored under the project's `.reg` directory;
 Full reference runs replace the reference set. Filtered reference runs update
 only selected baselines, preserving unrelated screenshots. Testing stages the
 selected captures and references for reg-suit comparison.
-
 Passing comparisons exit with code `0`; changed, new, or deleted screenshots
 return `1`. Reports and history remain available when differences are found.
+
+Completed comparisons also publish immutable image generations under
+`.reg/reports`, with one atomic pointer to the latest combined state and HTML.
+Filtered runs replace only their entries; full comparisons replace the set.
+Unreferenced generations are pruned. A lock prevents overlapping report updates;
+an interrupted update leaves the previously published generation available.
+`report --all` opens that combined view with per-entry test times. It does not
+recapture or recompute comparisons, and never changes the current approval manifest.
+Existing completed reports can seed the store; already overwritten reports cannot.
+Reference captures retain the comparison report and invalidate its approval
+manifest. Failed captures do not replace the saved completed comparison.
+
 
 A completed comparison writes a capture manifest identifying its screenshots
 and whether it covered the full scenario set. Approval uses that manifest and
