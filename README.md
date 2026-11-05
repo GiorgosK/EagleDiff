@@ -544,6 +544,24 @@ Scrolling follows changes in page height as lazy content loads. `scrollTimeout`
 (defaults or scenario, default `30000` milliseconds) bounds this step, including
 pages that prevent scrolling. These timeouts also use `core.temporaryErrorRetries`.
 
+### Changing videos and social feeds
+
+To replace changing video tiles with plain placeholders, target the wrapper
+around each video and its controls. For example, if it has class `.video-tile`:
+
+```json
+{
+  "url": "/gallery",
+  "hideSelectors": [".video-tile *"],
+  "cssOverrides": ".video-tile { background: #e2e5e8 !important; }"
+}
+```
+
+Replace `.video-tile` with your site's selector. The contents become invisible,
+keeping their layout space, while the wrapper shows a grey background. This
+checks the tile layout and surrounding page, excluding the video content.
+Review the placeholders before updating references.
+
 ### Web fonts
 
 The `wait-for-fonts` hook waits for layout and checks for failed font faces;
