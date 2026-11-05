@@ -4,17 +4,26 @@ const { spawn } = require('child_process');
 
 const { rootDir } = require('./config-path');
 const { allReportPath } = require('./comparison-reports');
+const { referenceReportPath, readManifest } = require('./reference-report');
 
 async function main() {
   const options = process.argv.slice(2).filter(arg => arg !== 'report');
-  if (options.some(arg => arg !== '--all')) throw new Error('Usage: eaglediff report [--all]');
-  const reportPath = await getReportPath(rootDir, options.includes('--all'));
+  if (options.some(arg => !['--all', '--reference'].includes(arg)) || (options.includes('--all') && options.includes('--reference'))) {
+    throw new Error('Usage: eaglediff report [--all | --reference]');
+  }
+  const reportPath = options.includes('--reference') ? await referenceReportPath(rootDir)
+    : await getReportPath(rootDir, options.includes('--all'));
   await openPath(reportPath);
 }
 
 async function getReportPath(root, all = false) {
-  const reportPath = all ? await allReportPath(root) : path.join(root, '.reg', 'run', 'index.html');
-  await fsp.access(reportPath);
+  if (all) return allReportPath(root);
+  const reportPath = path.join(root, '.reg', 'run', 'index.html');
+  let comparison;
+  try { comparison = await fsp.stat(reportPath); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  const references = await readManifest(root);
+  if (!comparison || (references && Date.parse(references.completedAt) > comparison.mtimeMs)) return referenceReportPath(root);
   return reportPath;
 }
 

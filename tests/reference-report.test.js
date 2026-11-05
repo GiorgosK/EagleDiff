@@ -1,0 +1,52 @@
+const assert = require('node:assert/strict');
+const { test } = require('node:test');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
+const puppeteer = require('puppeteer-core');
+const fixture = require('./helpers/cli-fixture');
+const { getReportPath } = require('../scripts/report');
+const { referenceReportPath } = require('../scripts/reference-report');
+const { buildBrowserLaunchOptions } = require('../scripts/run');
+
+test('report after reference-only opens a capture gallery with decoded images and no comparison or approval result', async t => {
+  const f = await fixture(t);
+  f.config.scenarios[0].label = '<script>window.pwned=true</script>'; await f.save();
+  await assert.rejects(getReportPath(f.directory), /Run eaglediff reference first/);
+  await f.run(['reference']);
+  const names = await f.files();
+  const readReferences = () => Promise.all(names.map(name => fs.readFile(path.join(f.directory, '.reg/reference', name))));
+  const references = await readReferences();
+  const report = await getReportPath(f.directory);
+  assert.equal(report, path.join(f.directory, '.reg/reference-report/index.html'));
+  const browser = await puppeteer.launch(buildBrowserLaunchOptions()); t.after(() => browser.close());
+  const page = await browser.newPage(); await page.goto(pathToFileURL(report).href);
+  assert.equal(await page.$eval('h1', node => node.textContent), 'Reference captures');
+  assert.equal(await page.$$eval('article', nodes => nodes.length), 2);
+  assert.equal(await page.evaluate(() => window.pwned), undefined);
+  assert.equal(await page.$eval('h2', node => node.textContent), f.config.scenarios[0].label);
+  await page.$$eval('img', images => Promise.all(images.map(image => { image.loading = 'eager'; return image.decode(); })));
+  await assert.rejects(fs.access(path.join(f.directory, '.reg/run/capture-manifest.json')), { code: 'ENOENT' });
+  await assert.rejects(fs.access(path.join(f.directory, 'results.json')), { code: 'ENOENT' });
+  await f.run(['approve'], 1);
+  assert.deepEqual(await readReferences(), references);
+});
+
+test('report chooses the latest successful operation and explicit reference viewing leaves comparison approval intact', async t => {
+  const f = await fixture(t);
+  await f.run(['reference']); await f.run(['test']);
+  const comparisonPath = path.join(f.directory, '.reg/run/index.html');
+  assert.equal(await getReportPath(f.directory), comparisonPath);
+  const manifestPath = path.join(f.directory, '.reg/run/capture-manifest.json');
+  const manifest = await fs.readFile(manifestPath);
+  await fs.access(await referenceReportPath(f.directory));
+  assert.equal(await getReportPath(f.directory), comparisonPath, 'viewing captures does not change which operation was latest');
+  assert.deepEqual(await fs.readFile(manifestPath), manifest);
+  await f.run(['reference', '--filter=/one']);
+  const gallery = await getReportPath(f.directory);
+  assert.equal(gallery, path.join(f.directory, '.reg/reference-report/index.html'));
+  const html = await fs.readFile(gallery, 'utf8');
+  assert.equal((html.match(/<article>/g) || []).length, 2, 'filtered reference galleries include all retained baselines');
+  await f.run(['test']);
+  assert.equal(await getReportPath(f.directory), comparisonPath);
+});

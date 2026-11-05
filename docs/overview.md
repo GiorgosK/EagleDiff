@@ -22,6 +22,7 @@ and comparison behavior across projects.
 | `scripts/hooks/` | Prepare page content, wait for resources, normalize variable rendering, and define capture regions. |
 | `scripts/hook-path.js` | Resolve bundled hook spellings and project-relative or absolute custom hooks consistently. |
 | `scripts/results.js` and `scripts/report.js` | Display run history and open the latest or combined comparison report. |
+| `scripts/reference-report.js` | Build a reference capture gallery without comparison or approval results. |
 | `scripts/comparison-reports.js` | Retain completed comparisons and the latest available images for each screenshot. |
 
 Configuration lives in the project's `config.json`; bundled defaults live in
@@ -129,6 +130,11 @@ Screenshots and reports are stored under the project's `.reg` directory;
 Full reference runs replace the reference set. Filtered reference runs update
 only selected baselines, preserving unrelated screenshots. Testing stages the
 selected captures and references for reg-suit comparison.
+A completed reference run also builds a gallery under `.reg/reference-report`.
+Plain `report` selects the latest comparison or successful reference operation;
+`report --reference` always displays the current reference images. Viewing the
+gallery never creates a comparison result or approval manifest.
+
 Passing comparisons exit with code `0`; changed, new, or deleted screenshots
 return `1`. Reports and history remain available when differences are found.
 

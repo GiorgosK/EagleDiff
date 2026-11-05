@@ -43,6 +43,9 @@ eaglediff config --ref=https://example.com
 # Save the reference screenshots
 eaglediff reference
 
+# Inspect the saved reference captures
+eaglediff report
+
 # Take new screenshots and compare them with the references
 eaglediff test
 
@@ -194,10 +197,11 @@ eaglediff config
 
 - `--dir` selects the folder containing `config.json`, screenshots in `.reg/`, and run history in `results.json`.
 - `test` exits with code `1` for changed, new, or deleted screenshots; passing comparisons exit `0`. Reports and history are saved before returning the exit status.
+- `report` opens the latest comparison, or a capture gallery after a reference run. `report --reference` always displays the current reference captures without comparing them.
 - `approve` accepts the latest completed comparison. Filtered comparisons update only their captured baselines; full comparisons replace the full reference set. `approve --filter=...` narrows approval further. Review the report first. Missing or invalid source screenshots prevent approval.
 - `--last-failed` selects changed or new pages from the latest completed comparison, at all their configured screen sizes. It works with `test` and `reference`; use it separately from `--filter`. Removed pages or changed screenshot identities cannot be selected. With no failures, it does nothing. An interrupted capture does not replace the last completed comparison.
 - `reference --last-failed` replaces only those pages' references. Review the screenshots first; unrelated references are preserved.
-- `report --all` shows each screenshot's latest saved result and test time, keeping untouched results after filtered reruns. It uses saved images and does not run tests or change references. Run a full `test` once to populate it; older overwritten reports cannot be recovered. Plain `report` opens only the latest comparison.
+- `report --all` shows each screenshot's latest saved result and test time, keeping untouched results after filtered reruns. It uses saved images and does not run tests or change references. Run a full `test` once to populate it; older overwritten reports cannot be recovered.
 - `results` prints pass counts, duration, and worker count for the latest two runs, plus a short history.
 - `config` discovers links and merges scenarios. It preserves saved URLs, settings, and existing scenarios except those matching `excludeExtensions`; `/` counts toward `--limit`.
 - For new configs, omitted or empty `--test` defaults to `--ref`. Edit saved base URLs directly to change environments.

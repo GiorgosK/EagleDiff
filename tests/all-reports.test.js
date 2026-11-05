@@ -56,7 +56,7 @@ test('all report retains untouched results after a filtered pass and renders val
     const log = path.join(f.directory, 'opened.txt');
     await fs.writeFile(path.join(openerDirectory, process.platform === 'darwin' ? 'open' : 'xdg-open'),
       '#!/bin/sh\nprintf "%s" "$1" > "$EAGLEDIFF_OPEN_LOG"\n', { mode: 0o755 });
-    for (const [flag, target] of [['--all', report]]) {
+    for (const [flag, target] of [['--all', report], ['--reference', path.join(f.directory, '.reg/reference-report/index.html')]]) {
       await fs.rm(log, { force: true });
       await promisify(execFile)(process.execPath, [path.resolve(__dirname, '../bin/eaglediff.js'), '--dir', f.directory, 'report', flag], {
         env: { ...process.env, INIT_CWD: '', EAGLEDIFF_DIR: '', PATH: openerDirectory + path.delimiter + process.env.PATH, EAGLEDIFF_OPEN_LOG: log }

@@ -212,7 +212,8 @@ Commands and examples:
   eaglediff reference --last-failed                         Replace references for those pages only.
   eaglediff approve                                         Replace references with the latest captures after review.
   eaglediff results                                         Show recent pass counts, timings, and run history.
-  eaglediff report                                          Open the latest comparison report in your browser.
+  eaglediff report                                          Open the latest comparison or reference capture gallery.
+  eaglediff report --reference                              Browse current reference screenshots without comparing.
   eaglediff report --all                                    Show the latest saved result for every available screenshot.
   eaglediff clean                                           Delete screenshots, references, reports, and legacy caches.
   eaglediff help                                            Show this help (also --help or -h).
@@ -222,6 +223,7 @@ Options:
   --script-dir <path>  Use scripts from another Eaglediff checkout.
   --filter <text>      Match scenario labels or URLs for reference/test.
   --last-failed        Select failed pages from the latest comparison (reference/test).
+  --reference          Browse reference captures (report only).
   --all                Show all available results (report only).
   --workers <count>    Limit concurrent captures; overrides core.workers.
   --no-clean          Keep cached screenshots for reference/test.

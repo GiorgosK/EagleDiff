@@ -17,6 +17,7 @@ const { applyCookies } = require('./cookies');
 const { withRetryTimeouts, retryTimeoutFactor } = require('./retry-timeouts');
 const { readResults } = require('./results-history');
 const { readLastComparison, retainPreviousComparison, saveComparison } = require('./comparison-reports');
+const { referenceReportPath } = require('./reference-report');
 const { resolveHookPath } = require('./hook-path');
 const { resolveReadySelector } = require('./ready-selector');
 const { detectChallengeHeaders, challengeError, assertNoChallenge } = require('./challenge-detector');
@@ -146,6 +147,7 @@ async function main() {
       }
 
       await promoteActualsToReferences(actualCacheDir, referenceDir, selectedScenarios, { overwriteAll: false });
+      await referenceReportPath(rootDir, comparisonMetadata(selectedScenarios, 'reference'));
       return;
     }
 
@@ -161,7 +163,7 @@ async function main() {
         selectedScenarios.viewports.map(viewport => getScreenshotFileName(scenario, viewport)))
     }) + '\n');
     await saveComparison({ root: rootDir, run: workingDir, result: compareResult,
-      fullRun: !partial, metadata: comparisonMetadata(selectedScenarios) });
+      fullRun: !partial, metadata: comparisonMetadata(selectedScenarios, command) });
     try {
       const previousResults = await readResults(resultsPath);
       const entry = buildResultEntry({
@@ -500,10 +502,10 @@ function resolveChromePath() {
   throw new Error('No Chrome/Chromium executable found. Set CHROME_BIN or PUPPETEER_EXECUTABLE_PATH.');
 }
 
-function comparisonMetadata(selection) {
+function comparisonMetadata(selection, command = 'test') {
   return Object.fromEntries((selection.scenarios || []).flatMap(scenario => (selection.viewports || []).map(viewport => [
     getScreenshotFileName(scenario, viewport), {
-      label: getScenarioLabel(scenario), url: getScenarioUrl(scenario),
+      label: getScenarioLabel(scenario), url: command === 'reference' ? getScenarioReferenceUrl(scenario) : getScenarioUrl(scenario),
       viewport: `${viewport.label} (${viewport.width}×${viewport.height})`
     }
   ])));
