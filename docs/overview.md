@@ -135,6 +135,12 @@ Plain `report` selects the latest comparison or successful reference operation;
 `report --reference` always displays the current reference images. Viewing the
 gallery never creates a comparison result or approval manifest.
 
+`calibrate` follows the comparison pipeline using an in-memory copy of the
+config with `testBaseURL` set to `referenceBaseURL`. Capture navigation uses
+`referenceUrl` paths while filenames retain their normal test identity. It
+requires existing selected references, preserves saved config and baselines,
+and records the effective reference-site comparison in results history.
+
 Passing comparisons exit with code `0`; changed, new, or deleted screenshots
 return `1`. Reports and history remain available when differences are found.
 

@@ -6,13 +6,14 @@ const { spawnSync } = require('child_process');
 
 const defaultScriptDir = path.resolve(__dirname, '..');
 const invocationDir = path.resolve(process.env.INIT_CWD || process.cwd());
-const commands = new Set(['config', 'config-update', 'import', 'reference', 'test', 'approve', 'results', 'clean', 'report']);
+const commands = new Set(['config', 'config-update', 'import', 'reference', 'test', 'calibrate', 'approve', 'results', 'clean', 'report']);
 const scriptByCommand = {
   config: 'scripts/config.js',
   'config-update': 'scripts/config-update.js',
   import: 'scripts/import.js',
   reference: 'scripts/run.js',
   test: 'scripts/run.js',
+  calibrate: 'scripts/run.js',
   approve: 'scripts/run.js',
   results: 'scripts/results.js',
   clean: 'scripts/clean.js',
@@ -207,6 +208,7 @@ Commands and examples:
   eaglediff config-update                                   Add missing settings/hooks; preserve existing values.
   eaglediff import --backstop=/path/to/backstop             Import scenarios and settings from Backstop.
   eaglediff reference                                       Capture reference screenshots, replacing the baseline.
+  eaglediff calibrate                                       Compare references with fresh captures of the reference site.
   eaglediff test --filter=homepage --workers=3              Capture matching pages and compare with references.
   eaglediff test --last-failed                              Retest the last comparison's failed pages.
   eaglediff reference --last-failed                         Replace references for those pages only.
@@ -221,12 +223,12 @@ Commands and examples:
 Options:
   --dir <path>         Project folder; defaults to the current directory.
   --script-dir <path>  Use scripts from another Eaglediff checkout.
-  --filter <text>      Match scenario labels or URLs for reference/test.
-  --last-failed        Select failed pages from the latest comparison (reference/test).
+  --filter <text>      Match scenario labels or URLs for reference/test/calibrate.
+  --last-failed        Select failed pages from the latest comparison (reference/test/calibrate).
   --reference          Browse reference captures (report only).
   --all                Show all available results (report only).
   --workers <count>    Limit concurrent captures; overrides core.workers.
-  --no-clean          Keep cached screenshots for reference/test.
+  --no-clean          Keep cached screenshots for reference/test/calibrate.
   --allow-newer-config  Continue with a config newer than this Eaglediff without prompting.`);
 }
 

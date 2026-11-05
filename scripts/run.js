@@ -38,14 +38,15 @@ const runActualDir = path.join(workingDir, 'actual');
 async function main() {
   const { command, filter, lastFailed, addPara, clean, workers: requestedWorkers } = parseArgs(process.argv.slice(2));
 
-  if (!command || !['reference', 'test', 'approve'].includes(command)) {
-    throw new Error('Usage: node scripts/run.js <reference|test|approve>');
+  if (!command || !['reference', 'test', 'calibrate', 'approve'].includes(command)) {
+    throw new Error('Usage: node scripts/run.js <reference|test|calibrate|approve>');
   }
-  if (lastFailed && command === 'approve') throw new Error('--last-failed is available for test and reference only.');
+  if (lastFailed && command === 'approve') throw new Error('--last-failed is available for test, calibrate and reference only.');
   if (lastFailed && filter) throw new Error('Use either --last-failed or --filter, not both.');
 
   const startedAt = Date.now();
-  const config = await readJson(configPath);
+  const savedConfig = await readJson(configPath);
+  const config = command === 'calibrate' ? { ...savedConfig, testBaseURL: savedConfig.referenceBaseURL } : savedConfig;
   const workers = requestedWorkers ?? config.core?.workers
     ?? (await readJson(path.join(helperDir, 'config-default.json'))).core.workers;
   if (!Number.isInteger(workers) || workers < 1) {
@@ -77,6 +78,20 @@ async function main() {
       resolveHttp404Policy(config, scenario);
     }
   }
+  if (command === 'calibrate') {
+    for (const scenario of selectedScenarios.scenarios) {
+      for (const viewport of selectedScenarios.viewports || []) {
+        const fileName = getScreenshotFileName(scenario, viewport);
+        try { await fsp.access(path.join(referenceDir, fileName)); }
+        catch (error) {
+          if (error.code !== 'ENOENT') throw error;
+          throw new Error(`Missing reference screenshot for ${getScenarioLabel(scenario)} @ ${viewport.label}. Run eaglediff reference first.`, { cause: error });
+        }
+      }
+    }
+    console.log('[eaglediff] Calibration compares saved references with fresh captures of the reference site.');
+  }
+
   let failed = false;
   try {
     if (command === 'approve') {
@@ -103,7 +118,7 @@ async function main() {
     }
 
     const captureBaseUrl = getCaptureBaseUrl(config, command);
-    if (command === 'test') await fsp.rm(workingDir, { recursive: true, force: true });
+    if (command === 'test' || command === 'calibrate') await fsp.rm(workingDir, { recursive: true, force: true });
     else await fsp.rm(path.join(workingDir, 'capture-manifest.json'), { force: true });
     await fsp.rm(stagingRootDir, { recursive: true, force: true });
     await fsp.mkdir(actualCacheDir, { recursive: true });
@@ -190,7 +205,7 @@ async function main() {
     failed = true;
     throw error;
   } finally {
-    if (command === 'reference' || command === 'test') {
+    if (command === 'reference' || command === 'test' || command === 'calibrate') {
       console.log(`[eaglediff] ${command} ${failed ? 'failed' : 'completed'} in ${formatDuration(Date.now() - startedAt)}`);
     }
   }
@@ -228,7 +243,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
       currentScreenshot += 1;
       const fileName = getScreenshotFileName(scenario, viewport);
       const filePath = path.join(actualDir, fileName);
-      const url = buildScenarioUrl(baseUrl, command === 'reference' ? getScenarioReferenceUrl(scenario) : getScenarioUrl(scenario));
+      const url = buildScenarioUrl(baseUrl, command === 'reference' || command === 'calibrate' ? getScenarioReferenceUrl(scenario) : getScenarioUrl(scenario));
       const beforeScripts = [...globalBeforeScripts, ...normalizeScriptList(scenario.onBeforeScript)];
       const readyScripts = [...globalReadyScripts, ...normalizeScriptList(scenario.onReadyScript)];
       const readySelector = resolveReadySelector(runtimeConfig, scenario);
@@ -505,7 +520,7 @@ function resolveChromePath() {
 function comparisonMetadata(selection, command = 'test') {
   return Object.fromEntries((selection.scenarios || []).flatMap(scenario => (selection.viewports || []).map(viewport => [
     getScreenshotFileName(scenario, viewport), {
-      label: getScenarioLabel(scenario), url: command === 'reference' ? getScenarioReferenceUrl(scenario) : getScenarioUrl(scenario),
+      label: getScenarioLabel(scenario), url: command === 'reference' || command === 'calibrate' ? getScenarioReferenceUrl(scenario) : getScenarioUrl(scenario),
       viewport: `${viewport.label} (${viewport.width}×${viewport.height})`
     }
   ])));
@@ -515,7 +530,7 @@ function getCaptureBaseUrl(scenarios, mode) {
   const referenceBaseUrl = (scenarios.referenceBaseURL || '').replace(/\/$/, '');
   const testBaseUrl = (scenarios.testBaseURL || '').replace(/\/$/, '');
 
-  if (mode === 'reference') {
+  if (mode === 'reference' || mode === 'calibrate') {
     return referenceBaseUrl;
   }
 

@@ -13,6 +13,7 @@
     "import": "node scripts/import.js",
     "reference": "node scripts/run.js reference",
     "test": "node scripts/run.js test",
+    "calibrate": "node scripts/run.js calibrate",
     "approve": "node scripts/run.js approve",
     "results": "node scripts/results.js",
     "clean": "node scripts/clean.js",

@@ -47,6 +47,6 @@ test('report chooses the latest successful operation and explicit reference view
   assert.equal(gallery, path.join(f.directory, '.reg/reference-report/index.html'));
   const html = await fs.readFile(gallery, 'utf8');
   assert.equal((html.match(/<article>/g) || []).length, 2, 'filtered reference galleries include all retained baselines');
-  await f.run(['test']);
+  await f.run(['calibrate']);
   assert.equal(await getReportPath(f.directory), comparisonPath);
 });
