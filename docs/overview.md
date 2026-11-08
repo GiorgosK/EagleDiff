@@ -136,6 +136,9 @@ Image hooks have distinct responsibilities:
 - `normalize-image-decoding` normalizes eligible JPEG rendering and freezes GIF images at their first frame.
 - `wait-for-background-images` validates CSS background URL layers and remaining
   foreground images with bounded waits and the configured failure policy.
+  CSS-hidden backgrounds are skipped, including hidden ancestors; offscreen
+  backgrounds and root/body canvas backgrounds remain checked. This visibility
+  filter applies to CSS backgrounds only.
 
 Stalled image waits fail even in warning mode because unresolved downloads can
 change layout after capture. Broken image handling follows `imageFailurePolicy`.

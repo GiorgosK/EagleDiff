@@ -10,8 +10,23 @@ module.exports = async function waitForBackgroundImages(page, context = {}) {
       !isPlaceholder(image) &&
       (image.currentSrc || image.getAttribute('src') || image.srcset) && !failedSources.includes(image.currentSrc) && !failedSources.includes(image.src));
     const seen = new Set();
+    const canPaintBackground = (element, elementStyle) => {
+      // Root/body backgrounds can paint the canvas even without a layout box.
+      if (element === document.documentElement || element === document.body) return true;
+      const visibility = elementStyle.visibility;
+      if (visibility === 'hidden' || visibility === 'collapse') return false;
+      for (let ancestor = element; ancestor; ancestor = ancestor.parentElement) {
+        const style = ancestor === element ? elementStyle : getComputedStyle(ancestor);
+        if (style.display === 'none' || style.opacity === '0') return false;
+        // content-visibility hides descendants, but the owner's background paints.
+        if (ancestor !== element && style.contentVisibility === 'hidden') return false;
+      }
+      return true;
+    };
     for (const element of document.querySelectorAll('*')) {
-      const background = getComputedStyle(element).backgroundImage;
+      const style = getComputedStyle(element);
+      const background = style.backgroundImage;
+      if (!background.includes('url(') || !canPaintBackground(element, style)) continue;
       for (const match of background.matchAll(/url\((?:"([^"]*)"|'([^']*)'|([^)]*))\)/g)) {
         const source = match[1] ?? match[2] ?? match[3];
         if (seen.has(source)) continue;

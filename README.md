@@ -582,7 +582,9 @@ height keeps growing.
 
 `load-lazy-images` loads common `data-src`, `data-srcset`, and `data-sizes`
 attributes, including `data-lazy-*`, then waits for image decoding. CSS background
-images are checked separately. Newly introduced image sources are rechecked.
+images are checked separately. CSS-hidden backgrounds are skipped; visible
+backgrounds below the fold are still checked. Newly introduced image sources
+are rechecked.
 
 `imageFailurePolicy` defaults to `"error"`. `"warn"` allows broken images with
 warnings, so their placeholders can still cause visual differences. Stalled
