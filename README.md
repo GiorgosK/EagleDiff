@@ -235,8 +235,8 @@ with a warning. Newer configs require confirmation or `--allow-newer-config`;
 
 ## Capture Errors
 
-Errors use a red `ERROR:` heading in terminals and plain text in logs. Capture
-failures identify the page, viewport, hook, and available resource/network details.
+Terminals show `ERROR:` in red and `Warning:` in orange; logs use plain text.
+Capture failures identify the page, viewport, hook, and available resource/network details.
 The run stops and cancels remaining workers on a failed capture. Progress lines
 mean a capture started, not that its screenshot was saved.
 

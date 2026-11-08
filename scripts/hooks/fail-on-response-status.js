@@ -8,7 +8,7 @@ module.exports = async function failOnResponseStatus(page, context) {
     if (policy === 'error') throw new Error(`Blocked response status 404 for ${label} at ${url}`);
     const message = `Warning: HTTP 404 for ${label} at ${url}; continuing capture (http404Policy="warn").`;
     if (context.reportWarning) context.reportWarning(`http-404:${url}`, message);
-    else console.warn(`[eaglediff] ${message}`);
+    else require('../warnings').printWarning(message);
     return;
   }
   const errorCodes = normalizeCodes(

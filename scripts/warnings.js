@@ -1,4 +1,10 @@
-function createWarningReporter(output = message => console.warn(`[eaglediff] ${message}`)) {
+function printWarning(message) {
+  const color = !!process.stderr.isTTY && !Object.hasOwn(process.env, 'NO_COLOR') && process.env.TERM !== 'dumb';
+  const formatted = color ? String(message).replace(/^Warning:/, '\x1b[38;5;208mWarning:\x1b[0m') : message;
+  console.warn(`[eaglediff] ${formatted}`);
+}
+
+function createWarningReporter(output = printWarning) {
   const seen = new Set();
   return (code, message) => {
     if (seen.has(code)) return;
@@ -7,4 +13,4 @@ function createWarningReporter(output = message => console.warn(`[eaglediff] ${m
   };
 }
 
-module.exports = { createWarningReporter };
+module.exports = { createWarningReporter, printWarning };
