@@ -55,6 +55,7 @@ test('cookies keep scope and expiry unless explicitly changed, and invalid files
   assert.equal(calls[0].length, 1);
   assert.equal(calls[0][0].domain, 'old.test');
   assert.deepEqual(warnings.map(w => w[0]), ['expired-cookies', 'cookie-domain']);
+  assert.match(warnings.find(([code]) => code === 'cookie-domain')[1], /^Warning: Some cookies target a different domain/);
   await applyCookies(context, 'https://current.test/page', {}, {
     cookiePath: 'cookies.json', cookieDomain: 'current', cookieExpiry: 'session'
   }, configPath, () => {});

@@ -41,7 +41,7 @@ async function applyCookies(context, url, scenario, defaults, configPath, report
     }
     const domain = result.domain.replace(/^\./, '').toLowerCase();
     if (hostname !== domain && !hostname.endsWith(`.${domain}`)) {
-      reportWarning('cookie-domain', 'Some cookies target a different domain from the capture URL. Set cookieDomain="current" to explicitly apply test cookies to each environment.');
+      reportWarning('cookie-domain', 'Warning: Some cookies target a different domain from the capture URL. Set cookieDomain="current" to explicitly apply test cookies to each environment.');
     }
     prepared.push(result);
   }
