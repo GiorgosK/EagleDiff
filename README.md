@@ -32,9 +32,10 @@ installation lets you run `eaglediff` from anywhere.
 
 ### Calibrate
 
-From your project's test folder, compare the site against itself first:
+From your project's root folder, create a test folder and compare the site against itself:
 
 ```bash
+mkdir -p tests/eaglediff
 cd tests/eaglediff
 
 # Find up to 25 pages and create config.json
@@ -53,9 +54,9 @@ eaglediff calibrate
 eaglediff report
 ```
 
-All tests should pass. If they don't, adjust `config.json` settings,
-then rerun `reference` and `calibrate`. Calibration uses the reference URL for
-that run; your saved `testBaseURL` stays unchanged.
+Calibration should pass when the site is stable and the references are correct.
+Review both images before changing settings or replacing references. Calibration
+uses the reference site without changing your saved `testBaseURL`.
 
 ### Compare environments
 
@@ -71,9 +72,8 @@ eaglediff report
 
 ## Eaglediff and BackstopJS
 
-Eaglediff is a new project. The strengths below are early claims based on its
-implementation and maintainer-reported results; broader testing by the community
-is needed to validate them across websites, machines, and workloads. Your reports on this matters would be appreciated.
+Eaglediff is a new project. These are intended strengths, not proven advantages
+over BackstopJS. Results across more sites and environments are welcome.
 
 | Area | Eaglediff's intended strength |
 | --- | --- |
@@ -96,53 +96,33 @@ project and remain responsible for technical decisions, reviewing contributions,
 and validating behavior. AI-assisted contributions are subject to the same
 review and testing standards as other contributions.
 
-## Environment variables
-
-| Variable | Purpose |
-| --- | --- |
-| `EAGLEDIFF_DIR`, `EAGLEDIFF_PROJECT_DIR`, `EAGLEDIFF_ROOT` | Project directory for scripts. Prefer the CLI's `--dir` option. |
-| `EAGLEDIFF_CONFIG`, `GLOBAL_EAGLEDIFF_CONFIG` | Override the config file path. |
-| `EAGLEDIFF_SCRIPT_DIR`, `EAGLEDIFF_HELPER_DIR` | Runner checkout containing scripts and defaults. Prefer `--script-dir`. |
-| `EAGLEDIFF_INVOCATION_DIR` | Original working directory passed by the CLI to resolve import paths. |
-
 ## Import From Backstop
 
 ```bash
-eaglediff import --backstop=/path/to/tests/backstop
+eaglediff import --backstop=/path/to/tests/backstop/backstop.json
 ```
 
-Reads `backstop.json` and derives the base URLs from its scenarios. Review the
-imported config before capturing references. Backstop `cookiePath` entries are
-imported as paths relative to the Eaglediff config, resolving the source paths relative
-to `backstop.json`. A shared file becomes `defaults.cookiePath`; different files
-remain on their scenarios. Custom Backstop scripts are not executed by Eaglediff.
-Backstop's `asyncCaptureLimit` becomes `core.workers` unless the existing Eaglediff
-config already specifies workers, avoiding an increase in capture concurrency
-on import.
+Import derives base URLs, scenarios, and supported settings. It converts
+`asyncCaptureLimit` to `core.workers` unless workers are already set in Eaglediff.
+Cookie file paths are made relative to `config.json`. Custom Backstop scripts
+are not executed; review the imported config before capturing.
 
-Import reports repeated URLs and keeps each scenario when its label is distinct:
+Repeated URLs with different labels stay separate. If URL and label both repeat,
+import adds unique IDs and reports them. Screenshot filenames depend on URL, label, viewport, and optional ID; changing
+these can require new references. Older labeled
+captures from before label-based identity also need new references. Unlabeled
+scenarios without IDs retain their filenames.
 
-```json
-[
-  { "url": "/courses", "label": "Courses" },
-  { "url": "/courses", "label": "Expanded courses" }
-]
-```
+Re-importing rebuilds the scenario list. To keep manual edits, change the
+existing config directly instead.
 
-If both URL and label repeat, import adds unique IDs to those scenarios and
-shows them in the warning. Otherwise, no extra ID is added. Re-importing rebuilds
-the scenario list, so back up manual scenario edits first.
+### Cookies
 
-Screenshot filenames now include the label in their identity. Existing labeled
-scenarios need fresh references after upgrading; renaming a label also changes
-its screenshot filename. Unlabeled scenarios without IDs keep their existing filenames.
-For scenarios with an `id`, keep it unchanged to preserve its screenshot filename.
+Use `cookiePath` for a JSON array of cookies, or inline `cookies`. File cookies
+are applied first; inline cookies can override the same cookie. Values are not
+logged. Each capture uses an isolated browser context.
 
-For existing imports, add `defaults.cookiePath` manually to preserve calibration
-changes rather than replacing scenarios with another import. Cookie files contain
-an array of cookie objects with `name`, `value`, and optional `domain`, `path`,
-`expires` (Unix seconds), `secure`, `httpOnly`, and `sameSite`.
-For reusable consent fixtures that should apply to both environments:
+For reusable test cookies across environments:
 
 ```json
 {
@@ -154,78 +134,83 @@ For reusable consent fixtures that should apply to both environments:
 }
 ```
 
-These options explicitly change the domain and expiry; without them, Eaglediff
-preserves both. Cookie values are never logged. File cookies are applied first,
-followed by inline `cookies`, which can override cookies with the same scope.
-
-If `reference` fails during navigation, its error includes `waitUntil`, the
-navigation timeout, elapsed time, main-document HTTP responses and redirects,
-DOMContentLoaded/load events, and a bounded list of pending and failed requests.
-Diagnostic request URLs omit query strings, fragments and credentials. The run
-stops and cancels remaining workers on the first failed capture; progress lines
-indicate captures starting, not captures successfully saved. A failed `reference`
-also prevents `test` from running when connected with `&&`.
-To isolate a failing page:
-
-```bash
-eaglediff reference --filter=Inspire --workers=1
-```
-
-For slow pages, increase `defaults.navigationTimeout` (for example to `60000`)
-or set `navigationTimeout` on the affected scenario. `core.protocolTimeout`
-controls browser protocol commands and does not increase the navigation timeout.
+Without these overrides, cookie domains and expiry are preserved. A scenario
+can disable shared cookies with `cookiePath: null` and `cookies: []`.
 
 ## Commands And Config
+
+Run commands in the folder containing `config.json`, or use `--dir <folder>`.
+Screenshots and reports are saved in `.reg/`; run history is in `results.json`.
+
+| Command | Purpose |
+| --- | --- |
+| `config --ref=https://example.com` | Discover up to 25 pages and create or extend the config. For a new config, `--test` defaults to `--ref`. |
+| `import --backstop=/path/to/backstop.json` | Import a Backstop configuration. |
+| `config-update` | Add missing defaults and hooks while preserving saved settings. |
+| `reference` | Replace the reference screenshots. With `--filter`, replace only matching references. |
+| `calibrate` | Compare fresh reference-site captures against existing references; leave references and saved URLs unchanged. |
+| `test` | Compare test-site captures against references. |
+| `report` | Open the latest comparison, or the capture gallery after a reference run. |
+| `report --reference` | View reference captures without a comparison. |
+| `report --all` | View each screenshot's latest saved result, including results from before filtered reruns. |
+| `approve` | Accept the latest completed comparison as the new references. Review the report first. |
+| `results` | Show pass counts, timings, workers, and recent history. |
+| `clean` | Delete captures, references, reports, and caches. |
+| `help` | Show commands and CLI options. |
 
 ```bash
 # Test matching pages with up to 15 workers
 eaglediff test --filter=homepage --workers=15
 
-# Retest the failed pages from the latest completed comparison
+# Retest pages that failed the latest completed comparison
 eaglediff test --last-failed
 
-# Replace references for those pages, if the references need correcting
+# Replace those references only, after reviewing the problem
 eaglediff reference --last-failed
 
-# Review the latest saved result for every available screenshot
+# Review the latest saved result for every screenshot
 eaglediff report --all
-
-eaglediff approve
-eaglediff results
-eaglediff config
 ```
 
-- `--dir` selects the folder containing `config.json`, screenshots in `.reg/`, and run history in `results.json`.
-- `test` and `calibrate` exit with code `1` for changed, new, or deleted screenshots; passing comparisons exit `0`. Reports and history are saved before returning the exit status.
-- `calibrate` compares existing references with fresh captures of the reference site. It uses scenario `referenceUrl` paths where set, supports `--filter`, `--last-failed`, and `--workers`, and does not replace references or edit `testBaseURL`. Run `reference` first if captures are missing.
-- `report` opens the latest comparison, or a capture gallery after a reference run. `report --reference` always displays the current reference captures without comparing them.
-- `approve` accepts the latest completed comparison. Filtered comparisons update only their captured baselines; full comparisons replace the full reference set. `approve --filter=...` narrows approval further. Review the report first. Missing or invalid source screenshots prevent approval.
-- `--last-failed` selects changed or new pages from the latest completed comparison, at all their configured screen sizes. It works with `test`, `calibrate`, and `reference`; use it separately from `--filter`. Removed pages or changed screenshot identities cannot be selected. With no failures, it does nothing. An interrupted capture does not replace the last completed comparison.
-- `reference --last-failed` replaces only those pages' references. Review the screenshots first; unrelated references are preserved.
-- `report --all` shows each screenshot's latest saved result and test time, keeping untouched results after filtered reruns. It uses saved images and does not run tests or change references. Run a full `test` or `calibrate` once to populate it; older overwritten reports cannot be recovered.
-- `results` prints pass counts, duration, and worker count for the latest two runs, plus a short history.
-- `config` discovers links and merges scenarios. It preserves saved URLs, settings, and existing scenarios except those matching `excludeExtensions`; `/` counts toward `--limit`.
-- For new configs, omitted or empty `--test` defaults to `--ref`. Edit saved base URLs directly to change environments.
-- `config` also adds `.reg/` to the project's `.gitignore`.
-- `--filter` matches labels, IDs, or URLs; `--workers` overrides `core.workers`. When neither is set, Eaglediff uses `core.workers` from `config-default.json` (currently `10`). Each scenario/viewport pair can run in a separate worker (one scenario with three viewports uses up to three workers).
-- `--clean` is the default: full `reference` runs rebuild baselines. Filtered reference runs replace only matching baselines. `--no-clean` retains cached files between runs.
+`--filter` matches labels, IDs, or URLs. `--last-failed` selects failed pages at
+all configured viewports and cannot be combined with `--filter`. It does nothing
+when no pages failed; removed or renamed identities may no longer match.
+Both options work with `reference`, `test`, and `calibrate`.
 
-Set the root-level `excludeExtensions` array in `config.json` to skip file links
-during discovery, for example `"excludeExtensions": [".pdf", ".zip", "docx"]`.
-The default in `config-default.json` is `[".pdf"]`. Extensions accept an optional
-leading dot and match case-insensitively against the URL path, ignoring queries
-and fragments. Use `[]` to allow all extensions. Running `config` uses the saved
-list and also removes matching existing scenarios; excluded links do not count
-toward `--limit`. `config-update` adds the setting when missing and preserves
-custom lists. Run `config` afterward to filter existing scenarios.
+`--workers` overrides `core.workers`, whose default is `10`. Each page/viewport
+pair is a separate capture. `--no-clean` keeps cached captures; it does not make
+a full reference run a filtered update.
+
+Filtered comparisons preserve unrelated references when approved.
+`approve --filter=...` narrows approval further. Failed captures cannot be
+approved. Completed comparisons exit `0` when passing and `1` for changed, new,
+or deleted screenshots; reports and history remain available.
+
+`report --all` uses saved results without retesting. Run a full `test` or
+`calibrate` to populate it; overwritten older images cannot be recovered.
+
+### Page discovery
+
+`config` preserves saved URLs, settings, and scenarios while merging discovered
+pages. Set `--limit` to change the discovery limit; the homepage counts toward it.
+Edit saved base URLs directly to change environments. The command adds `.reg/`
+to the project's `.gitignore`.
+
+`excludeExtensions` skips file links, including common documents and archives by
+default; see [config-default.json](config-default.json) for the list. For example:
+
+```json
+"excludeExtensions": [".pdf", ".zip", ".docx"]
+```
+
+Use `[]` to allow all extensions. Matching ignores case, queries, and fragments;
+the leading dot is optional. Running `config` also removes matching existing
+scenarios. Excluded links do not count toward the discovery limit.
 
 ## Capture environment
 
-Comparing a live site with a DDEV-hosted site does not require both sites to run
-in Docker. Rendering consistency depends on the capture browser's OS, Chrome
-version, fonts, and display settings. Hosting a site in DDEV does not standardize
-that browser environment. When sharing baselines across machines or CI, use a
-consistent browser environment, such as the same container image for captures.
+Use a consistent OS, browser version, and fonts when sharing reference images.
+Hosting the website in DDEV or Docker does not control the browser that captures it.
 
 ## Update An Existing Config
 
@@ -235,121 +220,104 @@ After updating Eaglediff:
 eaglediff config-update
 ```
 
-Adds missing settings (including nested defaults) and default hooks from
-`config-default.json`. Preserves saved values, URLs, scenarios, viewports, and
-existing hook order. Missing hooks are inserted beside their default neighbours;
-this also restores default hooks you previously removed. Other existing arrays
-are kept unchanged. Recalibrate after updating.
+Adds missing defaults and hooks while preserving saved values, scenarios,
+viewports, and existing hook order. This restores removed default hooks but
+keeps explicit disabling values such as `false` or `[]`. Recalibrate afterward.
 
-New configs leave `readySelector` empty. Updating an existing config keeps its
-saved selector, including the old footer selector. To stop waiting for it, set
-`defaults.readySelector` to `""` (and clear root `readySelector` if present).
+New configs leave `readySelector` empty. Existing configs retain saved selectors;
+set `defaults.readySelector` to `""` and clear any root `readySelector` to stop
+waiting for one. Existing retry counts, including `0`, are also preserved.
 
-`version` records the runner/config revision, starting at `2026.09.26.01`
-(`YYYY.MM.DD.NN`). Bump it in `config-default.json` when runner or config changes need a new revision;
-`NN` increments for changes on the same date. The command updates this field
-and refuses to downgrade a config from a newer revision.
-
-Before running a command, Eaglediff compares the config version with its bundled defaults.
-Newer configs require confirmation; older or unversioned configs offer an update.
-Declining the update keeps your config and continues. In non-interactive runs,
-older configs continue with a warning; newer configs stop unless you pass
-`--allow-newer-config`. Use `config-update` to update explicitly.
+`version` uses `YYYY.MM.DD.NN`; runner/config revisions increment `NN` on the
+same day. Commands offer to update older configs. Non-interactive runs continue
+with a warning. Newer configs require confirmation or `--allow-newer-config`;
+`config-update` refuses to downgrade them.
 
 ## Capture Errors
 
-Command errors appear below an `ERROR:` heading, colored red in terminals, with
-space around the message and long text split into readable lines. Logs use plain text.
+Errors use a red `ERROR:` heading in terminals and plain text in logs. Capture
+failures identify the page, viewport, hook, and available resource/network details.
+The run stops and cancels remaining workers on a failed capture. Progress lines
+mean a capture started, not that its screenshot was saved.
 
-Capture errors report the scenario, viewport, attempted page URL, and failing
-hook. Redirected pages also include the final URL. Image errors include the image
-URL, processing step, and Chrome's network error when available.
+To investigate one page:
 
-Full-page and clipped captures include a preliminary rendering pass to reduce
-missing offscreen content in Chrome. Only the final screenshot is saved.
-`captureBeyondViewport` controls the capture mode.
+```bash
+eaglediff reference --filter=problem-page --workers=1
+```
+
+This replaces matching references if successful. Navigation errors include
+redirects and pending requests. Adjust `navigationTimeout` for slow navigation;
+`core.protocolTimeout` is a separate browser-command timeout.
 
 ### Blank or incomplete iframe screenshots
 
-An iframe can finish loading and still be missing from Chrome's full-page PNG.
-The default `prepare-iframes` hook handles visible iframes automatically.
-To force the workaround on a scenario:
+The default `prepare-iframes` hook waits for visible iframe documents and uses
+`captureBeyondViewport: "auto"` to improve full-page iframe rendering. Nested
+frames are included; hidden and one-pixel tracking frames are ignored.
 
-```json
-{
-  "label": "Iframe page",
-  "url": "/iframe",
-  "waitUntil": "load",
-  "captureBeyondViewport": false
-}
-```
-
-This lets Chrome temporarily expand the viewport to capture the whole page,
-then restores its size. The default, `"auto"`, expands only pages with visible
-iframes. Set `true` to keep the layout viewport unchanged.
-The setting can also be placed in `defaults`; a scenario value takes precedence.
-It only affects full-page captures; selector clipping keeps its existing mode.
-
+Set `captureBeyondViewport: false` to always expand the viewport for full-page
+capture, or `true` to keep its layout size unchanged. Expanding can affect
+height-dependent layouts. `waitForIframes: false` disables the document wait;
+removing the hook also disables automatic viewport adjustment. Selector clipping
+keeps its existing capture mode. Content loaded later may need a custom hook.
 
 ## Default Hooks
 
-New configs also run `hide-dynamic-elements`, `disable-animations`, and
-`apply-css-overrides` in `onBeforeScript`. Their CSS applies as the document is
-created, before page scripts, and covers elements inserted later. The ready hooks
-reapply the styles before capture. `config-update` adds these hooks to existing configs.
-
-New configs include this `onReadyScript` list. Use `config-update` to add missing
-hooks to an older config, or copy the list below.
-Hooks run in the order shown.
-The bundled `keep-selectors` hook is deferred until after final DOM edits and
-font readiness, so clipping uses the final layout.
-`prepare-iframes` also runs after page edits, before final fonts and clipping.
-Remove it from `onReadyScript` to skip iframe waiting and automatic viewport
-adjustment. Explicit `captureBeyondViewport` values still work.
-As with other default hooks, `config-update` adds it back if missing.
+Hooks prepare pages before capture. `onBeforeScript` runs before navigation;
+`onReadyScript` runs afterward. The default lists are shown together below.
+When removing a hook, remove each occurrence. `config-update` adds missing
+default hooks back; use a documented disabling setting to keep a feature off.
 
 ```json
-"onReadyScript": [
-  "hooks/wait-for-browser-verification",
-  "hooks/fail-on-response-status",
-  "hooks/wait-for-element",
-  "hooks/wait-until-gone",
-  "hooks/scroll-to-bottom",
-  "hooks/hide-dynamic-elements",
-  "hooks/disable-animations",
-  "hooks/wait-for-fonts",
-  "hooks/pause-media",
-  "hooks/load-lazy-images",
-  "hooks/wait-for-jquery-ready",
-  "hooks/wait-for-drupal-ready",
-  "hooks/normalize-responsive-images",
-  "hooks/replace-random-content",
-  "hooks/apply-css-overrides",
-  "hooks/normalize-image-decoding",
-  "hooks/wait-for-stable-content",
-  "hooks/keep-selectors",
-  "hooks/wait-for-background-images",
-  "hooks/wait-for-network-idle",
-  "hooks/stabilize-carousels",
-  "hooks/prepare-iframes"
-]
+{
+  "onBeforeScript": [
+    "hooks/wait-for-drupal-ready",
+    "hooks/hide-dynamic-elements",
+    "hooks/disable-animations",
+    "hooks/apply-css-overrides"
+  ],
+  "onReadyScript": [
+    "hooks/wait-for-browser-verification",
+    "hooks/fail-on-response-status",
+    "hooks/wait-for-element",
+    "hooks/wait-until-gone",
+    "hooks/scroll-to-bottom",
+    "hooks/hide-dynamic-elements",
+    "hooks/disable-animations",
+    "hooks/wait-for-fonts",
+    "hooks/pause-media",
+    "hooks/load-lazy-images",
+    "hooks/wait-for-jquery-ready",
+    "hooks/wait-for-drupal-ready",
+    "hooks/normalize-responsive-images",
+    "hooks/replace-random-content",
+    "hooks/apply-css-overrides",
+    "hooks/normalize-image-decoding",
+    "hooks/wait-for-stable-content",
+    "hooks/keep-selectors",
+    "hooks/wait-for-background-images",
+    "hooks/wait-for-network-idle",
+    "hooks/stabilize-carousels",
+    "hooks/prepare-iframes"
+  ]
+}
 ```
 
-The `wait-for-drupal-ready` hook also belongs in `onBeforeScript`, where it
-observes startup. To remove it, remove it from both hook lists.
+Hooks generally follow list order. Eaglediff defers iframe preparation and
+selector clipping until after page edits, with a final font check before clipping.
+The CSS hooks apply styles before navigation and again before capture.
 
 ## Project-Specific Adjustments
 
 Edit your project's `config.json`. Default values are in
 [config-default.json](config-default.json); examples below cover project-specific values.
-All durations are milliseconds. Hook names below have the prefix `hooks/` and
-must appear in `onReadyScript`; use the [default list](#default-hooks) for ordering.
-`-` means no hook is needed for that parameter.
+All durations are milliseconds. Hook names below omit `hooks/`; use the
+[default lists](#default-hooks) for placement. `-` means built-in handling.
 
 ### Familiar to Backstop users
 
-These share names or concepts with [Backstop settings](https://github.com/garris/BackstopJS#scenario-properties).
-The descriptions show how Eaglediff uses them.
+These share names or concepts with [Backstop settings](https://github.com/garris/BackstopJS#scenario-properties); behavior can differ.
 
 | Setting | Where | Purpose | Hook |
 | --- | --- | --- | --- |
@@ -357,11 +325,11 @@ The descriptions show how Eaglediff uses them.
 | `scenarios` | Root | Pages to capture; each entry has a `url` and optional `label`. | - |
 | `url` / `label` | Scenario | Page path or absolute URL, and display name. Paths use the selected environment's base URL. | - |
 | `id` | Scenario | Optional extra name to distinguish scenarios with the same URL and label. Import adds it only when needed. | - |
-| `defaults` | Root | Container for shared capture settings, like Backstop's `scenarioDefaults`. Each setting's hook is listed in its own row. | - |
+| `defaults` | Root | Shared capture settings, like Backstop's `scenarioDefaults`. | - |
 | `onBeforeScript` / `onReadyScript` | Root or scenario | Script lists run before navigation or after navigation and `delay`. Scenario scripts run after the root list. | Listed scripts |
-| `delay` | Defaults or scenario | Pause after navigation, before ready hooks run. | - |
+| `delay` | Defaults or scenario | Pause before ready hooks, default `1500`. | - |
 | `readySelector` | Defaults or scenario | Optional element to wait for; empty by default. A missing required element fails capture. | `wait-for-element` |
-| `readyTimeout` | Defaults or scenario | Maximum wait for `readySelector`. | `wait-for-element` |
+| `readyTimeout` | Defaults or scenario | Maximum selector wait, default `10000`. | `wait-for-element` |
 | `hideSelectors` | Defaults or scenario | Hide matching elements, keeping their space. | - |
 | `removeSelectors` | Defaults or scenario | Remove matching elements and their space from the DOM. | - |
 | `fullPage` | Defaults or scenario | Capture the whole page; `false` captures the viewport. | - |
@@ -380,14 +348,14 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | --- | --- | --- |
 | `referenceBaseURL` / `testBaseURL` | **Root:** base URLs for reference and test captures. | - |
 | `core.thresholdRateColor` | **Root:** colour tolerance when counting changed pixels, from 0–1. `0` is strictest; higher values ignore larger colour differences. This is not a percentage of pixels. | - |
-| `core.temporaryErrorRetries` | **Root:** retries per capture for temporary network/browser errors, navigation timeouts, image-loading timeouts, font failures, and readySelector timeouts. Each retry starts in a fresh browser context. Broken images and page HTTP errors still fail. Default `1` retries once; `0` disables retries. | - |
-| `core.temporaryErrorRetryTimeoutMultiplier` | **Root:** multiply configured readiness timeouts on each retry. Default `1` keeps them unchanged; `2` gives attempts budgets of 1×, 2×, and 4×. Workers, delays, retry count and protocolTimeout stay unchanged. | - |
+| `core.temporaryErrorRetries` | **Root:** retries temporary capture failures in a fresh browser context. Default `1`; `0` disables retries. It does not override image or HTTP error policies. | - |
+| `core.temporaryErrorRetryTimeoutMultiplier` | **Root:** scale readiness timeouts on retry. Default `1`; `2` gives budgets of 1×, 2×, then 4×. | - |
 | `fontTimeout` | Maximum wait for web fonts, default `30000` milliseconds. Font timeouts and failed font downloads fail capture and use temporary retries. | `wait-for-fonts` |
 | `retryImageDownloads` | Retry stalled HTTP image downloads on the existing page through Node, then require successful browser decoding. Default `false`. Cookies are scoped to each destination, including redirects. | `load-lazy-images` |
 | `imageDownloadTimeout` | Maximum time for each recovery download and its subsequent browser decoding, default `15000` milliseconds. | `load-lazy-images` |
 | `requiredFonts` | CSS font specifications that must resolve to declared web fonts, for example `["400 16px Inter", "700 16px Quicksand"]`. Default `[]` still checks fonts the page requested. Scenario values replace defaults. | `wait-for-fonts` |
 | `core.workers` | **Root:** maximum concurrent captures; `--workers` overrides it. Configs without this setting use `core.workers` from `config-default.json` (currently `10`). | - |
-| `core.protocolTimeout` | **Root:** timeout for browser protocol commands. | - |
+| `core.protocolTimeout` | **Root:** browser-command timeout, default `60000`; separate from navigation/readiness timeouts. | - |
 | `cookieDomain` | `null` preserves cookie domains (missing domains use the capture hostname). `"current"` explicitly scopes cookies to the current reference/test hostname; a domain string sets a fixed domain. | - |
 | `cookieExpiry` | `null` preserves expiry and warns when expired cookies are skipped. `"session"` removes expiry for reusable test fixtures. | - |
 | `captureBeyondViewport` | Default `"auto"`: expand the viewport for full-page captures with visible iframes. `true` keeps the layout viewport unchanged; `false` always expands it. Expanding can affect height-dependent layouts. | `prepare-iframes` for `"auto"` |
@@ -414,6 +382,8 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `jqueryReadyTimeout` | Maximum wait for jQuery initialization, default `30000` milliseconds. Timeouts fail capture and can retry. | `wait-for-jquery-ready` |
 | `waitForDrupalReady` | Check that Drupal has attached its registered startup behaviors. Default `true`; `false` disables the check. Non-Drupal pages are skipped. | `wait-for-drupal-ready` |
 | `drupalReadyTimeout` | Maximum wait for Drupal startup, default `30000` milliseconds. Timeouts fail capture and can retry. | `wait-for-drupal-ready` |
+| `imageFailurePolicy` | `"error"` (default) stops for broken images; `"warn"` captures them with a warning. Stalled downloads still fail. | `load-lazy-images`, `normalize-responsive-images`, `wait-for-background-images` |
+| `scrollTimeout` | Maximum lazy-content scroll time, default `30000`. Timeouts can retry. | `scroll-to-bottom` |
 | `lazyImageTimeout` | Maximum wait in milliseconds for each image to decode after lazy loading. | `load-lazy-images` |
 | `normalizeResponsiveImageSelectors` | Freeze image/source choices and remove responsive sizing attributes. | `normalize-responsive-images` |
 | `normalizeImageDecodingSelectors` | Convert selected JPEGs and GIFs to PNGs for capture; GIFs use their first frame. If fetching is blocked but the original image loads, keep it and warn. Broken images still fail. | `normalize-image-decoding` |
@@ -448,23 +418,19 @@ Older `waitForTriggerSelectors`, `waitForSelectors`,
 
 ### Automatic carousel detection
 
-With `"carouselSelectors": null` (the new default), Eaglediff looks for Swiper,
-Slick, Owl Carousel, Bootstrap Carousel, Fotorama, Flickity, FlexSlider, and
-Unite Gallery. It checks for a supported instance or controls, pauses playback,
-and selects the first slide. It then checks images introduced by that change.
-Class names alone do not initialize a carousel. Custom galleries and library
-versions with different APIs may need a project hook.
+`carouselSelectors: null` detects Swiper, Slick, Owl Carousel, Bootstrap Carousel,
+Fotorama, Flickity, FlexSlider, and Unite Gallery. It pauses supported carousels,
+selects their first slide, and checks resulting images. Custom galleries or
+unsupported versions may need a project hook.
 
-Use an explicit selector list to restrict detection, or `[]` to turn it off.
-Config updates preserve existing `[]` settings; change them to `null` to enable
-automatic detection. `carouselSettleDelayMs` controls the wait after resetting
-slides (default 500 ms).
+Use a selector list to restrict detection, or `[]` to disable it. Config updates
+preserve existing `[]`; change it to `null` to enable automatic detection.
+`carouselSettleDelayMs` defaults to `500`.
 
 The image-decoding hook also freezes GIF `<img>` elements at their first frame.
-It does not freeze CSS background GIFs or images inside iframes. Cross-origin
-images need CORS permission to be converted; otherwise Eaglediff keeps a working
-original and warns that it may still animate. Set
-`"normalizeImageDecodingSelectors": []` to disable conversion.
+CSS background GIFs and iframe images are excluded. If cross-origin conversion
+is blocked, a working original is kept with a warning and may still animate.
+Use `normalizeImageDecodingSelectors: []` to disable conversion.
 
 ### `waitUntilGone`, `carouselSelectors`, and `keepSelectors`
 
@@ -479,7 +445,8 @@ Example scenario: wait for a loader, reset a carousel, then capture the main are
 }
 ```
 
-Use your site's selectors. These three settings are disabled by empty lists in new configs.
+Use your site's selectors. Empty lists disable these settings; carousel detection
+is automatic by default.
 
 ### `randomImage` and `randomContent`
 
@@ -514,8 +481,9 @@ handling; no extra hook is needed. Adjust the selector for your embed URL.
 Use this when testing the surrounding page, since map content is no longer compared.
 Avoid `removeSelectors` here: removing the iframe shifts the content below it.
 
-For a changing reCAPTCHA badge, also add `.grecaptcha-badge`. Regenerate references
-and rerun `test` after adding these settings. Eaglediff leaves embeds visible by default.
+The default config already hides the Google Maps selector above. For a changing
+reCAPTCHA badge, add `.grecaptcha-badge`. Review the resulting captures before
+replacing references; excluded embed content is no longer compared.
 
 ### `replaceContent`
 
@@ -533,28 +501,15 @@ inherited replacements. When both match, `replaceContent` runs after `randomCont
 
 ### `cssOverrides`
 
-Add to `defaults` or a scenario. Example: fix a randomized background at 500px and wider:
+Add CSS to `defaults` or a scenario. For example:
 
 ```json
-"cssOverrides": "@media (min-width: 500px) { body { background-image: url('/images/fixed-background.jpg') !important; } }"
+"cssOverrides": ".banner { background-image: url('/images/fixed-background.jpg') !important; }"
 ```
 
-Use an image path available on your site. A scenario's CSS replaces the default
-CSS; `""` disables it for that scenario.
-
-For a randomized CAPTCHA, a project can keep its layout stable with
-`fieldset.captcha { visibility: hidden !important; height: 160px !important; overflow: hidden !important; }`.
-This excludes the challenge from visual comparison. Choose the height for the site;
-Eaglediff does not hide CAPTCHAs by default. For asynchronous newsletter forms, set
-`readySelector` to the rendered submit button and `readyVisible` to `true`, with
-a suitable `readyTimeout`, so missing forms fail capture instead of producing a misleading screenshot.
-The other readiness hooks still run when `readySelector` is empty, but cannot
-know which application-specific content should appear later.
-If the form loads only when it enters the viewport, place `wait-for-element`
-after `scroll-to-bottom` in the project's `onReadyScript` list.
-Scrolling follows changes in page height as lazy content loads. `scrollTimeout`
-(defaults or scenario, default `30000` milliseconds) bounds this step, including
-pages that prevent scrolling. These timeouts also use `core.temporaryErrorRetries`.
+Use an image available on the site. Scenario CSS replaces the default CSS;
+`""` disables it for that scenario. Hiding a CAPTCHA or other changing element
+excludes it from comparison; review its replacement before updating references.
 
 ### Changing videos and social feeds
 
@@ -576,117 +531,79 @@ Review the placeholders before updating references.
 
 ### Web fonts
 
-The `wait-for-fonts` hook waits for layout and checks for failed font faces;
-the browser's `document.fonts.ready` promise also resolves when a font download
-fails. Configure `requiredFonts` to catch a missing font stylesheet as well as
-failed font files. Eaglediff repeats this hook after final DOM edits, just before
-capture, so late text does not silently use a fallback font. Set `fontTimeout`
-for slow loading and `core.temporaryErrorRetries` to retry in a fresh browser
-context. These checks keep the configured worker count unchanged.
+`wait-for-fonts` checks requested web fonts and repeats before capture.
+Use `requiredFonts` to also require specific declared fonts, such as
+`["400 16px Inter"]`. Missing or failed fonts stop capture; `fontTimeout`
+controls the wait.
 
-For sustained CPU or network load, set `core.temporaryErrorRetryTimeoutMultiplier`
-to `2` so a retry has longer navigation, ready-element, font, image, scroll and
-content-readiness budgets. Scenario timeout overrides scale as well; zero
-navigation timeouts remain disabled. Choose `core.protocolTimeout` above the
-longest resulting readiness budget so a browser-command timeout does not cut
-the wait short. This increases the maximum time spent on failed captures; it
-does not skip readiness checks or accept incomplete screenshots.
+### Slow or interrupted captures
 
-### Delayed jQuery initialization
+`core.temporaryErrorRetries` defaults to `1`: retry a temporary failure in a
+fresh browser context. Existing configs keep saved values, including `0`.
+A disconnected worker browser is restarted on retry. Retries do not override
+image or HTTP error policies.
 
-Some sites show their mobile menu until startup scripts hide it, even after the
-browser reports the page loaded. The default `wait-for-jquery-ready` hook waits for
-DOM readiness and, when available, [jQuery's ready callbacks](https://api.jquery.com/ready/),
-including startup holds. It lets the site finish initialization; it does not
-hide elements or close menus itself.
+`core.temporaryErrorRetryTimeoutMultiplier: 2` gives retries longer readiness
+budgets: 1×, 2×, then 4×. It does not change workers, delays, or retry count.
+Keep `core.protocolTimeout` above the longest resulting readiness budget.
 
-Set `waitForJQueryReady: false` in defaults or a scenario to disable it, or remove
-`hooks/wait-for-jquery-ready` from `onReadyScript`. As with other default hooks,
-`config-update` restores a removed hook but preserves an explicit `false`.
-`jqueryReadyTimeout` bounds the wait. Images added during initialization are
-checked again before capture.
+### jQuery and Drupal startup
 
-This cannot predict arbitrary timers, later network updates, or whether an
-intentionally visible menu should be hidden. Use `readySelector`,
-`waitUntilGone`, or a custom hook when a page needs a specific readiness signal.
+`wait-for-jquery-ready` waits for jQuery startup callbacks, including startup
+holds. `wait-for-drupal-ready` separately checks that registered Drupal startup
+behaviors were attached to the document. Both skip when their library is absent.
 
-### Drupal scripts that miss initialization
+Use `waitForJQueryReady: false` or `waitForDrupalReady: false` to disable a check.
+`jqueryReadyTimeout` and `drupalReadyTimeout` bound their waits. Timeouts fail
+capture and can retry; the hooks do not force initialization or hide menus.
+Drupal sites that intentionally defer behaviors or initialize only selected
+components may need to disable its check. It watches the main page, not iframes.
 
-jQuery being ready does not prove Drupal has initialized the theme. A script or
-consent loader can load theme code after Drupal's startup event. In that case,
-the mobile menu may stay visible indefinitely; adding a delay cannot fix it.
+### Waiting for page content
 
-The default `wait-for-drupal-ready` hook observes Drupal startup and checks that
-registered behaviors have been attached to the document. If they remain
-unattached, it stops capture and names them. It does not run them itself or hide
-the menu. `core.temporaryErrorRetries: 1` allows a fresh-page retry for an
-intermittent failure; persistent failures still stop the run. Existing configs
-with retries set to `0` keep that value.
+Library readiness cannot predict later application updates. For a form that
+loads asynchronously, use a specific signal:
 
-The hook belongs in both `onBeforeScript` and `onReadyScript`. Remove it from
-both lists, or set `waitForDrupalReady: false`, to disable it. Use
-`drupalReadyTimeout` to allow more time. Sites that deliberately register
-behaviors for later use or initialize only selected components may need to
-disable this check. It watches the main page, not iframe documents.
+```json
+{
+  "url": "/newsletter",
+  "readySelector": ".newsletter-form button[type=submit]",
+  "readyVisible": true,
+  "readyTimeout": 15000
+}
+```
+
+If it loads only after scrolling, put `wait-for-element` after `scroll-to-bottom`.
+Similarly, put image loading before a selector wait that depends on image loading
+or the page's load event. `scrollTimeout` bounds scrolling, including pages whose
+height keeps growing.
 
 ### Lazy images
 
-The `load-lazy-images` hook loads common `data-src`, `data-srcset`, and `data-sizes`
-attributes (including `data-lazy-*`) and waits for images to decode before
-responsive-image normalization. Broken or timed-out images report their URL.
-Capture errors also show the observed image HTTP status, content type, or
-Chrome network error when available. For example, `HTTP 403 (text/html)` means
-the server returned an error page instead of an image. `HTTP 200` alone does
-not prove the image data is valid. These diagnostics add no downloads or retries.
-New configs and Backstop imports retry temporary capture failures once. Existing
-configs keep their saved `core.temporaryErrorRetries` value, including `0`; change
-it to `1` to enable one retry. Retries use a fresh browser context and still fail
-if the image remains unavailable or broken.
+`load-lazy-images` loads common `data-src`, `data-srcset`, and `data-sizes`
+attributes, including `data-lazy-*`, then waits for image decoding. CSS background
+images are checked separately. Newly introduced image sources are rechecked.
 
-Hidden empty `data:,` placeholders, such as Cookiebot branding images, are
-ignored when they have no real image candidate. Lazy replacement sources are
-loaded first. Visible empty images and real broken images still fail capture.
-`imageFailurePolicy` (defaults or scenario) defaults to `"error"`. Set `"warn"`
-to continue capturing with broken images, as Backstop's stabilizer does.
-Warnings identify the resources; broken placeholders remain in the screenshot
-and can fail visual comparison. Optional JPEG normalization skips those failed
-sources. This setting does not permit an HTTP error for the page itself.
-Image-loading timeouts fail capture in both modes and use
-`core.temporaryErrorRetries`: an image that is still loading can change the
-layout after the screenshot. On a busy computer, reduce `core.workers` or run
-with `--workers=1` to reduce competing browser work before increasing timeouts.
+`imageFailurePolicy` defaults to `"error"`. `"warn"` allows broken images with
+warnings, so their placeholders can still cause visual differences. Stalled
+downloads fail in either mode and can use temporary retries. Hidden empty
+`data:,` placeholders are ignored; visible or genuinely broken images are not.
 
-Set `retryImageDownloads: true` to actively recover an image after its browser
-download times out. Eaglediff downloads the same resource through Node using the
-current browser context's cookies, serves those bytes at the original URL, and
-requires the image to decode before capture. This keeps completed readiness
-steps and JPEG normalization intact. Failed downloads or decoding still fail
-capture; warning mode does not accept a stalled image. Recovery reports the
-page without logging cookies or URL query parameters.
-Place image loading before a readiness selector that depends on the page's
-load event, so a stalled image cannot block its own recovery step.
-
-If Chromium disconnects, Eaglediff restarts the affected worker's browser on a
-temporary-error retry and retains the replacement for its remaining captures.
-Context and page creation failures use the same retry limit as readiness
-failures. Cancelling the run prevents workers from restarting browsers.
-
-CSS background loading checks every URL layer using `lazyImageTimeout` and
-`imageFailurePolicy`. Stalled downloads fail even in warning mode and participate
-in capture retries. Responsive normalization pins the loaded picture candidate
-and requires successful decoding before capture.
+`retryImageDownloads: true` attempts to recover stalled HTTP downloads using the
+browser context's cookies. The recovered image must still decode successfully.
+`imageDownloadTimeout` limits recovery; it defaults to `15000` milliseconds.
 
 ### Scroll reveals, fading icons, and moving decorations
 
 `disable-animations` removes CSS animation delays, but JavaScript can still hide
 an element or fade it in. Use `cssOverrides` to show selected content and stop
-selected decorations. Example selectors from a site using WOW and lazy images:
+selected decorations. Replace `.reveal` with your site's selector:
 
 ```json
-"cssOverrides": ".wow { visibility: visible !important; opacity: 1 !important; transform: none !important; animation: none !important; } .shapes { animation: none !important; } img.lazy-img { opacity: 1 !important; }",
+"cssOverrides": ".reveal { visibility: visible !important; opacity: 1 !important; animation: none !important; }",
 "waitForStableContent": {
   "triggerSelectors": [],
-  "selectors": ["img.lazy-img", ".wow", ".shapes"],
+  "selectors": [".reveal"],
   "timeout": 15000,
   "settleDelayMs": 1000
 }
@@ -706,53 +623,49 @@ Example scenario for checking that a deliberate change is detected:
 
 Run `eaglediff test --filter=about --addpara`.
 
-After changing capture settings, regenerate references before running `test`.
-Existing configs need the corresponding hooks from [Default Hooks](#default-hooks).
+Review captures after changing preparation settings, then update references only
+when the new appearance is intended. Existing configs need the corresponding
+[default hooks](#default-hooks).
 
 ## Contributing
 
-AI coding assistants must follow [AGENTS.md](AGENTS.md), including regression
-testing and human confirmation before committing changes.
+Follow [AGENTS.md](AGENTS.md) for development and commit-review requirements.
 
-Complete [Prerequisites](#prerequisites), then activate the version in `.nvmrc`
-and run these commands from the Eaglediff checkout:
+From the Eaglediff checkout, with [prerequisites](#prerequisites) installed, use
+the Node version in `.nvmrc` (`nvm use` if using nvm):
 
 ```sh
-nvm use
 pnpm install --frozen-lockfile
-pnpm run test:unit
-```
 
-The automated suite uses Node's built-in test runner with at most four test
-files running concurrently. This limits competing fixture browsers and does
-not change the configured worker count for project captures. Browser integration tests
-serve local fixtures and use temporary directories; a production website or
-project config is not required. If Chrome is not found automatically, set
-`CHROME_BIN` or `PUPPETEER_EXECUTABLE_PATH` to its executable path.
-
-Run one test file while developing, then run the full suite before submitting:
-
-```sh
+# Focused tests while developing
 node --test tests/lazy-images.test.js
+
+# Complete automated suite before submitting
+pnpm run test:unit
+git diff --check
+
+# Investigate coverage when needed
 pnpm run test:coverage
 ```
 
-`pnpm test` runs the visual comparison command for a configured project.
-Use `pnpm run test:unit` to test Eaglediff itself.
+`pnpm test` runs a project's visual comparison; `test:unit` tests Eaglediff itself.
+The automated suite uses local fixtures and temporary directories, with at most
+four test files in parallel. It needs no production website or project config.
 
-For fixes, add a regression test that demonstrates the incorrect behavior and
-checks the resulting screenshot, comparison report, exit code, or saved files.
-Hook changes should cover scenario overrides, failure handling, and interactions
-with later hooks. Keep fixtures local and deterministic; clean up browsers,
-servers, and temporary files even when a test fails.
+Add regression tests for changed behavior, overrides, failures, and cleanup.
+Assert resulting screenshots, reports, exit codes, or saved files. Code running
+inside Chromium needs browser assertions; Node coverage alone cannot measure it.
 
-Coverage reports measure Node execution. Functions serialized into Chromium by
-`page.evaluate` need browser assertions; their low Node coverage does not mean
-they were never exercised. Check behavior coverage alongside the percentages.
-See [Node's coverage documentation](https://nodejs.org/docs/latest-v24.x/api/test.html#collecting-code-coverage).
+See [docs/overview.md](docs/overview.md) for architecture and implementation details.
 
-The [architecture overview](docs/overview.md) explains the components, capture
-lifecycle, hook responsibilities, testing approach, and future improvements.
+## Environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| `EAGLEDIFF_DIR`, `EAGLEDIFF_PROJECT_DIR`, `EAGLEDIFF_ROOT` | Project directory for scripts. Prefer the CLI's `--dir` option. |
+| `EAGLEDIFF_CONFIG`, `GLOBAL_EAGLEDIFF_CONFIG` | Override the config file path. |
+| `EAGLEDIFF_SCRIPT_DIR`, `EAGLEDIFF_HELPER_DIR` | Runner checkout containing scripts and defaults. Prefer `--script-dir`. |
+| `EAGLEDIFF_INVOCATION_DIR` | Original working directory passed by the CLI to resolve import paths. |
 
 ## Prerequisites
 
@@ -763,17 +676,11 @@ with Bash or Zsh.
 | --- | --- | --- |
 | Node.js | **22.12.0**, required by the installed Puppeteer dependency. | **22.19.0**, recorded in `.nvmrc`. |
 | pnpm | **9.0.0**, which supports this repository's version 9 lockfile. | **11.17.0**, used for current development. |
-| Chrome / Chromium | No verified minimum. Puppeteer **25.12.0** targets Chrome **154.0.8037.57**. | Current Chromium **156.0.8078.47** passed our automated suite. |
+| Chrome / Chromium | No verified minimum; use a browser supported by Puppeteer. | See the [compatibility table](https://pptr.dev/supported-browsers). |
 | Git | No project-specific version requirement; used to clone the code. | A maintained version from your system's package manager. |
 
-Node **22.12.0** passed all **99 automated tests**. pnpm **9.0.0** completed a
-clean install from the existing lockfile without changing it. npm comes with
-Node; nvm is an optional helper for installing and selecting Node versions.
-
-See [Puppeteer's Node requirements](https://pptr.dev/guides/system-requirements)
-and [browser compatibility table](https://pptr.dev/supported-browsers).
-An older browser may work, but has not been verified. Keep the same browser
-version when sharing reference screenshots across machines.
+npm comes with Node; nvm is optional. See
+[Puppeteer's requirements](https://pptr.dev/guides/system-requirements) for compatibility.
 
 ### Install missing tools
 
@@ -800,9 +707,8 @@ nvm alias default 22.19.0
 npm install -g pnpm@11.17.0
 ```
 
-`nvm use` affects only the current terminal. The default applies to new terminals
-only if they load nvm. Its installer normally adds this to `~/.zshrc` (Zsh) or
-`~/.bashrc` (Bash); if missing, add it once:
+For automatic Node selection, your shell must load nvm. Its installer normally
+adds these lines to `~/.zshrc` or `~/.bashrc`; add them if missing:
 
 ```bash
 export NVM_DIR="$HOME/.nvm"
@@ -825,30 +731,28 @@ pnpm --version
 google-chrome --version || chromium --version || chromium-browser --version
 ```
 
-Each should print a version. With the setup above, Node should print `v22.19.0`
-and pnpm `11.17.0`. If Node is missing, check the nvm startup lines and default
-above. If pnpm is missing, reinstall it after activating Node.
-For a browser installed elsewhere, set its full executable path, for example
-`export CHROME_BIN=/path/to/chrome`, and verify it with `"$CHROME_BIN" --version`.
+Each should print a version. If Node is missing, check nvm startup and its
+default version. If pnpm is missing, reinstall it after activating Node.
+For a browser elsewhere, set `CHROME_BIN` or `PUPPETEER_EXECUTABLE_PATH`
+to its full executable path.
 
 ## Known problems and fixes
 
 ### CDN or security verification pages
 
 Built-in checks detect known challenges from **Cloudflare, AWS WAF, DataDome,
-and HUMAN/PerimeterX**. When detected, `reference` and `test` stop with a warning
-and exit code `1`; existing references are kept. These checks also run without
-readiness hooks. Detection is not exhaustive: customized or unfamiliar challenges
-may go unrecognized. Ordinary CAPTCHA widgets and CDN scripts alone do not
-trigger it.
+and HUMAN/PerimeterX**, even without readiness hooks. Detection stops `reference`,
+`test`, or `calibrate` with exit code `1`, preserving references. Detection is
+not exhaustive; ordinary CAPTCHA widgets or CDN scripts alone do not trigger it.
 
 Use a staging/development environment, or ask the site's administrator about
 an exception for authorized test traffic. See
 [Cloudflare's exception setup instructions](https://developers.cloudflare.com/waf/custom-rules/skip/).
-Available exceptions depend on the service and plan. Eaglediff does not solve
-or bypass challenges.
+Eaglediff does not solve or bypass challenges.
 
-### `env: 'node': No such file or directory`
+### No such file or directory
+
+`env: 'node': No such file or directory`
 
 Node.js is missing or unavailable in this terminal. Check [Prerequisites](#prerequisites)
 to install it and set it up for new terminals. If Node **22.19.0** is already
