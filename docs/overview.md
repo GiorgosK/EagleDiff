@@ -107,6 +107,21 @@ for arbitrary asynchronous application work; selectors/custom hooks remain neede
 where no known startup signal exists. Hidden iframes and analytics requests are
 not waited on by this hook.
 
+`wait-for-drupal-ready` has a before-navigation phase that observes script-load
+and parser events, wrapping Drupal's `attachBehaviors` to record the attach
+function identities present in actual full-document calls. The ready phase runs
+after jQuery readiness and waits for any newly registered attach functions.
+It never invokes initialization or changes UI visibility. List it in both hook
+arrays; removing both entries or `waitForDrupalReady: false` disables it.
+The observer/listeners are removed and the original method restored on normal
+completion and timeout; context disposal also clears tracking after capture
+failures. `drupalReadyTimeout` is bounded and participates in fresh-context
+retries. Images introduced during the wait are rechecked.
+This targets standard main-document Drupal initialization; deliberate deferred
+behaviors or component-only startup can require opting out. jQuery readiness
+alone cannot establish Drupal startup, and persistent missed initialization
+requires a site fix rather than a longer delay.
+
 Image hooks have distinct responsibilities:
 
 - `load-lazy-images` promotes lazy sources, waits for decoding, and optionally

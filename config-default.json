@@ -1,5 +1,5 @@
 {
-  "version": "2026.11.08.02",
+  "version": "2026.11.08.03",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -29,6 +29,8 @@
     "readySelector": "",
     "waitForJQueryReady": true,
     "jqueryReadyTimeout": 30000,
+    "waitForDrupalReady": true,
+    "drupalReadyTimeout": 30000,
     "readyVisible": false,
     "browserVerification": {
       "challengeSelectors": ["script[src*=\"/botbuster/js/challenge.js\"]"],
@@ -89,6 +91,7 @@
     ]
   },
   "onBeforeScript": [
+    "hooks/wait-for-drupal-ready",
     "hooks/hide-dynamic-elements",
     "hooks/disable-animations",
     "hooks/apply-css-overrides"
@@ -105,6 +108,7 @@
     "hooks/pause-media",
     "hooks/load-lazy-images",
     "hooks/wait-for-jquery-ready",
+    "hooks/wait-for-drupal-ready",
     "hooks/normalize-responsive-images",
     "hooks/replace-random-content",
     "hooks/apply-css-overrides",

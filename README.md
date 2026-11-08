@@ -321,6 +321,7 @@ As with other default hooks, `config-update` adds it back if missing.
   "hooks/pause-media",
   "hooks/load-lazy-images",
   "hooks/wait-for-jquery-ready",
+  "hooks/wait-for-drupal-ready",
   "hooks/normalize-responsive-images",
   "hooks/replace-random-content",
   "hooks/apply-css-overrides",
@@ -333,6 +334,9 @@ As with other default hooks, `config-update` adds it back if missing.
   "hooks/prepare-iframes"
 ]
 ```
+
+The `wait-for-drupal-ready` hook also belongs in `onBeforeScript`, where it
+observes startup. To remove it, remove it from both hook lists.
 
 ## Project-Specific Adjustments
 
@@ -408,6 +412,8 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `keepCookiebot` | **Scenario only:** skip the entire `hideDynamicSelectors` hook for this page. | `hide-dynamic-elements` |
 | `waitForJQueryReady` | Wait for DOM readiness and jQuery startup callbacks when jQuery is present. Default `true`; `false` disables the hook. | `wait-for-jquery-ready` |
 | `jqueryReadyTimeout` | Maximum wait for jQuery initialization, default `30000` milliseconds. Timeouts fail capture and can retry. | `wait-for-jquery-ready` |
+| `waitForDrupalReady` | Check that Drupal has attached its registered startup behaviors. Default `true`; `false` disables the check. Non-Drupal pages are skipped. | `wait-for-drupal-ready` |
+| `drupalReadyTimeout` | Maximum wait for Drupal startup, default `30000` milliseconds. Timeouts fail capture and can retry. | `wait-for-drupal-ready` |
 | `lazyImageTimeout` | Maximum wait in milliseconds for each image to decode after lazy loading. | `load-lazy-images` |
 | `normalizeResponsiveImageSelectors` | Freeze image/source choices and remove responsive sizing attributes. | `normalize-responsive-images` |
 | `normalizeImageDecodingSelectors` | Convert selected JPEGs and GIFs to PNGs for capture; GIFs use their first frame. If fetching is blocked but the original image loads, keep it and warn. Broken images still fail. | `normalize-image-decoding` |
@@ -603,6 +609,25 @@ checked again before capture.
 This cannot predict arbitrary timers, later network updates, or whether an
 intentionally visible menu should be hidden. Use `readySelector`,
 `waitUntilGone`, or a custom hook when a page needs a specific readiness signal.
+
+### Drupal scripts that miss initialization
+
+jQuery being ready does not prove Drupal has initialized the theme. A script or
+consent loader can load theme code after Drupal's startup event. In that case,
+the mobile menu may stay visible indefinitely; adding a delay cannot fix it.
+
+The default `wait-for-drupal-ready` hook observes Drupal startup and checks that
+registered behaviors have been attached to the document. If they remain
+unattached, it stops capture and names them. It does not run them itself or hide
+the menu. `core.temporaryErrorRetries: 1` allows a fresh-page retry for an
+intermittent failure; persistent failures still stop the run. Existing configs
+with retries set to `0` keep that value.
+
+The hook belongs in both `onBeforeScript` and `onReadyScript`. Remove it from
+both lists, or set `waitForDrupalReady: false`, to disable it. Use
+`drupalReadyTimeout` to allow more time. Sites that deliberately register
+behaviors for later use or initialize only selected components may need to
+disable this check. It watches the main page, not iframe documents.
 
 ### Lazy images
 
