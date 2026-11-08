@@ -743,8 +743,9 @@ to its full executable path.
 ### CDN or security verification pages
 
 Built-in checks detect known challenges from **Cloudflare, AWS WAF, DataDome,
-and HUMAN/PerimeterX**, even without readiness hooks. Detection stops `reference`,
-`test`, or `calibrate` with exit code `1`, preserving references. Detection is
+and HUMAN/PerimeterX**, even without readiness hooks. Detection stops `config`,
+`reference`, `test`, or `calibrate` with exit code `1`, preserving existing configs
+and references. Blocked discovery does not write a partial config. Detection is
 not exhaustive; ordinary CAPTCHA widgets or CDN scripts alone do not trigger it.
 
 Use a staging/development environment, or ask the site's administrator about

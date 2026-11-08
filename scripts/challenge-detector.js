@@ -7,20 +7,20 @@ function detectChallengeHeaders(headers = {}) {
   return null;
 }
 
-function challengeError(provider, url, cause) {
+function challengeError(provider, url, cause, operation = 'Capture') {
   let location = 'the requested page';
   try {
     const parsed = new URL(url);
     location = `${parsed.origin}${parsed.pathname}`;
   } catch { /* A page can be closing or have no HTTP URL yet. */ }
-  const error = new Error(`[eaglediff] Warning: ${provider} security challenge detected at ${location}. Capture stopped because the website page is unavailable.\nUse a staging/development environment or ask the site's administrator to configure an exception for your test traffic.`, cause ? { cause } : undefined);
+  const error = new Error(`[eaglediff] Warning: ${provider} security challenge detected at ${location}. ${operation} stopped because the website page is unavailable.\nUse a staging/development environment or ask the site's administrator to configure an exception for your test traffic.`, cause ? { cause } : undefined);
   error.code = 'EAGLEDIFF_CHALLENGE_DETECTED';
   return error;
 }
 
-async function assertNoChallenge(page, response = {}) {
+async function assertNoChallenge(page, response = {}, operation = 'Capture') {
   const provider = detectChallengeHeaders(response.navigationResponseHeaders);
-  if (provider) throw challengeError(provider, response.navigationResponseUrl || page.url());
+  if (provider) throw challengeError(provider, response.navigationResponseUrl || page.url(), undefined, operation);
 
   const detected = await page.evaluate(() => {
     function source(element) {
@@ -57,7 +57,7 @@ async function assertNoChallenge(page, response = {}) {
       url.hostname === 'captcha.px-cdn.net' && url.pathname.endsWith('/captcha.js'))) return 'HUMAN/PerimeterX';
     return null;
   });
-  if (detected) throw challengeError(detected, page.url());
+  if (detected) throw challengeError(detected, page.url(), undefined, operation);
 }
 
 module.exports = { detectChallengeHeaders, challengeError, assertNoChallenge };

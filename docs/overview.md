@@ -65,7 +65,9 @@ image failures and challenge detection retain their separate policies.
 Built-in challenge checks inspect main-document Cloudflare/AWS WAF response
 headers and known Cloudflare, DataDome, and HUMAN/PerimeterX page markers. They
 run independently of configured hooks, including before the final screenshot
-write. A detected challenge stops captures without retries or baseline promotion;
+write. Page discovery uses the same detector before collecting links and rejects
+header challenges during navigation. Blocked discovery leaves config and
+`.gitignore` unchanged. A detected challenge stops captures without retries or baseline promotion;
 failed captures cannot be approved. Detection is intentionally non-exhaustive.
 
 Stable-content timeouts report the wait phase and matching elements, including

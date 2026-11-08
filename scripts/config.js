@@ -3,6 +3,7 @@ const fsp = require('fs/promises');
 const path = require('path');
 
 const puppeteer = require('puppeteer-core');
+const { assertNoChallenge, detectChallengeHeaders, challengeError } = require('./challenge-detector');
 const {
   getScenarioLabel,
   getScenarioUrl,
@@ -89,15 +90,36 @@ async function discoverScenarios({ discoverySources, limit, excludeExtensions })
     headless: true
   });
 
+  let browserContext;
   try {
+    browserContext = await browser.createBrowserContext();
     const discovered = [{ url: '/', label: 'Homepage' }];
     const seenUrls = new Set(['/']);
 
     for (const baseUrl of discoverySources) {
-      const page = await browser.newPage();
+      const page = await browserContext.newPage();
+      const navigation = {};
+      let signalChallenge;
+      const challengeDetected = new Promise(resolve => { signalChallenge = resolve; });
+      const trackResponse = response => {
+        const request = response.request();
+        if (!request.isNavigationRequest() || request.frame() !== page.mainFrame()) return;
+        if (response.status() >= 300 && response.status() < 400) return;
+        navigation.navigationResponseHeaders = response.headers();
+        navigation.navigationResponseUrl = response.url();
+        const provider = detectChallengeHeaders(response.headers());
+        if (provider) signalChallenge({ provider, url: response.url() });
+      };
+      page.on('response', trackResponse);
+      let completed = false;
       try {
-        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        await Promise.race([
+          page.goto(baseUrl, { waitUntil: 'domcontentloaded' }),
+          challengeDetected.then(({ provider, url }) => { throw challengeError(provider, url, undefined, 'Page discovery'); })
+        ]);
+        await assertNoChallenge(page, navigation, 'Page discovery');
         await sleep(1000);
+        await assertNoChallenge(page, navigation, 'Page discovery');
 
         const links = await page.$$eval('a[href]', (anchors) => anchors.map((anchor) => ({
           href: anchor.getAttribute('href') || '',
@@ -105,6 +127,7 @@ async function discoverScenarios({ discoverySources, limit, excludeExtensions })
           title: (anchor.getAttribute('title') || '').trim(),
           ariaLabel: (anchor.getAttribute('aria-label') || '').trim()
         })));
+        await assertNoChallenge(page, navigation, 'Page discovery');
 
         for (const link of links) {
           if (discovered.length >= limit) {
@@ -119,14 +142,19 @@ async function discoverScenarios({ discoverySources, limit, excludeExtensions })
           seenUrls.add(normalized.url);
           discovered.push(normalized);
         }
+        completed = true;
       } finally {
-        await page.close();
+        page.off('response', trackResponse);
+        if (completed) await page.close();
       }
     }
 
     return discovered;
   } finally {
-    await browser.close();
+    // Closing an interrupted page can wait for a navigation commit. Dispose
+    // the shared context first to cancel navigation, then close the browser.
+    try { await browserContext?.close(); }
+    finally { await browser.close(); }
   }
 }
 

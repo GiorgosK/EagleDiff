@@ -51,11 +51,15 @@ test('config CLI saves defaults and uses existing exclusions before applying the
     const puppeteerPath = ${JSON.stringify(require.resolve('puppeteer-core'))};
     require(puppeteerPath);
     require.cache[puppeteerPath].exports = { launch: async () => ({
-      newPage: async () => ({
-        goto: async () => {}, close: async () => {},
-        $$eval: async () => [
-          { href: '/file.pdf' }, { href: '/archive.zip' }, { href: '/page', text: 'Page' }
-        ]
+      createBrowserContext: async () => ({
+        newPage: async () => ({
+          goto: async () => {}, close: async () => {},
+          on: () => {}, off: () => {}, evaluate: async () => null,
+          $$eval: async () => [
+            { href: '/file.pdf' }, { href: '/archive.zip' }, { href: '/page', text: 'Page' }
+          ]
+        }),
+        close: async () => {}
       }),
       close: async () => {}
     }) };
