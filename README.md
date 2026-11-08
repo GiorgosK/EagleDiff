@@ -258,6 +258,9 @@ older configs continue with a warning; newer configs stop unless you pass
 
 ## Capture Errors
 
+Command errors appear below an `ERROR:` heading, colored red in terminals, with
+space around the message and long text split into readable lines. Logs use plain text.
+
 Capture errors report the scenario, viewport, attempted page URL, and failing
 hook. Redirected pages also include the final URL. Image errors include the image
 URL, processing step, and Chrome's network error when available.

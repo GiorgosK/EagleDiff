@@ -1,3 +1,4 @@
+const reportError = require('./cli-error');
 const fsp = require('fs/promises');
 const path = require('path');
 const { createHash } = require('crypto');
@@ -553,7 +554,7 @@ function parseArgs(argv) {
 
 if (require.main === module) {
   main().catch((error) => {
-    console.error(error.message);
+    reportError(error);
     process.exitCode = 1;
   });
 }

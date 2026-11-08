@@ -1,3 +1,4 @@
+const reportError = require('./cli-error');
 const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
@@ -196,7 +197,7 @@ async function main() {
       if (differences) {
         failed = true;
         process.exitCode = 1;
-        console.error(`[eaglediff] ${differences} visual difference(s). Review the comparison report before approving.`);
+        reportError(`${differences} visual difference(s).\nReview the comparison report before approving.`);
       }
     } catch (error) {
       throw new Error(`Comparison completed, but failed to save results history to ${resultsPath}:\n${error.message}`, { cause: error });
@@ -1181,7 +1182,7 @@ function runRegSuit(args) {
 
 if (require.main === module) {
   main().catch((error) => {
-    console.error(error.message);
+    reportError(error);
     process.exitCode = 1;
   });
 }

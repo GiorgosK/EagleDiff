@@ -1,3 +1,4 @@
+const reportError = require('./cli-error');
 const fsp = require('fs/promises');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -50,7 +51,7 @@ function openPath(targetPath) {
 
 if (require.main === module) {
   main().catch((error) => {
-    console.error(error.message);
+    reportError(error);
     process.exitCode = 1;
   });
 }

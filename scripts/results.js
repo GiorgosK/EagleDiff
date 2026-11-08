@@ -1,3 +1,4 @@
+const reportError = require('./cli-error');
 const { readResults } = require('./results-history');
 const path = require('path');
 
@@ -52,6 +53,6 @@ function formatDateTime(datetime) {
 }
 
 main().catch((error) => {
-  console.error(error.message);
+  reportError(error);
   process.exitCode = 1;
 });

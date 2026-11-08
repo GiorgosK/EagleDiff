@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const reportError = require('../scripts/cli-error');
 const path = require('path');
 const fs = require('fs');
 const { spawnSync } = require('child_process');
@@ -29,6 +30,7 @@ async function main() {
   }
 
   if (!command) {
+    reportError('No command specified.');
     printUsage();
     process.exitCode = 1;
     return;
@@ -36,6 +38,7 @@ async function main() {
 
   const scriptName = scriptByCommand[command];
   if (!scriptName) {
+    reportError(`Unknown command: ${command}`);
     printUsage();
     process.exitCode = 1;
     return;
@@ -50,7 +53,7 @@ async function main() {
   const operationArgs = forwardedArgs.filter(arg => arg !== '--allow-newer-config');
   const { checkConfigVersion } = require('../scripts/check-config-version');
   if (!await checkConfigVersion({ configPath, scriptDir: resolvedScriptDir, command, allowNewer })) {
-    console.error('[eaglediff] Operation cancelled.');
+    reportError('Operation cancelled.');
     process.exitCode = process.exitCode || 1;
     return;
   }
@@ -58,7 +61,9 @@ async function main() {
   const childArgs = command === 'config' || command === 'config-update' || command === 'import'
     ? operationArgs
     : [command, ...operationArgs];
-  const child = spawnSync(resolveNodeBinary(), [path.join(resolvedScriptDir, scriptName), ...childArgs], {
+  const scriptPath = path.join(resolvedScriptDir, scriptName);
+  if (!fs.existsSync(scriptPath)) throw new Error(`Command script not found:\n${scriptPath}\nCheck --script-dir or your Eaglediff installation.`);
+  const child = spawnSync(resolveNodeBinary(), [scriptPath, ...childArgs], {
     cwd: resolvedProjectDir,
     env: {
       ...process.env,
@@ -233,6 +238,6 @@ Options:
 }
 
 Promise.resolve(main()).catch((error) => {
-  console.error(error.message);
+  reportError(error);
   process.exitCode = 1;
 });
