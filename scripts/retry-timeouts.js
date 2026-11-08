@@ -1,7 +1,7 @@
 // Increase readiness budgets on retries without changing concurrency or delays.
 const timeoutKeys = [
   'navigationTimeout', 'readyTimeout', 'jqueryReadyTimeout', 'drupalReadyTimeout', 'fontTimeout', 'lazyImageTimeout', 'iframeTimeout',
-  'scrollTimeout', 'waitUntilGoneTimeout', 'networkIdleTimeout'
+  'scrollTimeout', 'waitUntilGoneTimeout', 'waitForTimeout', 'networkIdleTimeout'
 ];
 
 function retryTimeoutFactor(config, attempt) {

@@ -369,7 +369,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `browserVerification.timeout` | Maximum wait for verification to finish. | `wait-for-browser-verification` |
 | `waitForStableContent.triggerSelectors` | Only wait when at least one trigger exists. With no triggers, a target must already exist. | `wait-for-stable-content` |
 | `waitForStableContent.selectors` | Elements to watch for stable dimensions, child count, and text length. | `wait-for-stable-content` |
-| `waitForStableContent.timeout` | Maximum wait for targets to appear and for content to settle, per wait stage. | `wait-for-stable-content` |
+| `waitForStableContent.timeout` | Maximum wait per stage for targets to appear and settle. Timeouts report matched elements and can retry. | `wait-for-stable-content` |
 | `waitForStableContent.settleDelayMs` | How long the watched measurements must remain unchanged. | `wait-for-stable-content` |
 | `waitUntilGone` | Wait for all matches to disappear or become hidden. | `wait-until-gone` |
 | `waitUntilGoneTimeout` | Maximum wait per selector. | `wait-until-gone` |

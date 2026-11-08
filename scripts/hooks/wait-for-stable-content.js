@@ -49,64 +49,87 @@ module.exports = async function waitForStableContent(page, context) {
     }
   }
 
-  await page.waitForFunction((currentSelectors) => {
-    return currentSelectors.some((selector) => document.querySelector(selector));
-  }, {
-    timeout: timeoutMs,
-    polling: 250
-  }, selectors);
+  let phase = 'waiting for matching content to appear';
+  try {
+    const matched = await page.waitForFunction((currentSelectors) => {
+      return currentSelectors.some((selector) => document.querySelector(selector));
+    }, {
+      timeout: timeoutMs,
+      polling: 250
+    }, selectors);
+    await matched.dispose();
+    phase = 'waiting for visible content to settle';
 
-  await page.waitForFunction((currentSelectors, currentSettleDelayMs) => {
-    const elements = currentSelectors
-      .flatMap((selector) => Array.from(document.querySelectorAll(selector)));
+    const settled = await page.waitForFunction((currentSelectors, currentSettleDelayMs) => {
+      const elements = currentSelectors
+        .flatMap((selector) => Array.from(document.querySelectorAll(selector)));
 
-    if (!elements.length) {
-      return false;
-    }
-
-    const visibleElements = elements.filter((element) => {
-      const style = window.getComputedStyle(element);
-      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+      if (!elements.length) {
         return false;
       }
 
-      const rect = element.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0;
-    });
+      const visibleElements = elements.filter((element) => {
+        const style = window.getComputedStyle(element);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+          return false;
+        }
 
-    if (!visibleElements.length) {
-      return false;
-    }
-
-    const signature = visibleElements
-      .map((element) => {
         const rect = element.getBoundingClientRect();
-        return [
-          element.tagName,
-          element.className || '',
-          element.id || '',
-          Math.round(rect.width),
-          Math.round(rect.height),
-          element.children.length,
-          element.textContent ? element.textContent.length : 0
-        ].join('|');
-      })
-      .join('||');
+        return rect.width > 0 && rect.height > 0;
+      });
 
-    const state = window.__regSuitStableContentState || (window.__regSuitStableContentState = {});
-    const now = Date.now();
+      if (!visibleElements.length) {
+        return false;
+      }
 
-    if (state.signature !== signature) {
-      state.signature = signature;
-      state.seenAt = now;
-      return false;
-    }
+      const signature = visibleElements
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          return [
+            element.tagName,
+            element.className || '',
+            element.id || '',
+            Math.round(rect.width),
+            Math.round(rect.height),
+            element.children.length,
+            element.textContent ? element.textContent.length : 0
+          ].join('|');
+        })
+        .join('||');
 
-    return now - state.seenAt >= currentSettleDelayMs;
-  }, {
-    timeout: timeoutMs,
-    polling: 250
-  }, selectors, settleDelayMs);
+      const state = window.__regSuitStableContentState || (window.__regSuitStableContentState = {});
+      const now = Date.now();
+
+      if (state.signature !== signature) {
+        state.signature = signature;
+        state.seenAt = now;
+        return false;
+      }
+
+      return now - state.seenAt >= currentSettleDelayMs;
+    }, {
+      timeout: timeoutMs,
+      polling: 250
+    }, selectors, settleDelayMs);
+    await settled.dispose();
+  } catch (cause) {
+    if (cause.name !== 'TimeoutError') throw cause;
+    const targets = await page.evaluate(currentSelectors => currentSelectors.map(selector => {
+      const matches = [...document.querySelectorAll(selector)];
+      return { selector, count: matches.length, matches: matches.slice(0, 3).map(element => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        const visible = style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0'
+          && rect.width > 0 && rect.height > 0;
+        return `${element.tagName}${element.id ? '#' + element.id : ''}: ${visible ? 'visible' : 'hidden'}, ${Math.round(rect.width)}x${Math.round(rect.height)}, ${element.children.length} children, ${(element.textContent || '').length} text characters`;
+      }) };
+    }), selectors);
+    const details = targets.slice(0, 8).map(target =>
+      `${target.selector}: ${target.count ? target.matches.join('; ') : 'no matches'}${target.count > 3 ? `; ${target.count - 3} more matches` : ''}`);
+    const failure = new Error(`Content did not become stable within ${timeoutMs}ms (${phase}).\n${details.join('\n')}\nVisible content must stay unchanged for ${settleDelayMs}ms. Check the widget's loading requests, increase waitForStableContent.timeout for slow content, or enable core.temporaryErrorRetries for a fresh-page retry.`, { cause });
+    failure.code = 'EAGLEDIFF_STABLE_CONTENT_TIMEOUT';
+    throw failure;
+  }
 };
 
 function normalizeSelectors(value) {

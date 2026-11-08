@@ -68,6 +68,11 @@ run independently of configured hooks, including before the final screenshot
 write. A detected challenge stops captures without retries or baseline promotion;
 failed captures cannot be approved. Detection is intentionally non-exhaustive.
 
+Stable-content timeouts report the wait phase and matching elements, including
+hidden loader scripts. They participate in fresh-context retries and timeout
+scaling, including the legacy `waitForTimeout` setting; missing content is not
+accepted as stable.
+
 Temporary navigation, readiness, image, font, and browser failures can retry
 within the configured limit. Each retry creates a fresh context; configured
 readiness budgets can increase without changing worker count. Disconnected
