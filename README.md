@@ -320,6 +320,7 @@ As with other default hooks, `config-update` adds it back if missing.
   "hooks/wait-for-fonts",
   "hooks/pause-media",
   "hooks/load-lazy-images",
+  "hooks/wait-for-jquery-ready",
   "hooks/normalize-responsive-images",
   "hooks/replace-random-content",
   "hooks/apply-css-overrides",
@@ -405,6 +406,8 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `carouselSettleDelayMs` | Pause after resetting carousels. | `stabilize-carousels` |
 | `hideDynamicSelectors` | Apply `display: none`, including to elements added later. | `hide-dynamic-elements` |
 | `keepCookiebot` | **Scenario only:** skip the entire `hideDynamicSelectors` hook for this page. | `hide-dynamic-elements` |
+| `waitForJQueryReady` | Wait for DOM readiness and jQuery startup callbacks when jQuery is present. Default `true`; `false` disables the hook. | `wait-for-jquery-ready` |
+| `jqueryReadyTimeout` | Maximum wait for jQuery initialization, default `30000` milliseconds. Timeouts fail capture and can retry. | `wait-for-jquery-ready` |
 | `lazyImageTimeout` | Maximum wait in milliseconds for each image to decode after lazy loading. | `load-lazy-images` |
 | `normalizeResponsiveImageSelectors` | Freeze image/source choices and remove responsive sizing attributes. | `normalize-responsive-images` |
 | `normalizeImageDecodingSelectors` | Convert selected JPEGs and GIFs to PNGs for capture; GIFs use their first frame. If fetching is blocked but the original image loads, keep it and warn. Broken images still fail. | `normalize-image-decoding` |
@@ -582,6 +585,24 @@ navigation timeouts remain disabled. Choose `core.protocolTimeout` above the
 longest resulting readiness budget so a browser-command timeout does not cut
 the wait short. This increases the maximum time spent on failed captures; it
 does not skip readiness checks or accept incomplete screenshots.
+
+### Delayed jQuery initialization
+
+Some sites show their mobile menu until startup scripts hide it, even after the
+browser reports the page loaded. The default `wait-for-jquery-ready` hook waits for
+DOM readiness and, when available, [jQuery's ready callbacks](https://api.jquery.com/ready/),
+including startup holds. It lets the site finish initialization; it does not
+hide elements or close menus itself.
+
+Set `waitForJQueryReady: false` in defaults or a scenario to disable it, or remove
+`hooks/wait-for-jquery-ready` from `onReadyScript`. As with other default hooks,
+`config-update` restores a removed hook but preserves an explicit `false`.
+`jqueryReadyTimeout` bounds the wait. Images added during initialization are
+checked again before capture.
+
+This cannot predict arbitrary timers, later network updates, or whether an
+intentionally visible menu should be hidden. Use `readySelector`,
+`waitUntilGone`, or a custom hook when a page needs a specific readiness signal.
 
 ### Lazy images
 

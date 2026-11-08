@@ -1,5 +1,5 @@
 {
-  "version": "2026.11.08.01",
+  "version": "2026.11.08.02",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -27,6 +27,8 @@
     "fontTimeout": 30000,
     "requiredFonts": [],
     "readySelector": "",
+    "waitForJQueryReady": true,
+    "jqueryReadyTimeout": 30000,
     "readyVisible": false,
     "browserVerification": {
       "challengeSelectors": ["script[src*=\"/botbuster/js/challenge.js\"]"],
@@ -102,6 +104,7 @@
     "hooks/wait-for-fonts",
     "hooks/pause-media",
     "hooks/load-lazy-images",
+    "hooks/wait-for-jquery-ready",
     "hooks/normalize-responsive-images",
     "hooks/replace-random-content",
     "hooks/apply-css-overrides",

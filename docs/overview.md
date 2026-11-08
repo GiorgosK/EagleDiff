@@ -96,6 +96,17 @@ Early styles influence page initialization; later application covers document
 replacement and subsequent edits. The final font recheck handles requests
 introduced by later content changes.
 
+`wait-for-jquery-ready` follows the initial lazy-image pass. It waits for DOM
+readiness and registered jQuery ready callbacks when the library is available,
+including unreleased startup holds. It observes initialization without releasing
+holds or changing visibility. New/changed image sources get another lazy-image
+pass before subsequent responsive, decoding, background and final font checks.
+`jqueryReadyTimeout` bounds the wait and participates in temporary retries;
+`waitForJQueryReady: false` or removing the hook disables it. This is not a signal
+for arbitrary asynchronous application work; selectors/custom hooks remain needed
+where no known startup signal exists. Hidden iframes and analytics requests are
+not waited on by this hook.
+
 Image hooks have distinct responsibilities:
 
 - `load-lazy-images` promotes lazy sources, waits for decoding, and optionally
