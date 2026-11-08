@@ -21,9 +21,11 @@ test('Backstop import adopts the capture limit and preserves existing worker ove
     GLOBAL_EAGLEDIFF_CONFIG: configPath, EAGLEDIFF_SCRIPT_DIR: path.join(__dirname, '..') } });
   await run();
   assert.equal(JSON.parse(await fs.readFile(configPath)).core.workers, 5);
-  await fs.writeFile(configPath, JSON.stringify({ core: { workers: 3 }, defaults: { carouselSelectors: [], http404Policy: 'error', captureBeyondViewport: false, waitForIframes: false, iframeTimeout: 123 } }));
+  assert.equal(JSON.parse(await fs.readFile(configPath)).core.temporaryErrorRetries, 1);
+  await fs.writeFile(configPath, JSON.stringify({ core: { workers: 3, temporaryErrorRetries: 0 }, defaults: { carouselSelectors: [], http404Policy: 'error', captureBeyondViewport: false, waitForIframes: false, iframeTimeout: 123 } }));
   await run();
   assert.equal(JSON.parse(await fs.readFile(configPath)).core.workers, 3);
+  assert.equal(JSON.parse(await fs.readFile(configPath)).core.temporaryErrorRetries, 0);
   assert.deepEqual(JSON.parse(await fs.readFile(configPath)).defaults.carouselSelectors, []);
   assert.equal(JSON.parse(await fs.readFile(configPath)).defaults.http404Policy, 'error');
   assert.equal(JSON.parse(await fs.readFile(configPath)).defaults.captureBeyondViewport, false);

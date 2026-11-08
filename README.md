@@ -372,7 +372,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | --- | --- | --- |
 | `referenceBaseURL` / `testBaseURL` | **Root:** base URLs for reference and test captures. | - |
 | `core.thresholdRateColor` | **Root:** colour tolerance when counting changed pixels, from 0–1. `0` is strictest; higher values ignore larger colour differences. This is not a percentage of pixels. | - |
-| `core.temporaryErrorRetries` | **Root:** retries per capture for temporary network/browser errors, navigation timeouts, image-loading timeouts, font failures, and readySelector timeouts. Each retry starts in a fresh browser context. Broken images and page HTTP errors still fail. Default `0` disables retries. | - |
+| `core.temporaryErrorRetries` | **Root:** retries per capture for temporary network/browser errors, navigation timeouts, image-loading timeouts, font failures, and readySelector timeouts. Each retry starts in a fresh browser context. Broken images and page HTTP errors still fail. Default `1` retries once; `0` disables retries. | - |
 | `core.temporaryErrorRetryTimeoutMultiplier` | **Root:** multiply configured readiness timeouts on each retry. Default `1` keeps them unchanged; `2` gives attempts budgets of 1×, 2×, and 4×. Workers, delays, retry count and protocolTimeout stay unchanged. | - |
 | `fontTimeout` | Maximum wait for web fonts, default `30000` milliseconds. Font timeouts and failed font downloads fail capture and use temporary retries. | `wait-for-fonts` |
 | `retryImageDownloads` | Retry stalled HTTP image downloads on the existing page through Node, then require successful browser decoding. Default `false`. Cookies are scoped to each destination, including redirects. | `load-lazy-images` |
@@ -589,6 +589,11 @@ Capture errors also show the observed image HTTP status, content type, or
 Chrome network error when available. For example, `HTTP 403 (text/html)` means
 the server returned an error page instead of an image. `HTTP 200` alone does
 not prove the image data is valid. These diagnostics add no downloads or retries.
+New configs and Backstop imports retry temporary capture failures once. Existing
+configs keep their saved `core.temporaryErrorRetries` value, including `0`; change
+it to `1` to enable one retry. Retries use a fresh browser context and still fail
+if the image remains unavailable or broken.
+
 Hidden empty `data:,` placeholders, such as Cookiebot branding images, are
 ignored when they have no real image candidate. Lazy replacement sources are
 loaded first. Visible empty images and real broken images still fail capture.

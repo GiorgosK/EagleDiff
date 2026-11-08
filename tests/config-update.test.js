@@ -130,3 +130,9 @@ test('config updates add an empty readiness default but retain saved footer, cus
   assert.equal(legacy.readySelector, '.legacy-ready');
   assert.equal(legacy.defaults.readySelector, '');
 });
+test('retry defaults fill missing settings and preserve explicitly disabled retries', () => {
+  assert.equal(updateConfig({}, template).core.temporaryErrorRetries, 1);
+  for (const temporaryErrorRetries of [0, 3]) {
+    assert.equal(updateConfig({ core: { temporaryErrorRetries } }, template).core.temporaryErrorRetries, temporaryErrorRetries);
+  }
+});
