@@ -258,7 +258,8 @@ frames are included; hidden and one-pixel tracking frames are ignored.
 
 Set `captureBeyondViewport: false` to always expand the viewport for full-page
 capture, or `true` to keep its layout size unchanged. Expanding can affect
-height-dependent layouts. `waitForIframes: false` disables the document wait;
+height-dependent layouts. Try `false` if full-page captures contain partially
+painted images. `waitForIframes: false` disables the document wait;
 removing the hook also disables automatic viewport adjustment. Selector clipping
 keeps its existing capture mode. Content loaded later may need a custom hook.
 
@@ -302,13 +303,14 @@ default hooks back; use a documented disabling setting to keep a feature off.
     "hooks/wait-for-network-idle",
     "hooks/stabilize-carousels",
     "hooks/freeze-web-animations",
+    "hooks/stabilize-svg-animations",
     "hooks/prepare-iframes"
   ]
 }
 ```
 
-Hooks generally follow list order. Eaglediff defers iframe preparation and
-selector clipping until after page edits, with a final font check before clipping.
+Hooks generally follow list order. Eaglediff defers iframe and SVG preparation
+and selector clipping until after page edits, with a final font check before clipping.
 The CSS hooks apply styles before navigation and again before capture.
 
 ## Project-Specific Adjustments
@@ -377,6 +379,8 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `waitUntilGone` | Wait for all matches to disappear or become hidden. | `wait-until-gone` |
 | `waitUntilGoneTimeout` | Maximum wait per selector. | `wait-until-gone` |
 | `scrollStepDelayMs` / `scrollSettleDelayMs` | Pause between scroll steps and after returning to the top; defaults are 100 and 300. | `scroll-to-bottom` |
+| `stabilizeSVGAnimations` | Stop recognized SVGator players and native SVG animations at the start. Default `true`; `false` disables it. | `stabilize-svg-animations` |
+| `svgAnimationTimeout` | Maximum wait for embedded SVGs and supported players, default `15000` milliseconds. Timeouts can retry. | `stabilize-svg-animations` |
 | `freezeWebAnimations` | Freeze time-based browser animations at their first frame. Default `true`; `false` disables it. | `freeze-web-animations` |
 | `carouselSelectors` | Pause supported carousels and return them to the first slide. `null` detects known libraries; `[]` disables it. | `stabilize-carousels` |
 | `carouselSettleDelayMs` | Pause after resetting carousels. | `stabilize-carousels` |
@@ -529,6 +533,11 @@ Set `"freezeWebAnimations": false` in `defaults` or a scenario, or remove
 or hold animation-finished callbacks; disable this hook when that is unsuitable.
 Animations driven by timers, direct style updates, scrolling, or iframe players
 may need a custom hook. Browser timers and animation-frame callbacks keep running.
+
+The `stabilize-svg-animations` hook also stops recognized SVGator players and
+native SVG (SMIL) animations, including SVG documents loaded through `<object>` or
+`<embed>`. Set `"stabilizeSVGAnimations": false` or remove the hook to disable it.
+Unknown scripted SVG players may need a project hook.
 
 ### Cookie banners
 

@@ -56,6 +56,12 @@ capture modes still work. `iframeTimeout` bounds the total wait;
 timeouts use temporary capture retries. Hidden and one-pixel frames are ignored.
 Selector clipping keeps its existing capture mode.
 
+`hooks/stabilize-svg-animations` runs after embedded documents load, before final
+image/font checks and clipping. It stops recognized SVGator players and native
+SVG timelines, including SVG documents in object/embed elements; ordinary HTML
+frames are left alone. `svgAnimationTimeout` bounds readiness and participates
+in temporary retries. Hidden SVGs are skipped.
+
 The `fail-on-response-status` hook uses `http404Policy` for main-document 404s:
 `warn` (the default) reports the URL and continues capture; `error` stops it.
 Scenario values override defaults, including for configs that already list 404
