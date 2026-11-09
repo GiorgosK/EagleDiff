@@ -381,7 +381,6 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `hideDynamicSelectors` | Apply `display: none`, including to elements added later. | `hide-dynamic-elements` |
 | `cookieConsent` | `"hide"` (default), `"accept"` all cookies, or `"leave"` recognized banners alone. Scenario values override defaults. | `handle-cookie-consent` |
 | `cookieConsentTimeout` | Wait up to `3000` milliseconds for a banner and its acceptance. A recognized banner that stays open fails capture and can retry. | `handle-cookie-consent` |
-| `keepCookiebot` | **Scenario only, legacy:** skip `hideDynamicSelectors` and leave consent banners alone unless `cookieConsent` is set on the scenario. | `hide-dynamic-elements`, `handle-cookie-consent` |
 | `waitForJQueryReady` | Wait for DOM readiness and jQuery startup callbacks when jQuery is present. Default `true`; `false` disables the hook. | `wait-for-jquery-ready` |
 | `jqueryReadyTimeout` | Maximum wait for jQuery initialization, default `30000` milliseconds. Timeouts fail capture and can retry. | `wait-for-jquery-ready` |
 | `waitForDrupalReady` | Check that Drupal has attached its registered startup behaviors. Default `true`; `false` disables the check. Non-Drupal pages are skipped. | `wait-for-drupal-ready` |
@@ -537,8 +536,8 @@ page-readiness checks. `cookieConsentTimeout` bounds the wait (default `3000`
 milliseconds). No recognized banner means no action; a recognized banner that
 cannot be accepted stops capture. Custom, iframe, or shadow-root banners may need
 a project hook. Explicit custom hide rules still apply in every mode.
-Existing `keepCookiebot: true` and empty `hideDynamicSelectors` opt-outs are
-preserved; use `cookieConsent` to choose a different behavior explicitly.
+`cookieConsent` controls all supported providers. Empty `hideDynamicSelectors`
+opt-outs are preserved; set `cookieConsent` explicitly to override them.
 
 ### Changing videos and social feeds
 

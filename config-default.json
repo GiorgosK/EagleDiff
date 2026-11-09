@@ -1,5 +1,5 @@
 {
-  "version": "2026.11.09.02",
+  "version": "2026.11.09.03",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -71,10 +71,6 @@
     "replaceContent": {},
     "cssOverrides": "",
     "hideDynamicSelectors": [
-      "#CybotCookiebotDialog",
-      "#CybotCookiebotDialogBodyUnderlay",
-      "#cookiescript_injected_wrapper",
-      "#cookiescript_injected",
       ".anrt-gdpr-floating-cookie",
       "#toolbar-administration",
       "#toolbar-item-administration-tray",

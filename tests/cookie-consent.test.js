@@ -40,7 +40,17 @@ test('hide suppresses known banners and late overlays without clicking or changi
   assert.notEqual(await page.$eval('main', node => getComputedStyle(node).display), 'none');
 });
 
-test('accept clicks each known provider and preserves real consent effects, including Cookiebot hidden by legacy defaults', async t => {
+test('cookie-banner defaults belong to the consent hook while general dynamic hiding still applies', async t => {
+  const page = await setup(t);
+  await page.setContent(banner(providers[1]) + '<div id="toolbar-administration">Toolbar</div>');
+  await dynamic(page, { scenario: {}, config: template });
+  assert.equal(await page.$eval('#toolbar-administration', node => getComputedStyle(node).display), 'none');
+  assert.notEqual(await page.$eval('#CybotCookiebotDialog', node => getComputedStyle(node).display), 'none');
+  await consent(page, context('hide'));
+  assert.equal(await page.$eval('#CybotCookiebotDialog', node => getComputedStyle(node).display), 'none');
+});
+
+test('accept clicks each known provider and preserves real consent effects', async t => {
   const fixture = await require('./helpers/cli-fixture')(t);
   const page = await setup(t);
   for (const provider of providers) {
@@ -56,7 +66,7 @@ test('accept clicks each known provider and preserves real consent effects, incl
   }
 });
 
-test('leave bypasses legacy consent hiding but preserves unrelated explicit hide rules and legacy keepCookiebot', async t => {
+test('leave preserves unrelated explicit hide rules and empty-selector overrides', async t => {
   const page = await setup(t);
   await page.setContent(banner(providers[1]) + '<aside id="custom">Custom</aside>');
   const settings = context('leave');
@@ -66,8 +76,6 @@ test('leave bypasses legacy consent hiding but preserves unrelated explicit hide
   assert.notEqual(await page.$eval('#CybotCookiebotDialog', node => getComputedStyle(node).display), 'none');
   assert.equal(await page.$eval('#custom', node => getComputedStyle(node).display), 'none');
   assert.equal(await page.evaluate(() => window.accepted || 0), 0);
-  assert.equal(resolveOptions(template, { keepCookiebot: true }).mode, 'leave');
-  assert.equal(resolveOptions(template, { keepCookiebot: true, cookieConsent: 'accept' }).mode, 'accept');
   assert.equal(resolveOptions(template, { hideDynamicSelectors: [] }).mode, 'leave');
   assert.equal(resolveOptions(template, { hideDynamicSelectors: [], cookieConsent: 'hide' }).mode, 'hide');
 });

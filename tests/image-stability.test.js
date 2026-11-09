@@ -216,7 +216,7 @@ test('cookie consent defaults hide CookieScript and Cookiebot, including late in
   const page = await browser.newPage();
   t.after(() => page.close());
   await page.setContent('<main>Content</main><div id="CybotCookiebotDialog">Cookiebot</div><div id="CybotCookiebotDialogBodyUnderlay"></div>');
-  await hideDynamicElements(page, { scenario: {}, config: template });
+  await require('../scripts/hooks/handle-cookie-consent')(page, { scenario: {}, config: template });
   await page.evaluate(() => {
     document.body.insertAdjacentHTML('beforeend', '<div id="cookiescript_injected_wrapper"><div id="cookiescript_injected" role="dialog">CookieScript</div></div>');
   });
@@ -225,7 +225,7 @@ test('cookie consent defaults hide CookieScript and Cookiebot, including late in
   }
   assert.notEqual(await page.$eval('main', element => getComputedStyle(element).display), 'none');
   await page.setContent('<div id="cookiescript_injected" role="dialog">CookieScript</div>');
-  await hideDynamicElements(page, { scenario: { hideDynamicSelectors: [] }, config: template });
+  await require('../scripts/hooks/handle-cookie-consent')(page, { scenario: { hideDynamicSelectors: [] }, config: template });
   assert.notEqual(await page.$eval('#cookiescript_injected', element => getComputedStyle(element).display), 'none');
 });
 
