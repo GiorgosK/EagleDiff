@@ -740,6 +740,22 @@ to its full executable path.
 
 ## Known problems and fixes
 
+### Navigation or resource-loading timeouts
+
+Parallel captures can hit timeouts on machines with limited CPU or memory,
+slower internet connections, or busy servers. If you see an error such as
+`Navigation timeout of 30000 ms exceeded`, try one worker to check whether
+loading fewer pages at once avoids it:
+
+```bash
+eaglediff reference --workers=1
+```
+
+A successful `reference` run replaces references. The same flag works with
+`test` and `calibrate`. If fewer workers help, increase the count gradually or
+lower `core.workers` in `config.json`. Persistent timeouts may need further
+investigation of the page or its resources.
+
 ### CDN or security verification pages
 
 Built-in checks detect known challenges from **Cloudflare, AWS WAF, DataDome,
