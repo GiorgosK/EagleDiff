@@ -1,5 +1,5 @@
 {
-  "version": "2026.11.09.03",
+  "version": "2026.11.09.04",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],

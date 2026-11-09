@@ -634,8 +634,13 @@ are rechecked.
 
 `imageFailurePolicy` defaults to `"error"`. `"warn"` allows broken images with
 warnings, so their placeholders can still cause visual differences. Stalled
-downloads fail in either mode and can use temporary retries. Hidden empty
-`data:,` placeholders are ignored; visible or genuinely broken images are not.
+downloads fail in either mode and can use temporary retries.
+
+Images inside `display: none` subtrees are skipped, including unused lazy sources.
+They are checked again if a later hook reveals them. Offscreen images, transparent
+images, and images hidden with `visibility` still load because they can affect
+layout. Hidden empty `data:,` placeholders are also ignored. Visible broken images
+still fail capture.
 
 `retryImageDownloads: true` attempts to recover stalled HTTP downloads using the
 browser context's cookies. The recovered image must still decode successfully.

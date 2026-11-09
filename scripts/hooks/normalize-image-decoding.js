@@ -1,3 +1,5 @@
+const withImageCaptureCheck = require('../image-capture-check');
+
 module.exports = async function normalizeImageDecoding(page, context) {
   const selectors = context.scenario.normalizeImageDecodingSelectors
     ?? context.config.defaults?.normalizeImageDecodingSelectors
@@ -23,11 +25,11 @@ module.exports = async function normalizeImageDecoding(page, context) {
   page.on('console', onConsole);
   let warnings;
   try {
-    warnings = await page.evaluate(async (currentSelector, failedSources) => {
+    warnings = await withImageCaptureCheck(page, check => page.evaluate(async (currentSelector, failedSources, isExcluded) => {
       const normalized = new Map();
       const skipped = new Set();
       for (const image of document.querySelectorAll(currentSelector)) {
-        if (!(image instanceof HTMLImageElement)) continue;
+        if (!(image instanceof HTMLImageElement) || isExcluded(image)) continue;
         const source = image.currentSrc || image.src;
         // Warning mode keeps broken originals for comparison; do not try to
         // fetch those same failed images again during optional JPEG normalization.
@@ -91,7 +93,7 @@ module.exports = async function normalizeImageDecoding(page, context) {
       }
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       return Array.from(skipped);
-    }, selector, context.failedImageSources || []);
+    }, selector, context.failedImageSources || [], check));
   } catch (error) {
     const failures = [...networkFailures].filter(([url]) => error.message.includes(url));
     const details = [...new Set(failures.map(([, failure]) => `Network error: ${failure.reason} (${failure.url})`))];

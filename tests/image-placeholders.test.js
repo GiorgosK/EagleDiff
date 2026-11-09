@@ -85,12 +85,21 @@ test('each image hook independently skips empty placeholders excluded by common 
   }
 });
 
-test('hidden placeholders with lazy or picture replacements load their real images first', async t => {
+test('display-none placeholders defer lazy replacements until revealed while visibility-hidden images still load', async t => {
   const page = await pageFixture(t);
   await page.setContent(`<img id="lazy" style="display:none" src="data:," data-src="${baseURL}/lazy.svg">
     <img id="alias" style="visibility:hidden" src="data:," data-lazy-src="${baseURL}/alias.svg">
     <picture style="display:none"><source data-srcset="${baseURL}/picture.svg 1x"><img id="picture" src="data:,"></picture>`);
   const ctx = context();
+  await load(page, ctx);
+  await responsive(page, ctx);
+  await backgrounds(page, ctx);
+  for (const id of ['lazy', 'picture']) {
+    assert.equal(await page.$eval('#' + id, image => image.src), 'data:,');
+  }
+  assert.equal(await page.$eval('#alias', image => image.naturalWidth), 64);
+  await page.$eval('#lazy', image => { image.style.display = ''; });
+  await page.$eval('#picture', image => { image.closest('picture').style.display = ''; });
   await load(page, ctx);
   await responsive(page, ctx);
   await backgrounds(page, ctx);
@@ -101,14 +110,16 @@ test('hidden placeholders with lazy or picture replacements load their real imag
   }
 });
 
-test('visible empty images, hidden real failures, and broken replacement candidates remain errors', async t => {
+test('visible, offscreen and layout-affecting broken images remain errors', async t => {
   const page = await pageFixture(t);
   const markup = [
     '<img src="data:,">',
     '<div style="visibility:hidden"><img style="visibility:visible" src="data:,"></div>',
-    `<img style="display:none" src="${baseURL}/missing.svg">`,
-    '<img style="display:none" src="data:image/png;base64,not-an-image">',
-    `<picture style="display:none"><source srcset="${baseURL}/missing-picture.svg 1x"><img src="data:,"></picture>`
+    `<img style="visibility:hidden" src="${baseURL}/missing.svg">`,
+    `<img style="opacity:0" src="${baseURL}/missing.svg">`,
+    `<img style="position:absolute;top:2000px" src="${baseURL}/missing.svg">`,
+    '<img src="data:image/png;base64,not-an-image">',
+    `<picture><source srcset="${baseURL}/missing-picture.svg 1x"><img src="data:,"></picture>`
   ];
   for (const html of markup) {
     for (const hook of [load, responsive, backgrounds]) {
@@ -116,8 +127,70 @@ test('visible empty images, hidden real failures, and broken replacement candida
       await assert.rejects(hook(page, context()), /Cannot (load|decode)/);
     }
   }
-  await page.setContent(`<img style="display:none" src="data:," data-src="${baseURL}/missing-lazy.svg">`);
+  await page.setContent(`<img src="data:," data-src="${baseURL}/missing-lazy.svg">`);
   await assert.rejects(load(page, context()), /missing-lazy.svg/);
+});
+
+test('every image hook skips display-none failures without promoting unused sources or changing pixels', async t => {
+  const page = await pageFixture(t);
+  for (const hook of [load, responsive, jpeg, backgrounds]) {
+    await page.setContent(`<style>body{margin:0;background:lime}</style><main>Visible content</main>
+      <section style="display:none">
+        <img src="${baseURL}/missing.png"><img src="${baseURL}/missing.jpg">
+        <img src="${baseURL}/missing.gif">
+        <picture><source data-srcset="${baseURL}/missing-picture.svg 1x"><img src="data:," data-src="${baseURL}/missing-lazy.svg"></picture>
+      </section>`);
+    const before = Buffer.from(await page.screenshot());
+    await hook(page, context());
+    assert.equal(await page.$eval('source', source => source.hasAttribute('data-srcset')), true);
+    assert.equal(await page.$eval('picture img', image => image.hasAttribute('data-src')), true);
+    assert.deepEqual(Buffer.from(await page.screenshot()), before);
+    await page.$eval('section', section => section.remove());
+    assert.deepEqual(Buffer.from(await page.screenshot()), before);
+  }
+});
+
+test('a broken image excluded at one breakpoint still fails when visible at another', async t => {
+  const page = await pageFixture(t);
+  for (const hook of [load, responsive, jpeg, backgrounds]) {
+    await page.setViewport({ width: 200, height: 160 });
+    await page.setContent(`<style>.responsive-panel{display:none}@media(min-width:300px){.responsive-panel{display:block}}</style>
+      <div class="responsive-panel"><img src="${baseURL}/missing-breakpoint.jpg" width="40" height="30"></div>`);
+    await hook(page, context());
+    await page.setViewport({ width: 400, height: 160 });
+    await assert.rejects(hook(page, context()), /Cannot (load|decode|normalize)/);
+  }
+});
+
+test('images revealed by a later hook load before capture and broken reveals preserve references', async t => {
+  const f = await fixture(t);
+  const page = await pageFixture(t);
+  const reveal = path.join(f.directory, 'reveal.js');
+  await fs.writeFile(reveal, "module.exports = page => page.$eval('#panel', panel => { panel.style.display = 'block'; });");
+  f.pages['/one'] = '<style>body{margin:0;background:lime}</style><section id="panel" style="display:none"><picture>' +
+    '<source data-srcset="/revealed.svg 1x"><img width="100" height="100" data-src="/revealed.svg"></picture></section>';
+  f.pages['/revealed.svg'] = { headers: { 'Content-Type': 'image/svg+xml' },
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="blue"/></svg>' };
+  f.config.scenarios = [{ url: '/one' }];
+  f.config.onReadyScript = ['hooks/load-lazy-images', 'hooks/normalize-responsive-images',
+    'hooks/normalize-image-decoding', 'hooks/wait-for-background-images', reveal];
+  await f.save();
+  await f.run(['reference']);
+  assert(f.requests.includes('/revealed.svg'), 'the revealed lazy candidate must load');
+  const baseline = path.join(f.directory, '.reg/reference', (await f.files())[0]);
+  const png = await fs.readFile(baseline);
+  assert.equal(png.readUInt32BE(16), 100);
+  assert.equal(png.readUInt32BE(20), 100);
+  const pixel = await page.evaluate(async source => {
+    const image = new Image(); image.src = source; await image.decode();
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 100;
+    const context = canvas.getContext('2d'); context.drawImage(image, 0, 0);
+    return [...context.getImageData(50, 50, 1, 1).data];
+  }, 'data:image/png;base64,' + png.toString('base64'));
+  assert.deepEqual(pixel, [0, 0, 255, 255]);
+  f.pages['/revealed.svg'] = { status: 404, body: '' };
+  assert.match((await f.run(['reference'], 1)).stderr, /Cannot load image/);
+  assert.deepEqual(await fs.readFile(baseline), png);
 });
 
 test('CLI reference and comparison accept Cookiebot placeholders but preserve baselines on real image failure', async t => {
@@ -135,6 +208,9 @@ test('CLI reference and comparison accept Cookiebot placeholders but preserve ba
   const original = await read();
   f.pages['/missing.png'] = { status: 404, body: '' };
   f.pages['/one'] += '<img style="display:none" src="/missing.png">';
+  await f.run(['test']);
+  assert.deepEqual(await read(), original);
+  f.pages['/one'] += '<img src="/missing.png">';
   for (const command of ['reference', 'test']) {
     assert.match((await f.run([command], 1)).stderr, /missing.png/);
     assert.deepEqual(await read(), original);

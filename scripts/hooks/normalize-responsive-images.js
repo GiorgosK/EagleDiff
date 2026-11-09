@@ -1,4 +1,4 @@
-const withImagePlaceholderCheck = require('../image-placeholder');
+const withImageCaptureCheck = require('../image-capture-check');
 
 module.exports = async function normalizeResponsiveImages(page, context) {
   const timeout = context.scenario.lazyImageTimeout ?? context.config.defaults?.lazyImageTimeout ?? 15000;
@@ -15,13 +15,13 @@ module.exports = async function normalizeResponsiveImages(page, context) {
     return;
   }
 
-  const failure = await withImagePlaceholderCheck(page, check => page.evaluate(async (currentSelectors, failedSources, timeout, isPlaceholder) => {
+  const failure = await withImageCaptureCheck(page, check => page.evaluate(async (currentSelectors, failedSources, timeout, isExcluded) => {
     const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
     const animationFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
     const elements = Array.from(document.querySelectorAll(currentSelectors.join(',')));
     const images = elements.filter((element) => element.tagName === 'IMG' &&
-      !isPlaceholder(element) &&
+      !isExcluded(element) &&
       (element.currentSrc || element.getAttribute('src') || element.srcset) && !failedSources.includes(element.currentSrc) && !failedSources.includes(element.src));
     const sources = elements.filter((element) => element.tagName === 'SOURCE');
 
@@ -38,7 +38,7 @@ module.exports = async function normalizeResponsiveImages(page, context) {
 
     for (const source of sources) {
       const image = source.closest('picture')?.querySelector('img');
-      if (image && isPlaceholder(image)) continue;
+      if (image && isExcluded(image)) continue;
       if (image && (failedSources.includes(image.currentSrc) || failedSources.includes(image.src))) continue;
       if (image && !images.includes(image)) {
         image.src = image.currentSrc || image.src;

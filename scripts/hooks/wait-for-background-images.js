@@ -1,13 +1,13 @@
-const withImagePlaceholderCheck = require('../image-placeholder');
+const withImageCaptureCheck = require('../image-capture-check');
 
 module.exports = async function waitForBackgroundImages(page, context = {}) {
   const timeout = context.scenario?.lazyImageTimeout ?? context.config?.defaults?.lazyImageTimeout ?? 15000;
   const policy = context.scenario?.imageFailurePolicy ?? context.config?.defaults?.imageFailurePolicy ?? 'error';
   if (!Number.isFinite(timeout) || timeout <= 0) throw new Error('lazyImageTimeout must be a positive number.');
   if (!['error', 'warn'].includes(policy)) throw new Error('imageFailurePolicy must be "error" or "warn".');
-  const failures = await withImagePlaceholderCheck(page, check => page.evaluate(async ({ failedSources, timeout }, isPlaceholder) => {
+  const failures = await withImageCaptureCheck(page, check => page.evaluate(async ({ failedSources, timeout }, isExcluded) => {
     const images = [...document.images].filter(image =>
-      !isPlaceholder(image) &&
+      !isExcluded(image) &&
       (image.currentSrc || image.getAttribute('src') || image.srcset) && !failedSources.includes(image.currentSrc) && !failedSources.includes(image.src));
     const seen = new Set();
     const canPaintBackground = (element, elementStyle) => {

@@ -97,7 +97,7 @@ test('offscreen, visibility-overridden and shared visible backgrounds remain req
   }
 });
 
-test('canvas backgrounds and existing foreground image policies stay strict', async t => {
+test('canvas backgrounds stay strict and stalled foreground images become required when revealed', async t => {
   const { browser, base } = await visibilityFixture(t);
   for (const [source, html] of [
     ['stall-canvas.svg', `<!doctype html><html><head><style>body{margin:0;height:0;background-image:url('${base}/stall-canvas.svg')}</style></head><body></body></html>`],
@@ -107,6 +107,10 @@ test('canvas backgrounds and existing foreground image policies stay strict', as
     try {
       await page.setContent(html, { waitUntil: 'domcontentloaded' });
       if (source === 'stall-canvas.svg') assert.equal(await page.$eval('body', body => body.getBoundingClientRect().height), 0);
+      else {
+        await wait(page, strict);
+        await page.$eval('img', image => { image.style.display = 'block'; });
+      }
       await assert.rejects(wait(page, strict), error => {
         assert.equal(error.code, 'EAGLEDIFF_IMAGE_TIMEOUT'); assert(error.message.includes(source)); return true;
       });

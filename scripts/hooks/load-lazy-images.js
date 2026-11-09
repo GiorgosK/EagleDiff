@@ -1,4 +1,4 @@
-const withImagePlaceholderCheck = require('../image-placeholder');
+const withImageCaptureCheck = require('../image-capture-check');
 
 module.exports = async function loadLazyImages(page, context = {}) {
   const timeout = context.scenario?.lazyImageTimeout ?? context.config?.defaults?.lazyImageTimeout ?? 15000;
@@ -10,10 +10,12 @@ module.exports = async function loadLazyImages(page, context = {}) {
   if (typeof retryDownloads !== 'boolean') throw new Error('retryImageDownloads must be a boolean.');
   if (!Number.isFinite(downloadTimeout) || downloadTimeout <= 0) throw new Error('imageDownloadTimeout must be a positive number.');
 
-  const failures = await withImagePlaceholderCheck(page, check => page.evaluate(async ({ timeoutMs, failurePolicy }, isPlaceholder) => {
+  const failures = await withImageCaptureCheck(page, check => page.evaluate(async ({ timeoutMs, failurePolicy, finalCheck }, isExcluded) => {
     const promoteSources = () => {
       // Common lazy-loader attributes, independent of any particular library.
       for (const element of document.querySelectorAll('img, picture source')) {
+        const image = element.tagName === 'IMG' ? element : element.closest('picture')?.querySelector('img');
+        if (image && isExcluded(image) === 'display-none') continue;
         if (element instanceof HTMLImageElement) element.loading = 'eager';
         for (const attribute of ['sizes', 'srcset', 'src']) {
           if (element.tagName === 'SOURCE' && attribute === 'src') continue;
@@ -27,7 +29,7 @@ module.exports = async function loadLazyImages(page, context = {}) {
       }
     };
     promoteSources();
-    await new Promise((resolve) => {
+    if (!finalCheck) await new Promise((resolve) => {
       let total = 0;
       const step = 400;
       const timer = setInterval(() => {
@@ -45,7 +47,7 @@ module.exports = async function loadLazyImages(page, context = {}) {
 
     const failures = [];
     await Promise.all(Array.from(document.images).map(async image => {
-      if (isPlaceholder(image)) return;
+      if (isExcluded(image)) return;
       if (!image.getAttribute('src') && !image.srcset && !image.closest('picture')?.querySelector('source[srcset]')) return;
       let timer;
       try {
@@ -77,7 +79,7 @@ module.exports = async function loadLazyImages(page, context = {}) {
     }));
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     return failures;
-  }, { timeoutMs: timeout, failurePolicy: policy }, check)).catch(error => {
+  }, { timeoutMs: timeout, failurePolicy: policy, finalCheck: context.imageReadinessFinalCheck === true }, check)).catch(error => {
     if (/Cannot load image before capture:[\s\S]*Timed out after \d+ms/.test(error.message)) {
       error.code = 'EAGLEDIFF_IMAGE_TIMEOUT';
     }

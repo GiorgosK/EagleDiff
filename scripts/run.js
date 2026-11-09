@@ -408,6 +408,14 @@ async function captureScenarioScreenshot({
         resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'pause-media.js'));
       await runScripts(activePage, mediaScripts, readyContext);
 
+      // A later hook may reveal a previously display:none image. Revalidate the
+      // configured image preparation without another page-wide scroll.
+      const imageHooks = ['load-lazy-images', 'normalize-responsive-images',
+        'normalize-image-decoding', 'wait-for-background-images'];
+      const imageScripts = readyScripts.filter(script => imageHooks.some(name =>
+        resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', name + '.js')));
+      await runScripts(activePage, imageScripts, { ...readyContext, imageReadinessFinalCheck: true });
+
       // Late content and final DOM changes can request additional font faces.
       // Recheck configured font readiness immediately before rendering.
       const fontScripts = readyScripts.filter(script =>
