@@ -56,6 +56,12 @@ function updateConfig(current, defaults) {
     throw new Error(`Config version ${current.version} is newer than Eaglediff defaults ${defaults.version}. Update Eaglediff first.`);
   }
   const result = fillMissing(current, defaults);
+  // An existing empty list opted out of the old cookie-banner hiding rules.
+  if (!Object.hasOwn(current.defaults || {}, 'cookieConsent') &&
+      Array.isArray(current.defaults?.hideDynamicSelectors) && current.defaults.hideDynamicSelectors.length === 0 &&
+      Object.hasOwn(defaults.defaults || {}, 'cookieConsent')) {
+    result.defaults.cookieConsent = 'leave';
+  }
   for (const key of ['onBeforeScript', 'onReadyScript']) {
     if (Object.hasOwn(current, key) && Object.hasOwn(defaults, key)) {
       result[key] = addMissingHooks(current[key], defaults[key]);

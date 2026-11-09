@@ -1,11 +1,13 @@
 const applyPageStyles = require('../page-styles');
+const { bannerSelectors, resolveOptions } = require('../cookie-consent');
 
 module.exports = async function hideDynamicElements(page, context) {
   if (context.scenario.keepCookiebot) {
     return;
   }
 
-  const selectors = getSelectors(context);
+  const { mode } = resolveOptions(context.config, context.scenario);
+  const selectors = getSelectors(context).filter(selector => mode === 'hide' || !bannerSelectors.includes(selector));
   if (!selectors.length) {
     return;
   }

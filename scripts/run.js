@@ -12,6 +12,7 @@ const puppeteer = require('puppeteer-core');
 const captureScreenshot = require('./capture-screenshot');
 const { resolveHttp404Policy } = require('./hooks/fail-on-response-status');
 const { resolveOptions: resolveJQueryReadyOptions } = require('./hooks/wait-for-jquery-ready');
+const { resolveOptions: resolveCookieConsentOptions } = require('./cookie-consent');
 const { resolveOptions: resolveMediaOptions } = require('./hooks/pause-media');
 const { resolveOptions: resolveDrupalReadyOptions } = require('./hooks/wait-for-drupal-ready');
 const { resolveOptions: resolveIframeOptions } = require('./iframe-capture');
@@ -82,6 +83,7 @@ async function main() {
       resolveJQueryReadyOptions(config, scenario);
       resolveDrupalReadyOptions(config, scenario);
       resolveMediaOptions(config, scenario);
+      resolveCookieConsentOptions(config, scenario);
       resolveHttp404Policy(config, scenario);
     }
   }
@@ -225,6 +227,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
     resolveJQueryReadyOptions(config, scenario);
     resolveDrupalReadyOptions(config, scenario);
     resolveMediaOptions(config, scenario);
+    resolveCookieConsentOptions(config, scenario);
     resolveHttp404Policy(config, scenario);
   }
   const reportWarning = options.warningReporter || require('./warnings').createWarningReporter();
@@ -478,7 +481,7 @@ function isTemporaryCaptureError(error) {
     if (cause.code === 'EAGLEDIFF_CHALLENGE_DETECTED') return false;
   }
   for (let cause = error; cause; cause = cause.cause) {
-    if (['EAGLEDIFF_NAVIGATION_TIMEOUT', 'EAGLEDIFF_IMAGE_TIMEOUT', 'EAGLEDIFF_IFRAME_TIMEOUT', 'EAGLEDIFF_READY_TIMEOUT', 'EAGLEDIFF_STABLE_CONTENT_TIMEOUT', 'EAGLEDIFF_JQUERY_READY_TIMEOUT', 'EAGLEDIFF_DRUPAL_READY_TIMEOUT', 'EAGLEDIFF_SCROLL_TIMEOUT', 'EAGLEDIFF_FONT_TIMEOUT', 'EAGLEDIFF_FONT_LOAD'].includes(cause.code)) return true;
+    if (['EAGLEDIFF_NAVIGATION_TIMEOUT', 'EAGLEDIFF_IMAGE_TIMEOUT', 'EAGLEDIFF_IFRAME_TIMEOUT', 'EAGLEDIFF_READY_TIMEOUT', 'EAGLEDIFF_STABLE_CONTENT_TIMEOUT', 'EAGLEDIFF_JQUERY_READY_TIMEOUT', 'EAGLEDIFF_COOKIE_CONSENT_TIMEOUT', 'EAGLEDIFF_DRUPAL_READY_TIMEOUT', 'EAGLEDIFF_SCROLL_TIMEOUT', 'EAGLEDIFF_FONT_TIMEOUT', 'EAGLEDIFF_FONT_LOAD'].includes(cause.code)) return true;
   }
   const message = String(error?.message || error || '');
   return /ERR_NETWORK_CHANGED|net::ERR_NETWORK_CHANGED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED|ERR_CONNECTION_TIMED_OUT|ERR_TIMED_OUT|ERR_ADDRESS_UNREACHABLE|ERR_CERT_COMMON_NAME_INVALID|net::ERR_CERT_COMMON_NAME_INVALID|ERR_CERT_AUTHORITY_INVALID|net::ERR_CERT_AUTHORITY_INVALID|Runtime\.callFunctionOn timed out|Protocol error[^\n]*: (?:Target|Session|Connection) closed|Connection closed\.|Navigation failed because browser has disconnected/i.test(message);

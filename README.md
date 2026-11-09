@@ -273,6 +273,7 @@ default hooks back; use a documented disabling setting to keep a feature off.
 {
   "onBeforeScript": [
     "hooks/wait-for-drupal-ready",
+    "hooks/handle-cookie-consent",
     "hooks/hide-dynamic-elements",
     "hooks/disable-animations",
     "hooks/apply-css-overrides"
@@ -280,6 +281,7 @@ default hooks back; use a documented disabling setting to keep a feature off.
   "onReadyScript": [
     "hooks/wait-for-browser-verification",
     "hooks/fail-on-response-status",
+    "hooks/handle-cookie-consent",
     "hooks/wait-for-element",
     "hooks/wait-until-gone",
     "hooks/scroll-to-bottom",
@@ -377,7 +379,9 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `carouselSelectors` | Pause supported carousels and return them to the first slide. `null` detects known libraries; `[]` disables it. | `stabilize-carousels` |
 | `carouselSettleDelayMs` | Pause after resetting carousels. | `stabilize-carousels` |
 | `hideDynamicSelectors` | Apply `display: none`, including to elements added later. | `hide-dynamic-elements` |
-| `keepCookiebot` | **Scenario only:** skip the entire `hideDynamicSelectors` hook for this page. | `hide-dynamic-elements` |
+| `cookieConsent` | `"hide"` (default), `"accept"` all cookies, or `"leave"` recognized banners alone. Scenario values override defaults. | `handle-cookie-consent` |
+| `cookieConsentTimeout` | Wait up to `3000` milliseconds for a banner and its acceptance. A recognized banner that stays open fails capture and can retry. | `handle-cookie-consent` |
+| `keepCookiebot` | **Scenario only, legacy:** skip `hideDynamicSelectors` and leave consent banners alone unless `cookieConsent` is set on the scenario. | `hide-dynamic-elements`, `handle-cookie-consent` |
 | `waitForJQueryReady` | Wait for DOM readiness and jQuery startup callbacks when jQuery is present. Default `true`; `false` disables the hook. | `wait-for-jquery-ready` |
 | `jqueryReadyTimeout` | Maximum wait for jQuery initialization, default `30000` milliseconds. Timeouts fail capture and can retry. | `wait-for-jquery-ready` |
 | `waitForDrupalReady` | Check that Drupal has attached its registered startup behaviors. Default `true`; `false` disables the check. Non-Drupal pages are skipped. | `wait-for-drupal-ready` |
@@ -511,6 +515,30 @@ Add CSS to `defaults` or a scenario. For example:
 Use an image available on the site. Scenario CSS replaces the default CSS;
 `""` disables it for that scenario. Hiding a CAPTCHA or other changing element
 excludes it from comparison; review its replacement before updating references.
+
+### Cookie banners
+
+Cookie banners are hidden by default, without accepting cookies. Recognized
+banners include OneTrust, Cookiebot, CookieScript, and Didomi (not every custom
+version is supported).
+
+Set this in `defaults` or an individual scenario:
+
+```json
+"cookieConsent": "hide"
+```
+
+- `"hide"`: hide recognized banners and overlays without granting consent.
+- `"accept"`: click a recognized accept-all button and wait for the banner to close.
+- `"leave"`: leave recognized banners unchanged and do not click them.
+
+Acceptance may load extra tracking, images, or embeds. It runs before the other
+page-readiness checks. `cookieConsentTimeout` bounds the wait (default `3000`
+milliseconds). No recognized banner means no action; a recognized banner that
+cannot be accepted stops capture. Custom, iframe, or shadow-root banners may need
+a project hook. Explicit custom hide rules still apply in every mode.
+Existing `keepCookiebot: true` and empty `hideDynamicSelectors` opt-outs are
+preserved; use `cookieConsent` to choose a different behavior explicitly.
 
 ### Changing videos and social feeds
 

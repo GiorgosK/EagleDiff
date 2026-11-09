@@ -1,5 +1,5 @@
 {
-  "version": "2026.11.09.01",
+  "version": "2026.11.09.02",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -20,6 +20,8 @@
     "iframeTimeout": 30000,
     "waitUntil": "domcontentloaded",
     "navigationTimeout": 30000,
+    "cookieConsent": "hide",
+    "cookieConsentTimeout": 3000,
     "cookiePath": null,
     "cookies": [],
     "cookieDomain": null,
@@ -93,6 +95,7 @@
   },
   "onBeforeScript": [
     "hooks/wait-for-drupal-ready",
+    "hooks/handle-cookie-consent",
     "hooks/hide-dynamic-elements",
     "hooks/disable-animations",
     "hooks/apply-css-overrides"
@@ -100,6 +103,7 @@
   "onReadyScript": [
     "hooks/wait-for-browser-verification",
     "hooks/fail-on-response-status",
+    "hooks/handle-cookie-consent",
     "hooks/wait-for-element",
     "hooks/wait-until-gone",
     "hooks/scroll-to-bottom",

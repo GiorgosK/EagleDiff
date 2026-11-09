@@ -1,6 +1,6 @@
 // Increase readiness budgets on retries without changing concurrency or delays.
 const timeoutKeys = [
-  'navigationTimeout', 'readyTimeout', 'jqueryReadyTimeout', 'drupalReadyTimeout', 'fontTimeout', 'lazyImageTimeout', 'iframeTimeout',
+  'cookieConsentTimeout', 'navigationTimeout', 'readyTimeout', 'jqueryReadyTimeout', 'drupalReadyTimeout', 'fontTimeout', 'lazyImageTimeout', 'iframeTimeout',
   'scrollTimeout', 'waitUntilGoneTimeout', 'waitForTimeout', 'networkIdleTimeout'
 ];
 
