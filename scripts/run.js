@@ -12,6 +12,7 @@ const puppeteer = require('puppeteer-core');
 const captureScreenshot = require('./capture-screenshot');
 const { resolveHttp404Policy } = require('./hooks/fail-on-response-status');
 const { resolveOptions: resolveJQueryReadyOptions } = require('./hooks/wait-for-jquery-ready');
+const { resolveOptions: resolveMediaOptions } = require('./hooks/pause-media');
 const { resolveOptions: resolveDrupalReadyOptions } = require('./hooks/wait-for-drupal-ready');
 const { resolveOptions: resolveIframeOptions } = require('./iframe-capture');
 const trackImageRequests = require('./image-request-diagnostics');
@@ -80,6 +81,7 @@ async function main() {
       resolveIframeOptions(config, scenario);
       resolveJQueryReadyOptions(config, scenario);
       resolveDrupalReadyOptions(config, scenario);
+      resolveMediaOptions(config, scenario);
       resolveHttp404Policy(config, scenario);
     }
   }
@@ -222,6 +224,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
     resolveIframeOptions(config, scenario);
     resolveJQueryReadyOptions(config, scenario);
     resolveDrupalReadyOptions(config, scenario);
+    resolveMediaOptions(config, scenario);
     resolveHttp404Policy(config, scenario);
   }
   const reportWarning = options.warningReporter || require('./warnings').createWarningReporter();
@@ -396,6 +399,11 @@ async function captureScenarioScreenshot({
 
       await runScripts(activePage, iframeScripts, readyContext);
       const iframeOptions = resolveIframeOptions(attemptConfig, attemptScenario);
+
+      // Later hooks can introduce videos or change their sources.
+      const mediaScripts = readyScripts.filter(script =>
+        resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'pause-media.js'));
+      await runScripts(activePage, mediaScripts, readyContext);
 
       // Late content and final DOM changes can request additional font faces.
       // Recheck configured font readiness immediately before rendering.

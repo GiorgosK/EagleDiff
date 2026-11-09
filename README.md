@@ -390,6 +390,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `randomImage` | Replace selected images with fixed placeholders; use a background placeholder when the target contains no images. | `replace-random-content` |
 | `randomContent` | Replace selected elements' children with placeholder text. | `replace-random-content` |
 | `replaceContent` | Map selectors to specific replacement text. | `replace-random-content` |
+| `videoCaptureMode` | `"placeholder"` (default) replaces native videos and YouTube/Vimeo embeds; `"first-frame"` pauses native videos at the start and leaves embeds unchanged. | `pause-media` |
 | `cssOverrides` | Apply custom CSS to both reference and test captures. | `apply-css-overrides` |
 | `networkIdleTime` / `networkIdleTimeout` | Required network quiet time and maximum wait. Timing out here does not fail capture. | `wait-for-network-idle` |
 | `addParagraph` | **Scenario only:** enable a deliberate visual change during `test --addpara`. | `add-paragraph` (called automatically) |
@@ -512,6 +513,24 @@ Use an image available on the site. Scenario CSS replaces the default CSS;
 excludes it from comparison; review its replacement before updating references.
 
 ### Changing videos and social feeds
+
+The default `pause-media` hook replaces native HTML videos and recognized
+YouTube/Vimeo iframe players with neutral gray placeholders, preserving their
+size and position. This includes YouTube's privacy-enhanced embeds and lazy
+iframe URLs in `data-src` or `data-lazy-src`. It also pauses audio and blocks
+later playback. Other iframes are left alone.
+
+Set `"videoCaptureMode": "first-frame"` in `defaults` or an individual scenario
+to capture native videos paused at their first frame instead (up to 15 seconds
+to load). Remove `hooks/pause-media` from `onReadyScript` to disable both modes.
+Existing references containing video frames need review before replacement.
+
+`"first-frame"` works only with native HTML videos (`<video>`). YouTube and
+Vimeo embeds have their own playback controls and loading behavior, so this mode
+leaves them unchanged; use `"placeholder"` for consistent captures of those players.
+Other video providers, custom player wrappers, and changing social feeds may need
+a selector or custom hook.
+Placeholders are applied after initial navigation; navigation timeouts still apply.
 
 To replace changing video tiles with plain placeholders, target the wrapper
 around each video and its controls. For example, if it has class `.video-tile`:
