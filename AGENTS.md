@@ -89,13 +89,29 @@ Read them before changing files. Read [README.md](README.md) for commands and
   implementation logic or prove that a function was called.
 - Use local deterministic fixtures and temporary directories. Automated tests
   must not depend on production websites, private project data, or credentials.
-- Run focused tests while developing and the complete suite after code changes:
+- During development, run tests for the affected area. Run the fast safety checks
+  after a coherent change, especially when touching shared runner or config code:
 
   ```sh
   node --test tests/<affected-area>.test.js
-  pnpm run test:unit
+  pnpm run test:fast
   git diff --check
   ```
+
+- The fast list is in `tests/fast-tests.json`; keep test files where they are.
+  It covers screenshot identity, config compatibility, error output, reference
+  preservation, approval, and comparison exit codes. These are sensitive areas,
+  not a list of flaky tests. Other tests remain important and must be selected
+  when their behavior changes; the fast set does not cover every hook.
+- Do not automatically run the full suite during development or before presenting
+  changes for review. Continue with focused tests and `pnpm run test:fast` until
+  the human requests commits.
+- When the human requests commits containing code changes, ask to run
+  `pnpm run test:unit` before committing, unless they have already explicitly
+  requested that full run. Run it after confirmation and report the result.
+  A successful full run covering the current code need not be repeated. If later
+  code changes invalidate it, ask before rerunning. Documentation-only changes
+  need diff/link/command review, not a full runtime suite.
 
 - Use `pnpm run test:coverage` to investigate gaps when needed. Node coverage
   does not measure code executing in Chromium through `page.evaluate`; provide

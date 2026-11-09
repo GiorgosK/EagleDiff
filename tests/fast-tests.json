@@ -1,0 +1,11 @@
+[
+  "tests/screenshot-names.test.js",
+  "tests/reference-url.test.js",
+  "tests/config-version.test.js",
+  "tests/config-update.test.js",
+  "tests/cli-error.test.js",
+  "tests/warnings.test.js",
+  "tests/reference-preservation.test.js",
+  "tests/approval-preservation.test.js",
+  "tests/comparison-exit.test.js"
+]

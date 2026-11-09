@@ -18,6 +18,7 @@
     "results": "node scripts/results.js",
     "clean": "node scripts/clean.js",
     "report": "node scripts/report.js",
+    "test:fast": "node scripts/test-fast.js",
     "test:unit": "node --test --test-concurrency=4 tests/*.test.js",
     "test:coverage": "node --test --test-concurrency=4 --experimental-test-coverage tests/*.test.js"
   },
