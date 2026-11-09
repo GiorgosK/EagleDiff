@@ -8,6 +8,8 @@ const providers = [
     accept: ['#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll'] },
   { name: 'CookieScript', banners: ['#cookiescript_injected_wrapper', '#cookiescript_injected'],
     dialogs: ['#cookiescript_injected'], accept: ['#cookiescript_accept'] },
+  { name: 'Automattic/A8C', banners: ['.a8c-cookie-banner'], dialogs: ['.a8c-cookie-banner'],
+    accept: ['.a8c-cookie-banner .a8c-cookie-banner__accept-all-button'] },
   { name: 'Didomi', banners: ['#didomi-host'], dialogs: ['#didomi-notice', '#didomi-popup'], accept: ['#didomi-notice-agree-button'] }
 ];
 const bannerSelectors = providers.flatMap(provider => provider.banners);

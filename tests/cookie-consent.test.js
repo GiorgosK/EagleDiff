@@ -17,9 +17,13 @@ async function setup(t) {
 const context = (mode, timeout = 300) => ({ mode: 'ready', scenario: { cookieConsent: mode, cookieConsentTimeout: timeout }, config: template });
 
 function banner(provider) {
-  const dialog = provider.dialogs[0].slice(1);
-  const button = provider.accept[0].slice(1);
-  return `<div id="${dialog}" style="position:fixed;inset:0;background:red"><button id="${button}">Allow all</button></div>
+  const dialogSelector = provider.dialogs[0];
+  const buttonSelector = provider.accept[0].split(' ').at(-1);
+  const dialog = dialogSelector.startsWith('#') ? dialogSelector.slice(1) : 'fixture-banner';
+  const button = buttonSelector.startsWith('#') ? buttonSelector.slice(1) : 'fixture-accept';
+  const dialogClass = dialogSelector.startsWith('.') ? dialogSelector.slice(1) : '';
+  const buttonClass = buttonSelector.startsWith('.') ? buttonSelector.slice(1) : '';
+  return `<div id="${dialog}" class="${dialogClass}" style="position:fixed;inset:0;background:red"><button id="${button}" class="${buttonClass}">Allow all</button></div>
     <script>document.getElementById('${button}').onclick=()=>{
       window.accepted=(window.accepted||0)+1;
       document.cookie='fixture-consent=all; path=/';
@@ -131,6 +135,25 @@ test('invalid consent settings are rejected before browser requests or output mu
   assert.match((await fixture.run(['reference'], 1)).stderr, /cookieConsent/);
   assert.deepEqual(fixture.requests, []);
   await assert.rejects(fs.access(path.join(fixture.directory, '.reg')), { code: 'ENOENT' });
+});
+
+test('Automattic/A8C accept-all links obey hide, accept and leave without clicking customization', async t => {
+  const fixture = await require('./helpers/cli-fixture')(t);
+  fixture.pages['/one'] = '<form class="a8c-cookie-banner"><a href="#" class="a8c-cookie-banner__customize-button">Customize</a>' +
+    '<a href="#" class="a8c-cookie-banner__accept-all-button">Accept all</a></form><script>' +
+    'document.querySelector(".a8c-cookie-banner__customize-button").onclick=e=>{e.preventDefault();window.customized=true};' +
+    'document.querySelector(".a8c-cookie-banner__accept-all-button").onclick=e=>{e.preventDefault();document.cookie="fixture-accepted=all; path=/";document.querySelector("form").remove()};</script>';
+  for (const mode of ['hide', 'accept', 'leave']) {
+    const page = await setup(t);
+    await consent(page, { ...context(mode), mode: 'before' });
+    await page.goto(fixture.baseURL + '/one');
+    await consent(page, context(mode));
+    const accepted = (await page.cookies()).some(cookie => cookie.name === 'fixture-accepted');
+    assert.equal(accepted, mode === 'accept');
+    assert.equal(await page.evaluate(() => window.customized || false), false);
+    if (mode === 'accept') assert.equal(await page.$('.a8c-cookie-banner'), null);
+    else assert.equal(await page.$eval('.a8c-cookie-banner', banner => getComputedStyle(banner).display === 'none'), mode === 'hide');
+  }
 });
 
 test('capture modes produce distinct PNGs and a failed acceptance retries without replacing the baseline', async t => {

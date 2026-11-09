@@ -301,6 +301,7 @@ default hooks back; use a documented disabling setting to keep a feature off.
     "hooks/wait-for-background-images",
     "hooks/wait-for-network-idle",
     "hooks/stabilize-carousels",
+    "hooks/freeze-web-animations",
     "hooks/prepare-iframes"
   ]
 }
@@ -376,6 +377,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `waitUntilGone` | Wait for all matches to disappear or become hidden. | `wait-until-gone` |
 | `waitUntilGoneTimeout` | Maximum wait per selector. | `wait-until-gone` |
 | `scrollStepDelayMs` / `scrollSettleDelayMs` | Pause between scroll steps and after returning to the top; defaults are 100 and 300. | `scroll-to-bottom` |
+| `freezeWebAnimations` | Freeze time-based browser animations at their first frame. Default `true`; `false` disables it. | `freeze-web-animations` |
 | `carouselSelectors` | Pause supported carousels and return them to the first slide. `null` detects known libraries; `[]` disables it. | `stabilize-carousels` |
 | `carouselSettleDelayMs` | Pause after resetting carousels. | `stabilize-carousels` |
 | `hideDynamicSelectors` | Apply `display: none`, including to elements added later. | `hide-dynamic-elements` |
@@ -515,11 +517,24 @@ Use an image available on the site. Scenario CSS replaces the default CSS;
 `""` disables it for that scenario. Hiding a CAPTCHA or other changing element
 excludes it from comparison; review its replacement before updating references.
 
+### Moving content
+
+The `freeze-web-animations` hook pauses time-based browser animations at their
+first frame, including scrolling strips. It handles JavaScript Web Animations
+and CSS animations that override the `disable-animations` rules, including
+animations started or replayed later.
+
+Set `"freezeWebAnimations": false` in `defaults` or a scenario, or remove
+`hooks/freeze-web-animations`, to disable it. Pausing can hide entrance content
+or hold animation-finished callbacks; disable this hook when that is unsuitable.
+Animations driven by timers, direct style updates, scrolling, or iframe players
+may need a custom hook. Browser timers and animation-frame callbacks keep running.
+
 ### Cookie banners
 
 Cookie banners are hidden by default, without accepting cookies. Recognized
-banners include OneTrust, Cookiebot, CookieScript, and Didomi (not every custom
-version is supported).
+banners include OneTrust, Cookiebot, CookieScript, Didomi, and Automattic/A8C
+(not every custom version is supported).
 
 Set this in `defaults` or an individual scenario:
 

@@ -13,6 +13,7 @@ const captureScreenshot = require('./capture-screenshot');
 const { resolveHttp404Policy } = require('./hooks/fail-on-response-status');
 const { resolveOptions: resolveJQueryReadyOptions } = require('./hooks/wait-for-jquery-ready');
 const { resolveOptions: resolveCookieConsentOptions } = require('./cookie-consent');
+const { resolveOptions: resolveWebAnimationOptions } = require('./hooks/freeze-web-animations');
 const { resolveOptions: resolveMediaOptions } = require('./hooks/pause-media');
 const { resolveOptions: resolveDrupalReadyOptions } = require('./hooks/wait-for-drupal-ready');
 const { resolveOptions: resolveIframeOptions } = require('./iframe-capture');
@@ -83,6 +84,7 @@ async function main() {
       resolveJQueryReadyOptions(config, scenario);
       resolveDrupalReadyOptions(config, scenario);
       resolveMediaOptions(config, scenario);
+      resolveWebAnimationOptions(config, scenario);
       resolveCookieConsentOptions(config, scenario);
       resolveHttp404Policy(config, scenario);
     }
@@ -227,6 +229,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
     resolveJQueryReadyOptions(config, scenario);
     resolveDrupalReadyOptions(config, scenario);
     resolveMediaOptions(config, scenario);
+    resolveWebAnimationOptions(config, scenario);
     resolveCookieConsentOptions(config, scenario);
     resolveHttp404Policy(config, scenario);
   }
@@ -402,6 +405,11 @@ async function captureScenarioScreenshot({
 
       await runScripts(activePage, iframeScripts, readyContext);
       const iframeOptions = resolveIframeOptions(attemptConfig, attemptScenario);
+
+      // Catch animations started by late page changes, including viewport-dependent players.
+      const animationScripts = readyScripts.filter(script =>
+        resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'freeze-web-animations.js'));
+      await runScripts(activePage, animationScripts, readyContext);
 
       // Later hooks can introduce videos or change their sources.
       const mediaScripts = readyScripts.filter(script =>
