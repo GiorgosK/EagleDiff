@@ -402,7 +402,8 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `replaceContent` | Map selectors to specific replacement text. | `replace-random-content` |
 | `videoCaptureMode` | `"placeholder"` (default) replaces native videos and YouTube/Vimeo embeds; `"first-frame"` pauses native videos at the start and leaves embeds unchanged. | `pause-media` |
 | `cssOverrides` | Apply custom CSS to both reference and test captures. | `apply-css-overrides` |
-| `networkIdleTime` / `networkIdleTimeout` | Required network quiet time and maximum wait. Timing out here does not fail capture. | `wait-for-network-idle` |
+| `networkIdleTime` | Continuous network quiet period required by this hook, default `500` milliseconds. | `wait-for-network-idle` |
+| `networkIdleTimeout` | Maximum time spent looking for that quiet period, default `5000` milliseconds. It is not an added delay; expiration continues capture. | `wait-for-network-idle` |
 | `addParagraph` | **Scenario only:** enable a deliberate visual change during `test --addpara`. | `add-paragraph` (called automatically) |
 | `addParagraphTarget` | **Scenario only:** element to append the test paragraph to; defaults to `main`, falling back to `body`. | `add-paragraph` |
 | `addParagraphText` / `addParagraphSelector` | **Scenario only:** injected text and wrapper ID; defaults are `Eaglediff injected paragraph` and `#eaglediff-paragraph`. | `add-paragraph` |
@@ -606,6 +607,19 @@ Review the placeholders before updating references.
 Use `requiredFonts` to also require specific declared fonts, such as
 `["400 16px Inter"]`. Missing or failed fonts stop capture; `fontTimeout`
 controls the wait.
+
+### Network idle
+
+`networkIdleTime` is the continuous quiet period to look for; `networkIdleTimeout`
+is the maximum time to spend looking. With the defaults, the hook looks for
+500 ms without active requests and gives up after 5 seconds. It continues when
+that limit expires; it does not wait another 5 seconds after the network settles.
+
+The wait starts when `wait-for-network-idle` is reached in `onReadyScript`, after
+most image/font preparation. Carousel, animation, iframe and final resource checks
+can still run afterward. It does not extend earlier waits, such as browser
+verification, or prove that application content has finished updating. Use a
+ready selector or stable-content check for specific page content.
 
 ### Automatic browser verification
 
