@@ -369,9 +369,10 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `readyVisible` | Require the ready element to be visible as well as present. | `wait-for-element` |
 | `http404Policy` | Main-page 404 handling: `"warn"` (default) logs a warning and continues; `"error"` stops capture. Scenario values override defaults. | `fail-on-response-status` |
 | `failOnResponseStatusCodes` | Other main-page HTTP status codes that fail capture; 404 uses `http404Policy`. | `fail-on-response-status` |
-| `browserVerification.challengeSelectors` | Detect a browser-verification page; wait for these markers to disappear. | `wait-for-browser-verification` |
+| `browserVerification.challengeSelectors` | Identify verification; wait for its markers to disappear or its screen to be replaced. | `wait-for-browser-verification` |
+| `browserVerification.settleDelayMs` | After verification is detected, its structure must stay absent in a ready document for this long; default `500` milliseconds. | `wait-for-browser-verification` |
 | `browserVerification.errorSelectors` | Visible error markers that fail capture during verification. | `wait-for-browser-verification` |
-| `browserVerification.timeout` | Maximum wait for verification to finish. | `wait-for-browser-verification` |
+| `browserVerification.timeout` | Total wait budget, including redirects and settling, default `30000` milliseconds. | `wait-for-browser-verification` |
 | `waitForStableContent.triggerSelectors` | Only wait when at least one trigger exists. With no triggers, a target must already exist. | `wait-for-stable-content` |
 | `waitForStableContent.selectors` | Elements to watch for stable dimensions, child count, and text length. | `wait-for-stable-content` |
 | `waitForStableContent.timeout` | Maximum wait per stage for targets to appear and settle. Timeouts report matched elements and can retry. | `wait-for-stable-content` |
@@ -605,6 +606,44 @@ Review the placeholders before updating references.
 Use `requiredFonts` to also require specific declared fonts, such as
 `["400 16px Inter"]`. Missing or failed fonts stop capture; `fontTimeout`
 controls the wait.
+
+### Automatic browser verification
+
+For an automatic verification page, `browserVerification.challengeSelectors`
+should identify its HTML container. The default matches a BotBuster script;
+configure other verification pages using their own HTML structure.
+Once detected, the hook remembers the visible elements on that screen in memory.
+It continues when the matching structure disappears, or those original elements
+are removed and replaced with page content while only non-visible markers, such
+as script tags, remain. Text changes and spinner animations do not count as
+completion. No HTML snapshot is saved to disk.
+
+The cleared screen must settle for `settleDelayMs` (default 500 ms), with the
+document no longer loading. Redirects or a reappearing challenge restart that
+settling period. If a site keeps and reuses the same screen container, configure
+its verification container selector for a more precise check.
+
+For example, using the verification page's actual container selector:
+
+```json
+"browserVerification": {
+  "challengeSelectors": [".verification-screen"],
+  "timeout": 60000,
+  "settleDelayMs": 500
+}
+```
+
+The timeout is one total budget, not a separate allowance for each redirect.
+Pages without detected verification skip the settling wait. A visible configured
+error or an unfinished verification stops capture; timeout messages show whether
+the structure was detected or the document was still loading. These failures are
+not automatically retried. Known CDN challenge detection still stops capture,
+as described under [CDN or security verification pages](#cdn-or-security-verification-pages).
+
+Repeated requests may trigger protection, but a timeout alone does not prove
+that. Use filtered runs or fewer workers to reduce traffic while investigating,
+or ask the site's administrator about approved test access. Eaglediff does not
+solve CAPTCHAs or bypass verification.
 
 ### Slow or interrupted captures
 

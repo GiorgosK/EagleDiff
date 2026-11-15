@@ -1,5 +1,5 @@
 {
-  "version": "2026.11.09.06",
+  "version": "2026.11.09.07",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -41,7 +41,8 @@
     "browserVerification": {
       "challengeSelectors": ["script[src*=\"/botbuster/js/challenge.js\"]"],
       "errorSelectors": ["#error"],
-      "timeout": 30000
+      "timeout": 30000,
+      "settleDelayMs": 500
     },
     "waitForStableContent": {
       "triggerSelectors": [

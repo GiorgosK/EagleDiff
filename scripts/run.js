@@ -13,6 +13,7 @@ const captureScreenshot = require('./capture-screenshot');
 const { resolveHttp404Policy } = require('./hooks/fail-on-response-status');
 const { resolveOptions: resolveJQueryReadyOptions } = require('./hooks/wait-for-jquery-ready');
 const { resolveOptions: resolveCookieConsentOptions } = require('./cookie-consent');
+const { resolveOptions: resolveBrowserVerificationOptions } = require('./hooks/wait-for-browser-verification');
 const { resolveOptions: resolveSVGAnimationOptions } = require('./hooks/stabilize-svg-animations');
 const { resolveOptions: resolveWebAnimationOptions } = require('./hooks/freeze-web-animations');
 const { resolveOptions: resolveMediaOptions } = require('./hooks/pause-media');
@@ -88,6 +89,7 @@ async function main() {
       resolveWebAnimationOptions(config, scenario);
       resolveSVGAnimationOptions(config, scenario);
       resolveCookieConsentOptions(config, scenario);
+      resolveBrowserVerificationOptions(config, scenario);
       resolveHttp404Policy(config, scenario);
     }
   }
@@ -234,6 +236,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
     resolveWebAnimationOptions(config, scenario);
     resolveSVGAnimationOptions(config, scenario);
     resolveCookieConsentOptions(config, scenario);
+    resolveBrowserVerificationOptions(config, scenario);
     resolveHttp404Policy(config, scenario);
   }
   const reportWarning = options.warningReporter || require('./warnings').createWarningReporter();
