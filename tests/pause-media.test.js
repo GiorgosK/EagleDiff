@@ -76,6 +76,32 @@ test('placeholder mode does not wait for broken or unavailable video sources', a
   assert.deepEqual(await pngPixel(page, png), [226, 229, 232, 255]);
 });
 
+test('auto-sized placeholders have identical geometry before and after video metadata loads', async t => {
+  const { page, source } = await setup(t);
+  await page.setViewport({ width: 400, height: 400 });
+  const capture = async loaded => {
+    await page.goto('about:blank');
+    await page.setContent(`<style>body{margin:0}video{width:100%;height:auto}</style>
+      <video preload="none" muted src="${source}"></video><p>After video</p>`);
+    if (loaded) {
+      await page.$eval('video', video => { video.preload = 'auto'; video.load(); });
+      await page.waitForFunction(() => document.querySelector('video').readyState >= 1);
+    } else {
+      assert.equal(await page.$eval('video', video => video.readyState), 0);
+    }
+    await pause(page);
+    const geometry = await page.$eval('video', video => ({
+      width: video.getBoundingClientRect().width, height: video.getBoundingClientRect().height,
+      nextY: document.querySelector('p').getBoundingClientRect().y
+    }));
+    return { geometry, png: Buffer.from(await page.screenshot()) };
+  };
+  const before = await capture(false);
+  const after = await capture(true);
+  assert.deepEqual(after.geometry, before.geometry);
+  assert.deepEqual(after.png, before.png);
+});
+
 test('video mode defaults and scenario overrides survive config updates and imports', () => {
   const template = require('../config-default.json');
   const { updateConfig } = require('../scripts/config-update');
@@ -185,7 +211,8 @@ test('runner prepares videos introduced after pause-media, and hook removal disa
       return [...ctx.getImageData(50, 50, 1, 1).data];
     }, 'data:image/png;base64,' + png.toString('base64'));
   };
-  assert((await color())[0] > 240, 'saved PNG must contain the first red frame');
+  const savedColor = await color();
+  assert(savedColor[0] > 240, `saved PNG must contain the first red frame: ${savedColor}`);
   fixture.config.onReadyScript = [lateHook];
   await fixture.save();
   await fixture.run(['reference']);

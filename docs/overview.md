@@ -103,6 +103,9 @@ concurrency is a separate setting and does not change project workers.
 
 ## Hook responsibilities and order
 
+Native video placeholders measure their box after source/poster removal, retaining
+explicit sizing without a race between empty-video and metadata-derived dimensions.
+
 Hooks run in configured order, with the bundled selector-clipping hook deferred
 until after final DOM edits and font readiness. Project-specific order matters:
 a selector initialized on `window.load`, for example, can depend on images

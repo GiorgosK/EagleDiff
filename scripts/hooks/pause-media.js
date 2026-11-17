@@ -50,7 +50,6 @@ module.exports = async function pauseMedia(page, context = {}) {
       if (media.autoplay) media.autoplay = false;
       media.pause();
       if (mode === 'placeholder' && media instanceof HTMLVideoElement) {
-        preserveBox(media);
         const hadSource = media.hasAttribute('src') || media.srcObject ||
           media.querySelector('source[src]');
         if (media.hasAttribute('src')) media.removeAttribute('src');
@@ -59,6 +58,9 @@ module.exports = async function pauseMedia(page, context = {}) {
         if (media.hasAttribute('poster')) media.removeAttribute('poster');
         if (media.controls) media.controls = false;
         if (hadSource) media.load();
+        // Measure the empty element: metadata/poster timing must not choose an
+        // intrinsic size. CSS sizes, aspect ratios and HTML dimensions still apply.
+        preserveBox(media);
       } else if (media.readyState >= 1 && Number.isFinite(media.duration) && media.currentTime !== 0) {
         media.currentTime = 0;
       }

@@ -569,10 +569,14 @@ opt-outs are preserved; set `cookieConsent` explicitly to override them.
 ### Changing videos and social feeds
 
 The default `pause-media` hook replaces native HTML videos and recognized
-YouTube/Vimeo iframe players with neutral gray placeholders, preserving their
-size and position. This includes YouTube's privacy-enhanced embeds and lazy
-iframe URLs in `data-src` or `data-lazy-src`. It also pauses audio and blocks
-later playback. Other iframes are left alone.
+YouTube/Vimeo iframe players with neutral gray placeholders. This includes
+YouTube's privacy-enhanced embeds and lazy iframe URLs in `data-src` or
+`data-lazy-src`. It also pauses audio and blocks later playback.
+
+Explicit CSS and HTML sizes are preserved. Auto-sized native placeholders use
+the browser's empty video sizing, so metadata or poster loading cannot change
+the captured layout. Use a CSS aspect ratio when a particular video shape matters.
+Existing references with auto-sized videos may need review.
 
 Set `"videoCaptureMode": "first-frame"` in `defaults` or an individual scenario
 to capture native videos paused at their first frame instead (up to 15 seconds
