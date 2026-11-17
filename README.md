@@ -172,7 +172,9 @@ eaglediff reference --last-failed
 eaglediff report --all
 ```
 
-`--filter` matches labels, IDs, or URLs. `--last-failed` selects failed pages at
+`--filter` matches labels, IDs, and URL paths, queries or fragments, ignoring
+the URL's domain. Matching is case-insensitive; commas separate alternatives.
+`--last-failed` selects failed pages at
 all configured viewports and cannot be combined with `--filter`. It does nothing
 when no pages failed; removed or renamed identities may no longer match.
 Both options work with `reference`, `test`, and `calibrate`.

@@ -228,7 +228,7 @@ Commands and examples:
 Options:
   --dir <path>         Project folder; defaults to the current directory.
   --script-dir <path>  Use scripts from another Eaglediff checkout.
-  --filter <text>      Match scenario labels or URLs for reference/test/calibrate.
+  --filter <text>      Match labels, IDs or URL paths (not domains).
   --last-failed        Select failed pages from the latest comparison (reference/test/calibrate).
   --reference          Browse reference captures (report only).
   --all                Show all available results (report only).

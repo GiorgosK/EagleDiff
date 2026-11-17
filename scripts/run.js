@@ -891,13 +891,15 @@ function filterScenarios(scenarios, filter, config) {
     .filter(Boolean);
 
   const selected = scenarios.filter((scenario) => {
+    // Match page details, never the shared host (including absolute scenario URLs).
+    const pagePart = value => String(value ?? '').replace(/^(?:https?:)?\/\/[^/?#]*/i, '');
     const values = [
-      getScenarioLabel(scenario),
+      scenario.label || getScenarioLabel({ url: pagePart(getScenarioUrl(scenario)) }),
       scenario.id,
-      scenario.url,
-      scenario.referenceUrl,
-      buildScenarioUrl(config.referenceBaseURL || '', getScenarioReferenceUrl(scenario)),
-      buildScenarioUrl(config.testBaseURL || '', getScenarioUrl(scenario))
+      pagePart(scenario.url),
+      pagePart(scenario.referenceUrl),
+      pagePart(buildScenarioUrl(config.referenceBaseURL || '', getScenarioReferenceUrl(scenario))),
+      pagePart(buildScenarioUrl(config.testBaseURL || '', getScenarioUrl(scenario)))
     ]
       .filter(Boolean)
       .map((value) => String(value).toLowerCase());
@@ -1257,6 +1259,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  filterScenarios,
   captureScreenshots,
   resolveChromePath,
   buildBrowserLaunchOptions,
