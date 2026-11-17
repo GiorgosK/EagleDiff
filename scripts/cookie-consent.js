@@ -10,6 +10,9 @@ const providers = [
     dialogs: ['#cookiescript_injected'], accept: ['#cookiescript_accept'] },
   { name: 'Automattic/A8C', banners: ['.a8c-cookie-banner'], dialogs: ['.a8c-cookie-banner'],
     accept: ['.a8c-cookie-banner .a8c-cookie-banner__accept-all-button'] },
+  { name: 'Cookie Consent component', banners: ['#cookie-consent.cookie-consent__wrapper'],
+    dialogs: ['#cookie-consent.cookie-consent__wrapper--visible'],
+    accept: ['#cookie-consent.cookie-consent__wrapper--visible .cookie-all__btn'] },
   { name: 'Didomi', banners: ['#didomi-host'], dialogs: ['#didomi-notice', '#didomi-popup'], accept: ['#didomi-notice-agree-button'] }
 ];
 const bannerSelectors = providers.flatMap(provider => provider.banners);

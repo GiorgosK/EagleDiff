@@ -544,7 +544,8 @@ Unknown scripted SVG players may need a project hook.
 ### Cookie banners
 
 Cookie banners are hidden by default, without accepting cookies. Recognized
-banners include OneTrust, Cookiebot, CookieScript, Didomi, and Automattic/A8C
+banners include OneTrust, Cookiebot, CookieScript, Didomi, Automattic/A8C,
+and the `cookie-consent` component used by Opera
 (not every custom version is supported).
 
 Set this in `defaults` or an individual scenario:

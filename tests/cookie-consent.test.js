@@ -19,9 +19,9 @@ const context = (mode, timeout = 300) => ({ mode: 'ready', scenario: { cookieCon
 function banner(provider) {
   const dialogSelector = provider.dialogs[0];
   const buttonSelector = provider.accept[0].split(' ').at(-1);
-  const dialog = dialogSelector.startsWith('#') ? dialogSelector.slice(1) : 'fixture-banner';
+  const dialog = dialogSelector.startsWith('#') ? dialogSelector.slice(1).split('.')[0] : 'fixture-banner';
   const button = buttonSelector.startsWith('#') ? buttonSelector.slice(1) : 'fixture-accept';
-  const dialogClass = dialogSelector.startsWith('.') ? dialogSelector.slice(1) : '';
+  const dialogClass = dialogSelector.split('.').slice(1).join(' ');
   const buttonClass = buttonSelector.startsWith('.') ? buttonSelector.slice(1) : '';
   return `<div id="${dialog}" class="${dialogClass}" style="position:fixed;inset:0;background:red"><button id="${button}" class="${buttonClass}">Allow all</button></div>
     <script>document.getElementById('${button}').onclick=()=>{
@@ -126,6 +126,44 @@ test('consent defaults, explicit overrides, import and retry budgets retain thei
   assert.equal(withRetryTimeouts({ core: { temporaryErrorRetryTimeoutMultiplier: 2 } }, { cookieConsentTimeout: 123 }, 1).scenario.cookieConsentTimeout, 246);
   for (const cookieConsent of [false, '', 'unknown']) assert.throws(() => resolveOptions({}, { cookieConsent }), /cookieConsent/);
   for (const cookieConsentTimeout of [0, -1, Infinity, '100']) assert.throws(() => resolveOptions({}, { cookieConsentTimeout }), /positive number/);
+});
+
+test('cookie-consent component supports hide, accept-all and leave with class-based closing', async t => {
+  const f = await require('./helpers/cli-fixture')(t);
+  f.pages['/one'] = `<style>body{background:blue}
+    #cookie-consent{position:fixed;inset:0;background:red}
+    #cookie-consent:not(.cookie-consent__wrapper--visible){visibility:hidden}</style>
+    <div id="cookie-consent" class="cookie-consent__wrapper">
+      <div class="cookie-selection__btn" role="button">Accept selection</div>
+      <div class="cookie-all__btn" role="button">Accept all</div>
+    </div><button id="unrelated">Accept all</button><script>
+      setTimeout(()=>document.querySelector('#cookie-consent').classList.add('cookie-consent__wrapper--visible'),50);
+      document.querySelector('.cookie-selection__btn').onclick=()=>window.selectionClicked=true;
+      document.querySelector('#unrelated').onclick=()=>window.unrelatedClicked=true;
+      document.querySelector('.cookie-all__btn').onclick=()=>{
+        window.allClicked=(window.allClicked||0)+1;
+        document.cookie='fixture-consent=all; path=/';
+        document.querySelector('#cookie-consent').classList.remove('cookie-consent__wrapper--visible');
+      };
+    </script>`;
+  for (const mode of ['hide', 'accept', 'leave']) {
+    const page = await setup(t);
+    await consent(page, { ...context(mode, 1000), mode: 'before' });
+    await page.goto(f.baseURL + '/one');
+    await page.waitForFunction(() => document.querySelector('#cookie-consent').classList.contains('cookie-consent__wrapper--visible'));
+    await consent(page, context(mode, 1000));
+    const state = await page.evaluate(() => ({
+      accepted: window.allClicked || 0, selection: !!window.selectionClicked, unrelated: !!window.unrelatedClicked,
+      display: getComputedStyle(document.querySelector('#cookie-consent')).display,
+      open: document.querySelector('#cookie-consent').classList.contains('cookie-consent__wrapper--visible')
+    }));
+    assert.equal(state.accepted, mode === 'accept' ? 1 : 0);
+    assert.equal(state.selection, false);
+    assert.equal(state.unrelated, false);
+    assert.equal(state.open, mode !== 'accept');
+    assert.equal(state.display === 'none', mode === 'hide');
+    assert.equal((await page.cookies()).some(cookie => cookie.name === 'fixture-consent' && cookie.value === 'all'), mode === 'accept');
+  }
 });
 
 test('invalid consent settings are rejected before browser requests or output mutations', async t => {
