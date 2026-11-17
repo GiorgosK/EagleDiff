@@ -134,6 +134,10 @@ This targets standard main-document Drupal initialization; deliberate deferred
 behaviors or component-only startup can require opting out. jQuery readiness
 alone cannot establish Drupal startup, and persistent missed initialization
 requires a site fix rather than a longer delay.
+Timeout diagnostics distinguish pending functions after observed full-document
+calls from startup that was never observed. Script-load/parser observation can
+miss a definition and immediate startup within one bundled script; in that case
+the timeout does not establish that initialization actually failed.
 
 Image hooks have distinct responsibilities:
 

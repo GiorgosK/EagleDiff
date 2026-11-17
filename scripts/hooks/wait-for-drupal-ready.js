@@ -13,6 +13,7 @@ function observeDrupalStartup() {
   if (window.__eaglediffDrupalStartup) return;
   const attached = new WeakSet();
   const wrappers = [];
+  let fullDocumentCalls = 0;
   const inspect = () => {
     const drupal = window.Drupal;
     if (!drupal || typeof drupal.attachBehaviors !== 'function') return;
@@ -23,7 +24,10 @@ function observeDrupalStartup() {
       const behaviors = Object.values(drupal.behaviors || {})
         .map(behavior => behavior?.attach).filter(attach => typeof attach === 'function');
       const result = original.apply(this, args);
-      if (fullDocument) for (const attach of behaviors) attached.add(attach);
+      if (fullDocument) {
+        fullDocumentCalls += 1;
+        for (const attach of behaviors) attached.add(attach);
+      }
       return result;
     };
     drupal.attachBehaviors = wrapper;
@@ -36,6 +40,7 @@ function observeDrupalStartup() {
   const observer = new MutationObserver(inspect);
   observer.observe(document, { childList: true, subtree: true });
   window.__eaglediffDrupalStartup = {
+    get fullDocumentCalls() { return fullDocumentCalls; },
     pending() {
       inspect();
       return Object.entries(window.Drupal?.behaviors || {})
@@ -76,14 +81,14 @@ module.exports = async function waitForDrupalReady(page, context = {}) {
       while (true) {
         const pending = monitor.pending();
         if (pending.length) {
-          if (performance.now() >= deadline) return { pending };
+          if (performance.now() >= deadline) return { pending, fullDocumentCalls: monitor.fullDocumentCalls };
           await new Promise(resolve => setTimeout(resolve, Math.min(50, Math.max(0, deadline - performance.now()))));
         } else {
           // Let callbacks from the same startup task finish before checking again.
           await new Promise(resolve => setTimeout(resolve, 0));
           const late = monitor.pending();
           if (!late.length) return { imagesChanged: beforeImages !== images() };
-          if (performance.now() >= deadline) return { pending: late };
+          if (performance.now() >= deadline) return { pending: late, fullDocumentCalls: monitor.fullDocumentCalls };
         }
       }
     } finally {
@@ -94,7 +99,10 @@ module.exports = async function waitForDrupalReady(page, context = {}) {
     throw new Error('Drupal startup tracking is missing. Add hooks/wait-for-drupal-ready to both onBeforeScript and onReadyScript, or remove it from both lists.');
   }
   if (result.pending) {
-    const error = new Error(`Drupal startup did not attach ${result.pending.length} registered behavior(s) within ${timeout}ms:\n${result.pending.slice(0, 12).join(', ')}${result.pending.length > 12 ? ', ...' : ''}\nStartup scripts may have loaded after Drupal initialization. Check the site script/consent loading order. Use core.temporaryErrorRetries=1 for a fresh-page retry; increase drupalReadyTimeout for genuinely slow startup, or set waitForDrupalReady=false to disable this check.`);
+    const observation = result.fullDocumentCalls
+      ? `Observed ${result.fullDocumentCalls} completed whole-page startup call(s), but these behavior functions were not included. They may have registered or changed afterward.`
+      : 'No completed whole-page startup call was observed. Startup may be blocked, or the tracker may have missed an earlier call; this alone does not prove the page is broken.';
+    const error = new Error(`Drupal startup was not confirmed for ${result.pending.length} registered behavior(s) within ${timeout}ms:\n${result.pending.slice(0, 12).join(', ')}${result.pending.length > 12 ? ', ...' : ''}\n${observation}\nFresh-page retries follow core.temporaryErrorRetries (default 1). If this persists, check script/consent loading order. Increase drupalReadyTimeout only for genuinely slow startup. Set waitForDrupalReady=false only when intentionally opting out of this check.`);
     error.code = 'EAGLEDIFF_DRUPAL_READY_TIMEOUT';
     throw error;
   }

@@ -101,11 +101,41 @@ test('unattached behaviors time out without hiding the menu or calling initializ
   await page.evaluate(() => Drupal.attachBehaviors(document.querySelector('nav')));
   const count = await page.evaluate(() => attachLog.length);
   await assert.rejects(wait(page, { scenario: { drupalReadyTimeout: 100 } }), error => {
-    assert.equal(error.code, 'EAGLEDIFF_DRUPAL_READY_TIMEOUT'); assert.match(error.message, /menu/); return true;
+    assert.equal(error.code, 'EAGLEDIFF_DRUPAL_READY_TIMEOUT');
+    assert.match(error.message, /menu/);
+    assert.match(error.message, /Observed 1 completed whole-page startup call/);
+    return true;
   });
   assert.equal(await page.evaluate(() => attachLog.length), count);
   assert.equal(await page.$eval('nav', element => element.hidden), false);
   assert.equal(await page.evaluate(() => Drupal.attachBehaviors === originalAttach), true);
+});
+
+test('unobserved startup is reported as uncertain even when the page initialized before tracking', async t => {
+  const { browser, base } = await fixture(t);
+  const page = await browser.newPage();
+  await wait(page, { mode: 'before' });
+  await page.setRequestInterception(true);
+  page.on('request', request => {
+    if (request.url() === base + '/bundled') {
+      return request.respond({ contentType: 'text/html', body: `<nav>Menu</nav><script>
+        window.Drupal = {behaviors:{menu:{attach(){document.querySelector('nav').hidden=true;}}},
+          attachBehaviors(){this.behaviors.menu.attach();}};
+        Drupal.attachBehaviors(document);
+      </script>` });
+    }
+    return request.continue();
+  });
+  await page.goto(base + '/bundled', { waitUntil: 'load' });
+  assert.equal(await page.$eval('nav', element => element.hidden), true);
+  await assert.rejects(wait(page, { scenario: { drupalReadyTimeout: 100 } }), error => {
+    assert.equal(error.code, 'EAGLEDIFF_DRUPAL_READY_TIMEOUT');
+    assert.match(error.message, /No completed whole-page startup call was observed/);
+    assert.match(error.message, /tracker may have missed an earlier call/);
+    return true;
+  });
+  assert.equal(await page.$eval('nav', element => element.hidden), true);
+  assert.equal(await page.evaluate(() => __eaglediffDrupalStartup.disposed), true);
 });
 
 test('a startup failure retries in a fresh context; persistent failures produce no screenshot and worker count is preserved', async t => {
@@ -119,7 +149,7 @@ test('a startup failure retries in a fresh context; persistent failures produce 
   assert.equal(files.length, 1);
   assert.deepEqual(await pngColor(browser, path.join(directory, files[0])), [0, 255, 0, 255]);
   selection.scenarios[0].url = '/always';
-  await assert.rejects(captureScreenshots(browser, config, selection, directory, base, false, 'reference'), /Drupal startup did not attach/);
+  await assert.rejects(captureScreenshots(browser, config, selection, directory, base, false, 'reference'), /Drupal startup was not confirmed/);
   assert.equal(requests.get('/always'), 2);
   assert.deepEqual(await fs.readdir(directory), files);
   assert.equal(browser.browserContexts().length, 1);

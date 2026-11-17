@@ -682,6 +682,13 @@ capture and can retry; the hooks do not force initialization or hide menus.
 Drupal sites that intentionally defer behaviors or initialize only selected
 components may need to disable its check. It watches the main page, not iframes.
 
+A Drupal timeout means Eaglediff could not confirm attachment, not necessarily
+that the page is broken. The error reports whether it observed whole-page
+startup before finding pending behaviors, or never observed startup. Temporary
+failures already get one fresh-page retry by default. A longer timeout helps
+slow startup, but cannot fix scripts that never initialize. Eaglediff does not
+rerun Drupal initialization because that can duplicate page actions.
+
 ### Waiting for page content
 
 Library readiness cannot predict later application updates. For a form that
