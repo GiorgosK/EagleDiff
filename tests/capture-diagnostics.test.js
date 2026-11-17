@@ -8,6 +8,7 @@ const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 const { createWarningReporter } = require('../scripts/warnings');
 const waitForElement = require('../scripts/hooks/wait-for-element');
+const readCaptureLog = require('./helpers/capture-log');
 
 test('warnings are deduplicated by type for each run', () => {
   const messages = [];
@@ -61,6 +62,7 @@ test('parallel captures warn once and stop other workers on missing readiness', 
   });
   const baseURL = `http://127.0.0.1:${server.address().port}`;
   const config = {
+    version: require('../config-default.json').version,
     referenceBaseURL: baseURL, testBaseURL: baseURL,
     defaults: { delay: 0, waitUntil: 'domcontentloaded', fullPage: false, readySelector: 'footer' },
     onReadyScript: ['hooks/wait-for-element', 'hooks/normalize-image-decoding'],
@@ -76,17 +78,21 @@ test('parallel captures warn once and stop other workers on missing readiness', 
   await fs.writeFile(configPath, JSON.stringify(config));
   const result = await run();
   assert.equal((result.stderr.match(/Some JPEG images/g) || []).length, 1);
-  assert.match(result.stderr, /allow CORS/);
+  const warningLog = readCaptureLog(result.stderr);
+  assert.match(warningLog, /allow CORS/);
+  assert.equal((warningLog.match(/WARNING image-normalization-skipped/g) || []).length, 1);
 
   config.scenarios = [{ url: '/broken', label: 'Broken gallery' }];
   await fs.writeFile(configPath, JSON.stringify(config));
   for (const workers of [1, 2]) {
     await assert.rejects(run(workers), error => {
       assert.match(error.stderr, /Broken gallery @ phone \(100x100\)/);
-      assert(error.stderr.includes(`Page URL: ${baseURL}/broken`));
-      assert(error.stderr.includes(`Final page URL: ${baseURL}/gallery`));
+      const details = readCaptureLog(error.stderr);
+      assert(details.includes(`Page URL: ${baseURL}/broken`));
+      assert(details.includes(`Final page URL: ${baseURL}/gallery`));
       assert.match(error.stderr, /Hook: hooks\/normalize-image-decoding/);
-      assert(error.stderr.includes(`Cannot normalize image (404): ${baseURL}/missing.jpg`));
+      assert(details.includes(`Cannot normalize image (404): ${baseURL}/missing.jpg`));
+      assert(error.stderr.split('\n').filter(Boolean).length <= 8, error.stderr);
       assert.equal((error.stderr.match(/Capture failed/g) || []).length, 1);
       assert.match(error.stdout, /reference failed in/);
       assert.doesNotMatch(error.stdout, /reference completed in/);
@@ -103,7 +109,7 @@ test('parallel captures warn once and stop other workers on missing readiness', 
   await assert.rejects(run(), error => {
     assert.equal(error.killed, false);
     assert.match(error.stderr, /Required readySelector "\.missing"/);
-    assert(error.stderr.includes(`Page URL: ${baseURL}/missing`));
+    assert(readCaptureLog(error.stderr).includes(`Page URL: ${baseURL}/missing`));
     assert.match(error.stderr, /Hook: hooks\/wait-for-element/);
     assert.doesNotMatch(error.stdout, /must-not-start/);
     return true;

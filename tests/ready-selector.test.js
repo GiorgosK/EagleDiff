@@ -39,7 +39,7 @@ test('new defaults capture footer-free pages with all bundled hooks and still re
   f.pages['/two'] = '<img src="/missing-image.svg">';
   const failed = await f.run(['test', '--workers=2'], 1);
   assert.match(failed.stderr, /Hook: hooks\/load-lazy-images/);
-  assert.match(failed.stderr, /missing-image\.svg/);
+  assert.match(require('./helpers/capture-log')(failed.stderr), /missing-image\.svg/);
 });
 
 test('scenario empty strings disable inherited waits while defaults and legacy root fallbacks still work', async t => {

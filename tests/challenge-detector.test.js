@@ -5,6 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const puppeteer = require('puppeteer-core');
 const fixture = require('./helpers/cli-fixture');
+const readCaptureLog = require('./helpers/capture-log');
 const { buildBrowserLaunchOptions } = require('../scripts/run');
 const captureScreenshot = require('../scripts/capture-screenshot');
 const { assertNoChallenge, detectChallengeHeaders, challengeError } = require('../scripts/challenge-detector');
@@ -107,7 +108,7 @@ test('reference and test stop without retries, baseline changes, or an approvabl
         const failed = await f.run([command, `--workers=${workers}`], 1);
         assert(failed.stderr.includes(provider));
         assert.match(failed.stderr, /Warning:.*security challenge detected/);
-        assert.match(failed.stderr, /staging\/development environment/);
+        assert.match(readCaptureLog(failed.stderr), /staging\/development environment/);
         assert.doesNotMatch(failed.stderr + failed.stdout, /retrying/);
         assert.equal(f.requests.filter(url => url === '/two').length, 1);
         assert.deepEqual(await readReferences(), references);

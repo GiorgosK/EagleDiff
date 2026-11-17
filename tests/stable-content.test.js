@@ -86,7 +86,7 @@ test('failed stable-content reference runs preserve existing baselines', async t
   f.config.core.temporaryErrorRetries = 1; await f.save();
   const result = await f.run(['reference'], 1);
   assert.match(result.stderr, /retrying 1\/1/);
-  assert.match(result.stderr, /SCRIPT#loader: hidden/);
+  assert.match(require('./helpers/capture-log')(result.stderr), /SCRIPT#loader: hidden/);
   assert.deepEqual(await fs.readFile(file), baseline);
 });
 

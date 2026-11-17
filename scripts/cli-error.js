@@ -2,11 +2,13 @@
 function formatError(error, { color = false, width = 100 } = {}) {
   const heading = color ? '\x1b[31mERROR:\x1b[0m' : 'ERROR:';
   const limit = Math.max(40, Math.min(100, width || 100));
-  const message = String(error?.message ?? error);
+  const message = String(error?.displayMessage ?? error?.message ?? error);
   // Puppeteer's encoded evaluation locations are stack frames, not the cause.
   const lines = message.split(/\r?\n/)
     .filter(line => !/^\s*(?:pptr:evaluate;|async Promise\.all \(index \d+\))/.test(line))
     .flatMap(line => {
+      // Preserve the copyable log path, including spaces in project directories.
+      if (line.startsWith('Details: ')) return [line];
       const result = [];
       let remaining = line.trim();
       while (remaining.length > limit) {

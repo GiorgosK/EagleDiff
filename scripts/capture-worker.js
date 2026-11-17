@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer-core');
 const { buildBrowserLaunchOptions, captureScreenshots } = require('./run');
+const { captureErrorDetails } = require('./capture-diagnostics');
 
 process.once('message', async (job) => {
   if (!job || typeof job !== 'object') {
@@ -30,6 +31,9 @@ process.once('message', async (job) => {
       warningReporter: require('./warnings').createWarningReporter((message, code) => {
         if (process.connected) process.send({ type: 'warning', code, message });
       }),
+      retryReporter: event => {
+        if (process.connected) process.send({ type: 'retry', event });
+      },
       progressReporter: (event) => {
         if (process.send) {
           process.send({ type: 'progress', ...event, workerId: job.workerId });
@@ -58,7 +62,8 @@ process.once('message', async (job) => {
         type: 'error',
         workerId: job.workerId,
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
+        details: captureErrorDetails(error)
       });
     }
     process.exitCode = 1;

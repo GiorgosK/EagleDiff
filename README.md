@@ -659,6 +659,19 @@ that. Use filtered runs or fewer workers to reduce traffic while investigating,
 or ask the site's administrator about approved test access. Eaglediff does not
 solve CAPTCHAs or bypass verification.
 
+### Capture messages and logs
+
+Capture warnings, retries and errors show a short summary in the terminal.
+The `Details:` path points to a separate `.reg/logs/*.log` file for that run,
+with full messages, page URLs, hook names and error stacks. Logs also keep
+retries that later succeed and are retained across runs. A clean capture creates
+no log. If writing the log fails, full details stay in the terminal.
+
+A warning does not necessarily trigger a retry. A line saying `retrying 1/1`
+means a temporary capture failure is getting its one allowed retry. The Drupal
+startup check is one source of these failures; retries also handle supported
+network, browser and other readiness failures.
+
 ### Slow or interrupted captures
 
 `core.temporaryErrorRetries` defaults to `1`: retry a temporary failure in a

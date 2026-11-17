@@ -19,6 +19,7 @@ and comparison behavior across projects.
 | `scripts/config-update.js` | Add missing defaults and hooks while preserving explicit overrides and existing hook order. |
 | `scripts/run.js` | Coordinate reference capture, testing, approval, browser workers, comparison, and history. |
 | `scripts/capture-worker.js` | Execute assigned captures in a worker-owned browser and relay progress, warnings, and errors. |
+| `scripts/capture-diagnostics.js` | Summarize capture messages and save full diagnostics in a separate log for each run. |
 | `scripts/hooks/` | Prepare page content, wait for resources, normalize variable rendering, and define capture regions. |
 | `scripts/hook-path.js` | Resolve bundled hook spellings and project-relative or absolute custom hooks consistently. |
 | `scripts/results.js` and `scripts/report.js` | Display run history and open the latest or combined comparison report. |
@@ -28,6 +29,13 @@ and comparison behavior across projects.
 Configuration lives in the project's `config.json`; bundled defaults live in
 `config-default.json`. Scenario settings can override defaults. Config updates
 fill missing values rather than replacing saved customization.
+
+The capture CLI writes diagnostics lazily to `.reg/logs`, outside the replaceable
+report and staging directories. Workers relay warnings, retries and error details
+to the parent, which writes the log and console summaries. Error messages/causes
+remain intact for callers; only terminal rendering is shortened. If logging
+fails, full console output is preserved. Warning deduplication and retry policies
+are unchanged.
 
 ## Capture lifecycle
 

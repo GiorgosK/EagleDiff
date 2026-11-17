@@ -9,6 +9,7 @@ const { promisify } = require('node:util');
 const puppeteer = require('puppeteer-core');
 const { navigate } = require('../scripts/navigation');
 const { buildBrowserLaunchOptions } = require('../scripts/run');
+const readCaptureLog = require('./helpers/capture-log');
 
 test('navigation timeout identifies HTTP response, lifecycle and blocking request without query values', async t => {
   const server = http.createServer((req, res) => {
@@ -58,9 +59,10 @@ test('reference failure passes navigation details through workers and applies sc
   ], { timeout: 15000, env: { ...process.env, EAGLEDIFF_DIR: directory,
     EAGLEDIFF_CONFIG: configPath, GLOBAL_EAGLEDIFF_CONFIG: configPath } }), error => {
     assert.match(error.stderr, /Blocking script @ phone/);
-    assert.match(error.stderr, /waitUntil="domcontentloaded"; timeout=500ms/);
-    assert.match(error.stderr, /\/hang.js/);
-    assert.match(error.stderr, /remaining workers were cancelled/);
+    const details = readCaptureLog(error.stderr);
+    assert.match(details, /waitUntil="domcontentloaded"; timeout=500ms/);
+    assert.match(details, /\/hang.js/);
+    assert.match(details, /remaining workers were cancelled/);
     assert.match(error.stdout, /reference failed/);
     return true;
   });

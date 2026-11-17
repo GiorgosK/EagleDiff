@@ -7,6 +7,7 @@ const { transliterate } = require('transliteration');
 const { execFileSync, fork, spawn } = require('child_process');
 const { createInterface } = require('readline');
 const { stripVTControlCharacters } = require('util');
+const { createCaptureDiagnostics, captureErrorDetails } = require('./capture-diagnostics');
 
 const puppeteer = require('puppeteer-core');
 const captureScreenshot = require('./capture-screenshot');
@@ -107,6 +108,8 @@ async function main() {
     console.log('[eaglediff] Calibration compares saved references with fresh captures of the reference site.');
   }
 
+  const diagnostics = createCaptureDiagnostics(rootDir, command);
+  const warningReporter = require('./warnings').createWarningReporter((message, code) => diagnostics.warning(code, message));
   let failed = false;
   try {
     if (command === 'approve') {
@@ -150,6 +153,7 @@ async function main() {
         baseUrl: captureBaseUrl,
         addPara,
         workers,
+        diagnostics,
         parallel: true
       });
     }
@@ -160,6 +164,8 @@ async function main() {
 
       try {
         await captureScreenshots(browser, config, selectedScenarios, actualCacheDir, captureBaseUrl, addPara, command, {
+          warningReporter,
+          retryReporter: diagnostics.retry,
           relaunchBrowser: async () => {
             await browser.close().catch(() => {});
             browser = await puppeteer.launch(buildBrowserLaunchOptions(config));
@@ -218,6 +224,7 @@ async function main() {
     }
   } catch (error) {
     failed = true;
+    diagnostics.failure(error);
     throw error;
   } finally {
     if (command === 'reference' || command === 'test' || command === 'calibrate') {
@@ -305,6 +312,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
           filePath,
           fullPage,
           temporaryErrorRetries,
+          retryReporter: options.retryReporter,
           isCancelled: options.isCancelled,
           relaunchBrowser: options.relaunchBrowser ? async () => {
             browser = await options.relaunchBrowser();
@@ -335,6 +343,7 @@ async function captureScenarioScreenshot({
   filePath,
   fullPage,
   temporaryErrorRetries,
+  retryReporter,
   isCancelled,
   relaunchBrowser
 }) {
@@ -473,9 +482,15 @@ async function captureScenarioScreenshot({
       }
 
       attempt += 1;
-      console.warn(`[eaglediff] Temporary capture error on ${getScenarioLabel(scenario)} @ ${viewport.label}; retrying ${attempt}/${temporaryErrorRetries}\nPage URL: ${url}\n${error.message}`);
       const factor = retryTimeoutFactor(runtimeConfig, attempt);
-      if (factor > 1) console.warn(`[eaglediff] Retry readiness timeouts: ${factor}x the configured budgets; worker count unchanged.`);
+      if (retryReporter) {
+        retryReporter({ scenarioLabel: getScenarioLabel(scenario), viewportLabel: viewport.label,
+          url, attempt, retries: temporaryErrorRetries, factor, message: error.message,
+          details: captureErrorDetails(error) });
+      } else {
+        console.warn(`[eaglediff] Temporary capture error on ${getScenarioLabel(scenario)} @ ${viewport.label}; retrying ${attempt}/${temporaryErrorRetries}\nPage URL: ${url}\n${error.message}`);
+        if (factor > 1) console.warn(`[eaglediff] Retry readiness timeouts: ${factor}x the configured budgets; worker count unchanged.`);
+      }
     } finally {
       imageDiagnostics?.dispose();
       activePage?.off('response', trackNavigationResponse);
@@ -1075,13 +1090,14 @@ async function getSelectedActualFileNames(actualDir, scenarios, options = {}) {
   return selectedFileNames;
 }
 
-async function captureScreenshotsInWorkers({ command, config, scenarios, actualDir, baseUrl, addPara, workers }) {
+async function captureScreenshotsInWorkers({ command, config, scenarios, actualDir, baseUrl, addPara, workers, diagnostics }) {
   const captureBatches = partitionCaptures(scenarios, workers);
   const totalScreenshots = scenarios.scenarios.length * scenarios.viewports.length;
   let completedScreenshots = 0;
   const workerPath = path.join(__dirname, 'capture-worker.js');
   const children = [];
-  const reportWarning = require('./warnings').createWarningReporter();
+  const reportWarning = require('./warnings').createWarningReporter(diagnostics
+    ? (message, code) => diagnostics.warning(code, message) : undefined);
   let aborted = false;
 
   try {
@@ -1115,6 +1131,11 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
           return;
         }
 
+        if (message.type === 'retry') {
+          diagnostics?.retry(message.event);
+          return;
+        }
+
         if (message.type === 'progress') {
           completedScreenshots += 1;
           const workerTag = captureBatches.length > 1 ? ` [w${workerId}]` : '';
@@ -1123,7 +1144,10 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
         }
 
         if (message.type === 'error') {
-          fail(new Error(message.message || `Worker ${workerId} failed`));
+          const error = new Error(message.message || `Worker ${workerId} failed`);
+          error.workerStack = message.stack;
+          error.workerDetails = message.details;
+          fail(error);
         }
       });
 
