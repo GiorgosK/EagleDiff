@@ -78,6 +78,7 @@ test('parallel captures warn once and stop other workers on missing readiness', 
   await fs.writeFile(configPath, JSON.stringify(config));
   const result = await run();
   assert.equal((result.stderr.match(/Some JPEG images/g) || []).length, 1);
+  assert(result.stderr.includes(`Warning: ${baseURL}/`), 'Worker warnings must identify the complete capture URL first');
   const warningLog = readCaptureLog(result.stderr);
   assert.match(warningLog, /allow CORS/);
   assert.equal((warningLog.match(/WARNING image-normalization-skipped/g) || []).length, 1);

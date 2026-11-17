@@ -6,10 +6,10 @@ function printWarning(message) {
 
 function createWarningReporter(output = printWarning) {
   const seen = new Set();
-  return (code, message) => {
+  return (code, message, context) => {
     if (seen.has(code)) return;
     seen.add(code);
-    output(message, code);
+    output(message, code, context);
   };
 }
 

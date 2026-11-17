@@ -71,6 +71,24 @@ test('long log paths with spaces remain copyable in formatted errors', () => {
   assert(rendered.includes(`\n  Details: ${file}\n`));
 });
 
+test('long page URLs and labels remain complete in warnings, retries and final errors', async t => {
+  const { reporter, output } = await fixture(t);
+  const url = 'https://example.test/' + 'long-page-path/'.repeat(25);
+  const label = 'A long descriptive page label '.repeat(8).trim();
+  reporter.warning('jpeg', `Some JPEG images could not be normalized. Page: ${url}. Example: https://images.example.test/resource.jpg`, { url });
+  assert(output[0].startsWith(`Warning: ${url} — `));
+  assert(!output[0].includes('Page:'), 'Do not repeat a truncated page URL in the explanation');
+  reporter.retry({ url, scenarioLabel: label, viewportLabel: 'phone', attempt: 1, retries: 1,
+    factor: 1, message: 'Hook: hooks/wait-for-fonts\nFonts did not become ready.' });
+  assert(output[2].includes(url));
+  assert(output[2].includes(label));
+  const error = new Error(`Capture failed: ${label}\nPage URL: ${url}\nHook: hooks/wait-for-fonts\nFonts did not become ready.`);
+  reporter.failure(error);
+  const formatted = formatError(error, { width: 40 });
+  assert(formatted.includes(`Page URL: ${url}\n`));
+  assert(error.displayMessage.includes(label));
+});
+
 test('separate runs preserve their own logs even with identical timestamps', async t => {
   const { directory, reporter, output } = await fixture(t);
   const second = [];

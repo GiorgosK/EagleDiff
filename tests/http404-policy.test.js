@@ -14,12 +14,12 @@ test('404 warnings allow reference and test captures to finish, including existi
   f.config.viewports.push({ label: 'wide', width: 200, height: 100 });
   f.pages['/one'] = { status: 404, body: '<h1>Page not found</h1>' }; await f.save();
   const reference = await f.run(['reference', '--workers=2']);
-  assert.equal((reference.stderr.match(/Warning: HTTP 404/g) || []).length, 1, 'warn once per URL across workers');
+  assert.equal(reference.stderr.split(`Warning: ${f.baseURL}/one — HTTP 404`).length - 1, 1, 'warn once per URL across workers');
   assert.match(reference.stderr, /\/one/);
   assert.equal((await f.files()).length, 4);
   assert(f.requests.includes('/two'), 'remaining pages are captured');
   const compared = await f.run(['test', '--workers=2']);
-  assert.match(compared.stderr, /Warning: HTTP 404/);
+  assert(compared.stderr.includes(`Warning: ${f.baseURL}/one — HTTP 404`));
   const result = JSON.parse(await fs.readFile(path.join(f.directory, '.reg/run/out.json')));
   assert.equal(result.passedItems.length, 4);
   f.pages['/one'].body = '<style>body{background:red}</style><h1>Different error page</h1>';
@@ -41,7 +41,7 @@ test('error policy stops without changing references; scenario overrides win and
   assert.match((await f.run(['reference'], 1)).stderr, /Blocked response status 404/);
   assert.deepEqual(await read(), original);
   f.config.scenarios[0].http404Policy = 'warn'; await f.save();
-  assert.match((await f.run(['test'], 1)).stderr, /Warning: HTTP 404/);
+  assert((await f.run(['test'], 1)).stderr.includes(`Warning: ${f.baseURL}/one — HTTP 404`));
   f.config.defaults.http404Policy = 'warn';
   f.config.scenarios[0].http404Policy = 'error'; await f.save();
   assert.match((await f.run(['test'], 1)).stderr, /Blocked response status 404/);

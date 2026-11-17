@@ -7,8 +7,8 @@ function formatError(error, { color = false, width = 100 } = {}) {
   const lines = message.split(/\r?\n/)
     .filter(line => !/^\s*(?:pptr:evaluate;|async Promise\.all \(index \d+\))/.test(line))
     .flatMap(line => {
-      // Preserve the copyable log path, including spaces in project directories.
-      if (line.startsWith('Details: ')) return [line];
+      // Preserve copyable log paths (including spaces) and complete page URLs.
+      if (/^(?:Details|Page URL): /.test(line)) return [line];
       const result = [];
       let remaining = line.trim();
       while (remaining.length > limit) {

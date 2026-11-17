@@ -36,6 +36,8 @@ to the parent, which writes the log and console summaries. Error messages/causes
 remain intact for callers; only terminal rendering is shortened. If logging
 fails, full console output is preserved. Warning deduplication and retry policies
 are unchanged.
+Warning context carries the capture URL through worker messages; summaries keep
+it complete while abbreviating the explanation.
 
 ## Capture lifecycle
 

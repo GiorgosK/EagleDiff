@@ -13,6 +13,7 @@ function describe(message) {
   const lines = String(message).split(/\r?\n/).map(line => line.trim()).filter(Boolean);
   return {
     title: lines.find(line => line.startsWith('Capture failed')),
+    page: lines.find(line => line.startsWith('Page URL: ')),
     hook: lines.find(line => line.startsWith('Hook: ')),
     reason: lines.find(line => !/^(?:Capture failed|(?:Final page|Page) URL:|Hook:)/.test(line)) || 'Capture failed'
   };
@@ -47,9 +48,11 @@ function createCaptureDiagnostics(root, command, output = printWarning) {
     if (!announced) { output(`Details: ${logPath}`); announced = true; }
   };
   return {
-    warning(code, message) {
-      const saved = write('WARNING ' + code, message);
-      output(saved ? `Warning: ${compact(String(message).replace(/^Warning:\s*/, ''))}` : message);
+    warning(code, message, context = {}) {
+      const saved = write('WARNING ' + code, `${context.url ? `Page URL: ${context.url}\n` : ''}${message}`);
+      const body = String(message).replace(/^Warning:\s*/, '');
+      const summary = context.url ? body.replace(/\s+Page(?: URL)?:\s+https?:\/\/\S+[\s\S]*$/, '') : body;
+      output(saved ? `Warning: ${context.url ? context.url + ' — ' : ''}${compact(summary)}` : message);
       if (saved) announce();
     },
     retry(event) {
@@ -58,15 +61,15 @@ function createCaptureDiagnostics(root, command, output = printWarning) {
       if (!write('RETRY', full)) { output(full); return; }
       const { hook, reason } = describe(message);
       const cause = hook ? compact(hook.replace(/^Hook: hooks\//, '').replace(/^Hook: /, ''), 80) + ' failed' : compact(reason, 70);
-      output(`Warning: ${compact(scenarioLabel, 60)} @ ${compact(viewportLabel, 30)}: ${cause}; retrying ${attempt}/${retries}${factor > 1 ? ` (timeouts ${factor}x)` : ''}.`);
+      output(`Warning: ${url} — ${scenarioLabel} @ ${viewportLabel}: ${cause}; retrying ${attempt}/${retries}${factor > 1 ? ` (timeouts ${factor}x)` : ''}.`);
       announce();
     },
     failure(error) {
       if (!/^Capture failed/.test(error.message)) return;
       if (!write('ERROR', captureErrorDetails(error))) return;
-      const { title, hook, reason } = describe(error.message);
+      const { title, page, hook, reason } = describe(error.message);
       Object.defineProperty(error, 'displayMessage', {
-        value: `${compact(title)}\n${hook ? compact(hook, 100) + ': ' : ''}${compact(reason)}\nDetails: ${logPath}`,
+        value: [title, page, `${hook ? compact(hook, 100) + ': ' : ''}${compact(reason)}`, `Details: ${logPath}`].filter(Boolean).join('\n'),
         configurable: true
       });
     }

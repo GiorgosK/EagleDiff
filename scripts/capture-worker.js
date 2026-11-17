@@ -28,8 +28,8 @@ process.once('message', async (job) => {
       },
       workerId: job.workerId,
       parallel: true,
-      warningReporter: require('./warnings').createWarningReporter((message, code) => {
-        if (process.connected) process.send({ type: 'warning', code, message });
+      warningReporter: require('./warnings').createWarningReporter((message, code, context) => {
+        if (process.connected) process.send({ type: 'warning', code, message, context });
       }),
       retryReporter: event => {
         if (process.connected) process.send({ type: 'retry', event });

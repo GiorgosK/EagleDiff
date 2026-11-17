@@ -109,7 +109,7 @@ async function main() {
   }
 
   const diagnostics = createCaptureDiagnostics(rootDir, command);
-  const warningReporter = require('./warnings').createWarningReporter((message, code) => diagnostics.warning(code, message));
+  const warningReporter = require('./warnings').createWarningReporter((message, code, context) => diagnostics.warning(code, message, context));
   let failed = false;
   try {
     if (command === 'approve') {
@@ -278,7 +278,10 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
       const readySelector = resolveReadySelector(runtimeConfig, scenario);
       const readyTimeout = scenario.readyTimeout || runtimeConfig.defaults?.readyTimeout;
       const delayMs = scenario.delay ?? defaultDelayMs;
-      const captureContext = { scenario, mode: 'ready', config: runtimeConfig, readySelector, readyTimeout, reportWarning };
+      const captureContext = { scenario, mode: 'ready', config: runtimeConfig, readySelector, readyTimeout,
+        reportWarning: (code, message) => reportWarning(code, message, {
+          url, scenarioLabel: getScenarioLabel(scenario), viewportLabel: viewport.label
+        }) };
 
       const progressEvent = {
         current: currentScreenshot,
@@ -1097,7 +1100,7 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
   const workerPath = path.join(__dirname, 'capture-worker.js');
   const children = [];
   const reportWarning = require('./warnings').createWarningReporter(diagnostics
-    ? (message, code) => diagnostics.warning(code, message) : undefined);
+    ? (message, code, context) => diagnostics.warning(code, message, context) : undefined);
   let aborted = false;
 
   try {
@@ -1127,7 +1130,7 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
         }
 
         if (message.type === 'warning') {
-          reportWarning(message.code, message.message);
+          reportWarning(message.code, message.message, message.context);
           return;
         }
 

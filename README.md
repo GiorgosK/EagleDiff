@@ -667,6 +667,7 @@ solve CAPTCHAs or bypass verification.
 ### Capture messages and logs
 
 Capture warnings, retries and errors show a short summary in the terminal.
+Page URLs stay complete at the start of warnings/retries and in final errors.
 The `Details:` path points to a separate `.reg/logs/*.log` file for that run,
 with full messages, page URLs, hook names and error stacks. Logs also keep
 retries that later succeed and are retained across runs. A clean capture creates
