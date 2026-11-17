@@ -605,8 +605,13 @@ Review the placeholders before updating references.
 
 `wait-for-fonts` checks requested web fonts and repeats before capture.
 Use `requiredFonts` to also require specific declared fonts, such as
-`["400 16px Inter"]`. Missing or failed fonts stop capture; `fontTimeout`
-controls the wait.
+`["400 16px Inter"]`. Failed downloads stop capture; `fontTimeout` controls the wait.
+Unavailable aliases that only reference local system fonts are allowed, since
+the browser can fall back to another font. Explicit `requiredFonts` checks remain
+strict, including for local aliases. If the browser cannot inspect a failed
+font's source, it remains an error.
+Waiting for fonts does not rerun a site's cached layout calculations. A project
+hook may be needed if the page calculates dimensions before its fonts load.
 
 ### Network idle
 

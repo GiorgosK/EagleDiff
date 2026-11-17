@@ -116,6 +116,11 @@ CSS hooks intentionally run before navigation and again during readiness.
 Early styles influence page initialization; later application covers document
 replacement and subsequent edits. The final font recheck handles requests
 introduced by later content changes.
+Font failures remain strict for downloads and explicit `requiredFonts` entries.
+The font hook exempts unavailable local-only CSS aliases when their source can
+be established from readable active stylesheets. It matches face descriptors and
+declaration counts so an opaque or JS-created face with the same name cannot
+inherit that exemption. Mixed local/download sources remain strict.
 
 `wait-for-jquery-ready` follows the initial lazy-image pass. It waits for DOM
 readiness and registered jQuery ready callbacks when the library is available,
