@@ -62,3 +62,69 @@ test('loads delayed lazy sources before normalization and reports failed image U
   await assert.rejects(load(page, { scenario: { imageFailurePolicy: 'error' }, config: context.config }), /missing.jpg/);
   await assert.rejects(load(page, { scenario: { imageFailurePolicy: 'invalid' } }), /imageFailurePolicy/);
 });
+
+test('lazy source promotion preserves native loader layout initialization during scrolling', async t => {
+  const server = http.createServer((request, response) => {
+    if (request.url === '/image.svg' || request.url === '/native.svg') {
+      response.setHeader('Content-Type', 'image/svg+xml');
+      response.end('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="580"><rect width="100%" height="100%" fill="green"/></svg>');
+      return;
+    }
+    response.setHeader('Content-Type', 'text/html');
+    response.end(`<style>body{margin:0}img{display:block;width:300px;height:auto;aspect-ratio:1}</style>
+      <div style="height:600px"></div><img id="lazy" width="600" height="580" data-src="/image.svg">
+      <p>After the image</p><div style="height:400px"></div>
+      <script>window.initialized=0;new IntersectionObserver(entries=>{
+        if(!entries.some(entry=>entry.isIntersecting))return;
+        const image=document.querySelector('img[data-src]');if(!image)return;
+        const rect=image.getBoundingClientRect();if(rect.top>=innerHeight||rect.bottom<=0)return;
+        if(location.search==='?new-hint')image.setAttribute('data-src','/native.svg');
+        else image.src=location.search?'/native.svg':image.getAttribute('data-src');
+        image.style.aspectRatio=image.getAttribute('width')+'/'+image.getAttribute('height');
+        if(!location.search)image.removeAttribute('data-src');window.initialized++;
+      }).observe(document.querySelector('#lazy'));</script>`);
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const browser = await puppeteer.launch(buildBrowserLaunchOptions());
+  t.after(async () => {
+    await browser.close(); server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 360, height: 240 });
+  const url = `http://127.0.0.1:${server.address().port}/`;
+  const capture = async nativeFirst => {
+    await page.goto(url);
+    if (nativeFirst) {
+      await page.evaluate(() => scrollTo(0, 600));
+      await page.waitForFunction(() => window.initialized === 1);
+    }
+    await load(page);
+    const state = await page.$eval('#lazy', image => ({
+      initialized: window.initialized, width: image.getBoundingClientRect().width,
+      height: image.getBoundingClientRect().height, source: image.getAttribute('data-src'),
+      nextY: document.querySelector('p').getBoundingClientRect().y
+    }));
+    return { state, png: Buffer.from(await page.screenshot({ fullPage: true })) };
+  };
+  const nativeFirst = await capture(true);
+  assert.equal(nativeFirst.state.height, 290);
+  const helperFirst = await capture(false);
+  assert.deepEqual(helperFirst.state, nativeFirst.state);
+  assert.deepEqual(helperFirst.png, nativeFirst.png);
+
+  await page.goto(url + '?native-choice');
+  await load(page);
+  assert.equal(await page.$eval('#lazy', image => new URL(image.src).pathname), '/native.svg');
+  assert.equal(await page.$eval('#lazy', image => image.getAttribute('data-src')), null);
+
+  await page.goto(url + '?new-hint');
+  await load(page);
+  assert.equal(await page.$eval('#lazy', image => new URL(image.src).pathname), '/native.svg');
+
+  await page.goto(url);
+  await load(page, { imageReadinessFinalCheck: true });
+  assert.equal(await page.evaluate(() => scrollY), 0, 'Final rechecks must not scroll again');
+  assert.equal(await page.$eval('#lazy', image => image.getAttribute('data-src')), null);
+  assert.equal(await page.$eval('#lazy', image => image.naturalWidth), 600);
+});

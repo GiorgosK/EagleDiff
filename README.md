@@ -735,8 +735,10 @@ height keeps growing.
 ### Lazy images
 
 `load-lazy-images` loads common `data-src`, `data-srcset`, and `data-sizes`
-attributes, including `data-lazy-*`, then waits for image decoding. CSS background
-images are checked separately. CSS-hidden backgrounds are skipped; visible
+attributes, including `data-lazy-*`, then waits for image decoding.
+Lazy attributes are kept during the initial scroll so the site's own loader can
+finish layout initialization, then cleaned up. Native source choices are preserved.
+CSS background images are checked separately. CSS-hidden backgrounds are skipped; visible
 backgrounds below the fold are still checked. Newly introduced image sources
 are rechecked.
 

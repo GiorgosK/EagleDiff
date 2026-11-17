@@ -160,7 +160,9 @@ the timeout does not establish that initialization actually failed.
 Image hooks have distinct responsibilities:
 
 - `load-lazy-images` promotes lazy sources, waits for decoding, and optionally
-  recovers stalled HTTP downloads on the current page.
+  recovers stalled HTTP downloads on the current page. It keeps lazy metadata
+  through the first scroll so native loaders can initialize their layout, then
+  consumes remaining attributes without overwriting native source choices.
 - `normalize-responsive-images` pins the loaded picture candidate and verifies
   decoding so responsive selection does not introduce a different source.
 - `normalize-image-decoding` normalizes eligible JPEG rendering and freezes GIF images at their first frame.

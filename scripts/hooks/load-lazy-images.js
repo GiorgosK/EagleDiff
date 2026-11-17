@@ -11,7 +11,8 @@ module.exports = async function loadLazyImages(page, context = {}) {
   if (!Number.isFinite(downloadTimeout) || downloadTimeout <= 0) throw new Error('imageDownloadTimeout must be a positive number.');
 
   const failures = await withImageCaptureCheck(page, check => page.evaluate(async ({ timeoutMs, failurePolicy, finalCheck }, isExcluded) => {
-    const promoteSources = () => {
+    const promoted = new WeakMap();
+    const promoteSources = ({ removeLazyAttributes = true } = {}) => {
       // Common lazy-loader attributes, independent of any particular library.
       for (const element of document.querySelectorAll('img, picture source')) {
         const image = element.tagName === 'IMG' ? element : element.closest('picture')?.querySelector('img');
@@ -22,13 +23,24 @@ module.exports = async function loadLazyImages(page, context = {}) {
           const lazyAttribute = ['data-' + attribute, 'data-lazy-' + attribute]
             .find(name => element.getAttribute(name)?.trim());
           if (!lazyAttribute) continue;
-          element.setAttribute(attribute, element.getAttribute(lazyAttribute));
-          element.removeAttribute('data-' + attribute);
-          element.removeAttribute('data-lazy-' + attribute);
+          const value = element.getAttribute(lazyAttribute);
+          const previous = promoted.get(element) || {};
+          // Keep native responsive/source choices made during the scroll pass.
+          if (previous[attribute] !== value && element.getAttribute(attribute) !== value) {
+            element.setAttribute(attribute, value);
+          }
+          previous[attribute] = value;
+          promoted.set(element, previous);
+          if (removeLazyAttributes) {
+            element.removeAttribute('data-' + attribute);
+            element.removeAttribute('data-lazy-' + attribute);
+          }
         }
       }
     };
-    promoteSources();
+    // Native loaders also use these attributes to initialize layout or handlers.
+    // Keep them through the scroll pass, then consume any fallback sources below.
+    promoteSources({ removeLazyAttributes: finalCheck });
     if (!finalCheck) await new Promise((resolve) => {
       let total = 0;
       const step = 400;
@@ -42,6 +54,7 @@ module.exports = async function loadLazyImages(page, context = {}) {
         }
       }, 50);
     });
+    if (!finalCheck) await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     // Scrolling can create additional image elements.
     promoteSources();
 
