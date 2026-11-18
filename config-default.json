@@ -1,5 +1,5 @@
 {
-  "version": "2026.11.09.07",
+  "version": "2026.11.17.01",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -7,7 +7,7 @@
     "workers": 10,
     "thresholdRate": 0.001,
     "thresholdRateColor": 0.05,
-    "temporaryErrorRetries": 1,
+    "temporaryErrorRetries": 2,
     "temporaryErrorRetryTimeoutMultiplier": 1,
     "protocolTimeout": 60000
   },

@@ -107,7 +107,7 @@ test('single and worker captures log recovered retries, honor zero retries, and 
     const file = path.join(__dirname, 'attempts.txt');
     const attempts = fs.existsSync(file) ? Number(fs.readFileSync(file, 'utf8')) : 0;
     fs.writeFileSync(file, String(attempts + 1));
-    if (!attempts) {
+    if (attempts < 2) {
       const error = new Error('Temporary readiness failure\\nDetailed recovery instructions', { cause: new Error('Original fixture cause') });
       error.code = 'EAGLEDIFF_READY_TIMEOUT'; throw error;
     }
@@ -119,14 +119,15 @@ test('single and worker captures log recovered retries, honor zero retries, and 
     delete f.config.core.temporaryErrorRetries;
     await fs.rm(counter, { force: true }); await f.save();
     const recovered = await f.run(['reference']);
-    assert.match(recovered.stderr, /retrying 1\/1/);
-    assert.equal(recovered.stderr.split('\n').filter(Boolean).length, 2);
+    assert.match(recovered.stderr, /retrying 1\/2/);
+    assert.match(recovered.stderr, /retrying 2\/2/);
+    assert.equal(recovered.stderr.split('\n').filter(Boolean).length, 3);
     assert(!recovered.stderr.includes('Detailed recovery instructions'));
     const details = require('./helpers/capture-log')(recovered.stderr);
     assert.match(details, /Detailed recovery instructions/);
     assert.match(details, /Original fixture cause/);
     assert.match(details, /retry-hook.js/);
-    assert.equal(await fs.readFile(counter, 'utf8'), '2');
+    assert.equal(await fs.readFile(counter, 'utf8'), '3');
     const baselinePath = path.join(f.directory, '.reg/reference', (await f.files())[0]);
     const baseline = await fs.readFile(baselinePath);
     assert.equal(baseline.readUInt32BE(16), 100);

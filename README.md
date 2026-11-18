@@ -355,7 +355,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | --- | --- | --- |
 | `referenceBaseURL` / `testBaseURL` | **Root:** base URLs for reference and test captures. | - |
 | `core.thresholdRateColor` | **Root:** colour tolerance when counting changed pixels, from 0–1. `0` is strictest; higher values ignore larger colour differences. This is not a percentage of pixels. | - |
-| `core.temporaryErrorRetries` | **Root:** retries temporary capture failures in a fresh browser context. Default `1`; `0` disables retries. It does not override image or HTTP error policies. | - |
+| `core.temporaryErrorRetries` | **Root:** retries temporary capture failures in a fresh browser context. Default `2`; `0` disables retries. It does not override image or HTTP error policies. | - |
 | `core.temporaryErrorRetryTimeoutMultiplier` | **Root:** scale readiness timeouts on retry. Default `1`; `2` gives budgets of 1×, 2×, then 4×. | - |
 | `fontTimeout` | Maximum wait for web fonts, default `30000` milliseconds. Font timeouts and failed font downloads fail capture and use temporary retries. | `wait-for-fonts` |
 | `retryImageDownloads` | Retry stalled HTTP image downloads on the existing page through Node, then require successful browser decoding. Default `false`. Cookies are scoped to each destination, including redirects. | `load-lazy-images` |
@@ -680,15 +680,16 @@ with full messages, page URLs, hook names and error stacks. Logs also keep
 retries that later succeed and are retained across runs. A clean capture creates
 no log. If writing the log fails, full details stay in the terminal.
 
-A warning does not necessarily trigger a retry. A line saying `retrying 1/1`
-means a temporary capture failure is getting its one allowed retry. The Drupal
-startup check is one source of these failures; retries also handle supported
-network, browser and other readiness failures.
+A warning does not necessarily trigger a retry. A line saying `retrying 1/2`
+means the first of two allowed retries is starting; `retrying 2/2` is the last
+retry. The Drupal startup check is one source of these failures; retries also
+handle supported network, browser and other readiness failures.
 
 ### Slow or interrupted captures
 
-`core.temporaryErrorRetries` defaults to `1`: retry a temporary failure in a
-fresh browser context. Existing configs keep saved values, including `0`.
+`core.temporaryErrorRetries` defaults to `2`: retry a temporary failure up to
+twice in fresh browser contexts (three attempts total). Existing configs keep
+saved values, including `0` and `1`.
 A disconnected worker browser is restarted on retry. Retries do not override
 image or HTTP error policies.
 

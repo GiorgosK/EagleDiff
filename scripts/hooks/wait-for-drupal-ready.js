@@ -102,7 +102,7 @@ module.exports = async function waitForDrupalReady(page, context = {}) {
     const observation = result.fullDocumentCalls
       ? `Observed ${result.fullDocumentCalls} completed whole-page startup call(s), but these behavior functions were not included. They may have registered or changed afterward.`
       : 'No completed whole-page startup call was observed. Startup may be blocked, or the tracker may have missed an earlier call; this alone does not prove the page is broken.';
-    const error = new Error(`Drupal startup was not confirmed for ${result.pending.length} registered behavior(s) within ${timeout}ms:\n${result.pending.slice(0, 12).join(', ')}${result.pending.length > 12 ? ', ...' : ''}\n${observation}\nFresh-page retries follow core.temporaryErrorRetries (default 1). If this persists, check script/consent loading order. Increase drupalReadyTimeout only for genuinely slow startup. Set waitForDrupalReady=false only when intentionally opting out of this check.`);
+    const error = new Error(`Drupal startup was not confirmed for ${result.pending.length} registered behavior(s) within ${timeout}ms:\n${result.pending.slice(0, 12).join(', ')}${result.pending.length > 12 ? ', ...' : ''}\n${observation}\nFresh-page retries follow core.temporaryErrorRetries (default 2). If this persists, check script/consent loading order. Increase drupalReadyTimeout only for genuinely slow startup. Set waitForDrupalReady=false only when intentionally opting out of this check.`);
     error.code = 'EAGLEDIFF_DRUPAL_READY_TIMEOUT';
     throw error;
   }

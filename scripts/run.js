@@ -250,7 +250,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
   const defaultDelayMs = Number(config.defaults?.delay || 0);
   const waitUntil = config.defaults?.waitUntil || 'networkidle2';
   const fullPage = config.defaults?.fullPage !== false;
-  const temporaryErrorRetries = Math.max(0, Number(config.core?.temporaryErrorRetries ?? 1) || 0);
+  const temporaryErrorRetries = Math.max(0, Number(config.core?.temporaryErrorRetries ?? 2) || 0);
   const runtimeConfig = options.parallel
     ? {
         ...config,
