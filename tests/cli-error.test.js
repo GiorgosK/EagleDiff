@@ -51,3 +51,38 @@ test('unknown commands and child command validation use the same error format', 
     assert.match(result.stderr, args[0] === 'unknown-command' ? /Unknown command/ : /Use either --last-failed or --filter/);
   }
 });
+
+test('image failure summaries suggest explicit CSS hiding without changing the original error', () => {
+  for (const reason of ['Cannot load image before capture', 'Cannot decode responsive image before capture']) {
+    const error = new Error(`${reason}: https://example.test/optional.png`);
+    error.displayMessage = 'Capture failed: Example\nDetails: /tmp/capture.log';
+    const original = error.message;
+    const rendered = formatError(error);
+    assert.match(rendered, /this scenario's cssOverrides/);
+    assert.match(rendered, /removes the image and its space from the visual comparison/);
+    assert.equal(error.message, original);
+    assert.equal(error.displayMessage, 'Capture failed: Example\nDetails: /tmp/capture.log');
+    assert.match(formatError(new Error(original)), /cssOverrides/,
+      'The suggestion must also appear when no capture log could be written');
+  }
+  for (const message of ['Navigation timeout', 'Cannot load required font', 'imageFailurePolicy must be error or warn']) {
+    assert(!formatError(new Error(message)).includes('cssOverrides'));
+  }
+});
+
+test('the suggested CSS exclusion skips a broken image before capture', async t => {
+  const f = await require('./helpers/cli-fixture')(t);
+  f.config.scenarios = [{ url: '/one' }];
+  f.config.onReadyScript = ['hooks/apply-css-overrides', 'hooks/load-lazy-images'];
+  f.pages['/one'] = '<style>body{margin:0;background:lime}</style><img class="optional-image" width="80" height="80" src="/missing.png">';
+  f.pages['/missing.png'] = { status: 404, body: '' };
+  await f.save();
+  const failed = await f.run(['reference'], 1);
+  assert.match(failed.stderr, /Cannot load image before capture/);
+  assert.match(failed.stderr, /cssOverrides/);
+  f.config.scenarios[0].cssOverrides = 'img.optional-image { display: none !important; }';
+  await f.save();
+  await f.run(['reference']);
+  f.pages['/one'] = '<style>body{margin:0;background:lime}</style>';
+  await f.run(['test']);
+});

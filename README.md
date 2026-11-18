@@ -757,6 +757,20 @@ images, and images hidden with `visibility` still load because they can affect
 layout. Hidden empty `data:,` placeholders are also ignored. Visible broken images
 still fail capture.
 
+If an unimportant image repeatedly fails, hide it before image checks with a
+scenario's `cssOverrides`. Use the image's actual CSS selector; for example:
+
+```json
+"cssOverrides": "img.optional-image { display: none !important; }"
+```
+
+This removes the image and its space from the comparison. Add the rule to any
+existing `cssOverrides` rather than replacing those rules.
+
+`removeSelectors` runs after the initial image checks, so it is too late to prevent
+image-loading errors. `hideSelectors` also keeps checking images. Use
+`cssOverrides` with `display: none` to skip these checks for an unwanted image.
+
 `retryImageDownloads: true` attempts to recover stalled HTTP downloads using the
 browser context's cookies. The recovered image must still decode successfully.
 `imageDownloadTimeout` limits recovery; it defaults to `15000` milliseconds.

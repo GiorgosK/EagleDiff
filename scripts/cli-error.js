@@ -2,7 +2,10 @@
 function formatError(error, { color = false, width = 100 } = {}) {
   const heading = color ? '\x1b[31mERROR:\x1b[0m' : 'ERROR:';
   const limit = Math.max(40, Math.min(100, width || 100));
-  const message = String(error?.displayMessage ?? error?.message ?? error);
+  let message = String(error?.displayMessage ?? error?.message ?? error);
+  if (/Cannot (?:load image|decode responsive image) before capture\b/.test(String(error?.message ?? error))) {
+    message += '\nOptional image? Use this scenario\'s cssOverrides to set display:none on its selector.\nThis removes the image and its space from the visual comparison.';
+  }
   // Puppeteer's encoded evaluation locations are stack frames, not the cause.
   const lines = message.split(/\r?\n/)
     .filter(line => !/^\s*(?:pptr:evaluate;|async Promise\.all \(index \d+\))/.test(line))
