@@ -65,7 +65,20 @@ module.exports = async function loadLazyImages(page, context = {}) {
       let timer;
       try {
         await Promise.race([
-          image.decode(),
+          (async () => {
+            const sourceState = () => JSON.stringify([image.src, image.currentSrc, image.srcset, image.sizes]);
+            // Native lazy/responsive loaders can replace a source while decode()
+            // is pending. Decode the replacement under the same timeout budget.
+            for (let attempt = 0; ; attempt++) {
+              const source = sourceState();
+              try { await image.decode(); return; }
+              catch (error) {
+                const changing = source !== sourceState() || !image.complete || image.naturalWidth > 0;
+                if (error.name !== 'EncodingError' || !changing || attempt >= 2) throw error;
+                await new Promise(resolve => requestAnimationFrame(resolve));
+              }
+            }
+          })(),
           new Promise((_, reject) => {
             timer = setTimeout(() => {
               const error = new Error(`Timed out after ${timeoutMs}ms`);
@@ -85,7 +98,7 @@ module.exports = async function loadLazyImages(page, context = {}) {
           failures.push({ sources: [image.currentSrc, image.src].filter(Boolean), message: error.message });
           return;
         }
-        throw new Error(`Cannot load image before capture: ${image.src || image.currentSrc}\n${error.message}`);
+        throw new Error(`Cannot load image before capture: ${image.currentSrc || image.src}\n${error.message}`);
       } finally {
         clearTimeout(timer);
       }

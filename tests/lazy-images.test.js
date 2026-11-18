@@ -61,6 +61,9 @@ test('loads delayed lazy sources before normalization and reports failed image U
   assert.equal(await page.$eval('img', image => image.naturalWidth), 0);
   await assert.rejects(load(page, { scenario: { imageFailurePolicy: 'error' }, config: context.config }), /missing.jpg/);
   await assert.rejects(load(page, { scenario: { imageFailurePolicy: 'invalid' } }), /imageFailurePolicy/);
+  await page.setContent(`<img src="${base}/placeholder.svg" srcset="${base}/missing.svg 1x">`);
+  await assert.rejects(load(page), error => error.message.includes(`${base}/missing.svg`),
+    'Diagnostics must identify the selected responsive source rather than its valid fallback');
 });
 
 test('lazy source promotion preserves native loader layout initialization during scrolling', async t => {
@@ -127,4 +130,42 @@ test('lazy source promotion preserves native loader layout initialization during
   assert.equal(await page.evaluate(() => scrollY), 0, 'Final rechecks must not scroll again');
   assert.equal(await page.$eval('#lazy', image => image.getAttribute('data-src')), null);
   assert.equal(await page.$eval('#lazy', image => image.naturalWidth), 600);
+});
+
+test('a source changed during decoding is decoded again without accepting a broken replacement', async t => {
+  const browser = await puppeteer.launch(buildBrowserLaunchOptions());
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  await page.setViewport({ width: 40, height: 40 });
+  const image = color => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="${color}"/></svg>`);
+  const red = image('red');
+  const green = image('lime');
+  const prepare = async replacement => {
+    await page.goto('about:blank');
+    await page.setContent(`<style>body{margin:0}</style><img width="40" height="40" src="${red}">`);
+    await page.evaluate(replacement => {
+      const original = HTMLImageElement.prototype.decode;
+      window.originalDecode = original;
+      window.decodeFailures = 0;
+      HTMLImageElement.prototype.decode = function() {
+        const pending = original.call(this);
+        if (!this.dataset.switched) { this.dataset.switched = 'yes'; this.src = replacement; }
+        return pending.catch(error => { window.decodeFailures++; throw error; });
+      };
+    }, replacement);
+  };
+  await prepare(green);
+  await load(page, { imageReadinessFinalCheck: true });
+  assert(await page.evaluate(() => window.decodeFailures > 0), 'The real decode promise must reject during source replacement');
+  await page.evaluate(() => { HTMLImageElement.prototype.decode = window.originalDecode; });
+  const png = await page.screenshot();
+  const color = await page.evaluate(async source => {
+    const img = new Image(); img.src = source; await img.decode();
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 40;
+    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
+    return [...ctx.getImageData(20, 20, 1, 1).data];
+  }, 'data:image/png;base64,' + Buffer.from(png).toString('base64'));
+  assert.deepEqual(color, [0, 255, 0, 255], 'Capture must contain the decoded replacement');
+  await prepare('data:image/png,invalid');
+  await assert.rejects(load(page, { imageReadinessFinalCheck: true }), /Cannot load image before capture/);
 });
