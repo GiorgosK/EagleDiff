@@ -21,7 +21,7 @@ const { resolveOptions: resolveMediaOptions } = require('./hooks/pause-media');
 const { resolveOptions: resolveDrupalReadyOptions } = require('./hooks/wait-for-drupal-ready');
 const { resolveOptions: resolveIframeOptions } = require('./iframe-capture');
 const trackImageRequests = require('./image-request-diagnostics');
-const { navigate } = require('./navigation');
+const { navigate, isNavigationContextError, inspectInitialDocument } = require('./navigation');
 const { applyCookies } = require('./cookies');
 const { withRetryTimeouts, retryTimeoutFactor } = require('./retry-timeouts');
 const { readResults } = require('./results-history');
@@ -405,7 +405,10 @@ async function captureScenarioScreenshot({
       if (readyContext.navigationResponseStatus === null && navigationResponse) {
         trackNavigationResponse(navigationResponse);
       }
-      await assertNoChallenge(activePage, readyContext);
+      await Promise.race([
+        inspectInitialDocument(activePage, () => assertNoChallenge(activePage, readyContext), navigationTimeout),
+        challengeDetected.then(({ provider, url: challengeUrl }) => { throw challengeError(provider, challengeUrl); })
+      ]);
       if (delayMs) {
         await sleep(delayMs);
         await assertNoChallenge(activePage, readyContext);
@@ -524,6 +527,7 @@ function isTemporaryCaptureError(error) {
     if (cause.code === 'EAGLEDIFF_CHALLENGE_DETECTED') return false;
   }
   for (let cause = error; cause; cause = cause.cause) {
+    if (isNavigationContextError(cause)) return true;
     if (['EAGLEDIFF_NAVIGATION_TIMEOUT', 'EAGLEDIFF_IMAGE_TIMEOUT', 'EAGLEDIFF_IFRAME_TIMEOUT', 'EAGLEDIFF_READY_TIMEOUT', 'EAGLEDIFF_STABLE_CONTENT_TIMEOUT', 'EAGLEDIFF_JQUERY_READY_TIMEOUT', 'EAGLEDIFF_COOKIE_CONSENT_TIMEOUT', 'EAGLEDIFF_SVG_ANIMATION_TIMEOUT', 'EAGLEDIFF_DRUPAL_READY_TIMEOUT', 'EAGLEDIFF_SCROLL_TIMEOUT', 'EAGLEDIFF_FONT_TIMEOUT', 'EAGLEDIFF_FONT_LOAD'].includes(cause.code)) return true;
   }
   const message = String(error?.message || error || '');

@@ -3,6 +3,26 @@ function isNavigationContextError(error) {
   return /Execution context was destroyed|Cannot find context with (?:specified )?id/i.test(error?.message || '');
 }
 
+async function inspectInitialDocument(page, inspectDocument, timeout = 30000) {
+  const deadline = Date.now() + (timeout || 30000);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      if (attempt) {
+        await new Promise(resolve => setTimeout(resolve, 250));
+        const ready = await page.waitForFunction(() => document.readyState !== 'loading', {
+          timeout: Math.max(1, deadline - Date.now())
+        });
+        await ready.dispose();
+      }
+      return await inspectDocument();
+    } catch (error) {
+      if (error.name === 'TimeoutError') error.code = 'EAGLEDIFF_NAVIGATION_TIMEOUT';
+      if (!isNavigationContextError(error) || attempt >= 2 || Date.now() >= deadline ||
+          page.isClosed() || !page.browser().connected) throw error;
+    }
+  }
+}
+
 function diagnosticUrl(value) {
   try {
     const url = new URL(value);
@@ -60,4 +80,4 @@ async function navigate(page, url, { waitUntil, timeout }) {
   }
 }
 
-module.exports = { navigate, isNavigationContextError };
+module.exports = { navigate, isNavigationContextError, inspectInitialDocument };

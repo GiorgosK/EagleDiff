@@ -692,6 +692,9 @@ handle supported network, browser and other readiness failures.
 `core.temporaryErrorRetries` defaults to `2`: retry a temporary failure up to
 twice in fresh browser contexts (three attempts total). Existing configs keep
 saved values, including `0` and `1`.
+An initial redirect can resume the first page check on the new document. If a
+navigation interrupts later preparation, the whole capture uses these retries
+so its hooks run again before saving a screenshot.
 A disconnected worker browser is restarted on retry. Retries do not override
 image or HTTP error policies.
 
