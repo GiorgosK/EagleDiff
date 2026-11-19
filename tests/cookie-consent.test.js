@@ -16,6 +16,14 @@ async function setup(t) {
 }
 const context = (mode, timeout = 300) => ({ mode: 'ready', scenario: { cookieConsent: mode, cookieConsentTimeout: timeout }, config: template });
 
+function webtoolsBanner(accept = 'Accept all cookies', essential = 'Accept only essential cookies') {
+  // The wrapper has no box; its fixed child is the visible dialog.
+  return `<div id="fixture-banner" class="wt-cck--banner"><div class="wt-cck--container" style="position:fixed;inset:0;background:red">
+    <a id="fixture-essential" class="wt-cck--actions-button" href="#refuse">${essential}</a>
+    <a id="fixture-accept" class="wt-cck--actions-button" href="#accept">${accept}</a>
+  </div></div>`;
+}
+
 function banner(provider) {
   const dialogSelector = provider.dialogs[0];
   const buttonSelector = provider.accept[0].split(' ').at(-1);
@@ -23,7 +31,9 @@ function banner(provider) {
   const button = buttonSelector.startsWith('#') ? buttonSelector.slice(1) : 'fixture-accept';
   const dialogClass = dialogSelector.split('.').slice(1).join(' ');
   const buttonClass = buttonSelector.startsWith('.') ? buttonSelector.slice(1) : '';
-  return `<div id="${dialog}" class="${dialogClass}" style="position:fixed;inset:0;background:red"><button id="${button}" class="${buttonClass}">Allow all</button></div>
+  const markup = provider.name === 'European Commission Webtools' ? webtoolsBanner() :
+    `<div id="${dialog}" class="${dialogClass}" style="position:fixed;inset:0;background:red"><button id="${button}" class="${buttonClass}">Allow all</button></div>`;
+  return `${markup}
     <script>document.getElementById('${button}').onclick=()=>{
       window.accepted=(window.accepted||0)+1;
       document.cookie='fixture-consent=all; path=/';
@@ -228,4 +238,57 @@ test('capture modes produce distinct PNGs and a failed acceptance retries withou
   assert.match((await fixture.run(['reference'], 1)).stderr, /Could not accept cookie consent/);
   assert.equal(fixture.requests.filter(url => url === '/one').length - requestsBefore, 2);
   assert.deepEqual(await fs.readFile(baseline), before);
+});
+
+test('Webtools banners support hide, accept-all and leave across languages without affecting separate popups', async t => {
+  const f = await require('./helpers/cli-fixture')(t);
+  for (const labels of [undefined, ['Αποδοχή όλων των cookies', 'Μόνο απαραίτητα cookies']]) {
+    const markup = labels ? webtoolsBanner(...labels) : webtoolsBanner();
+    f.pages['/one'] = `<main>Page content</main>
+      <a id="unrelated" class="wt-cck--actions-button" href="#accept">Accept something else</a>
+      <aside id="separate-popup">Feedback survey</aside><script>
+        setTimeout(()=>document.body.insertAdjacentHTML('beforeend', ${JSON.stringify(markup)}), 30);
+        document.addEventListener('click', event => {
+          event.preventDefault();
+          if(event.target.id==='unrelated') window.unrelatedClicked=true;
+          if(event.target.id==='fixture-essential') window.essentialClicked=true;
+          if(event.target.id==='fixture-accept') {
+            window.accepted=(window.accepted||0)+1;
+            document.cookie='fixture-consent=all; path=/';
+            document.querySelector('.wt-cck--banner').remove();
+          }
+        });
+      </script>`;
+    for (const mode of ['hide', 'accept', 'leave']) {
+      const page = await setup(t);
+      await consent(page, { ...context(mode, 1000), mode: 'before' });
+      await page.goto(f.baseURL + '/one');
+      await page.waitForSelector('.wt-cck--banner');
+      assert.equal(await page.$eval('.wt-cck--banner', element => element.getBoundingClientRect().height), 0);
+      await consent(page, context(mode, 1000));
+      const state = await page.evaluate(() => ({
+        accepted: window.accepted || 0, essential: !!window.essentialClicked,
+        unrelated: !!window.unrelatedClicked, present: !!document.querySelector('.wt-cck--banner'),
+        visible: !!document.querySelector('#fixture-accept')?.getBoundingClientRect().height,
+        popupVisible: !!document.querySelector('#separate-popup').getBoundingClientRect().height
+      }));
+      assert.equal(state.accepted, mode === 'accept' ? 1 : 0);
+      assert.equal(state.present, mode !== 'accept');
+      assert.equal(state.visible, mode === 'leave');
+      assert.equal(state.essential, false);
+      assert.equal(state.unrelated, false);
+      assert.equal(state.popupVisible, true);
+      assert.equal((await page.cookies()).some(cookie => cookie.name === 'fixture-consent' && cookie.value === 'all'), mode === 'accept');
+    }
+  }
+});
+
+test('Webtools acceptance stops when only the essential-cookies option is available', async t => {
+  const page = await setup(t);
+  await page.setContent(webtoolsBanner());
+  await page.$eval('#fixture-accept', element => element.remove());
+  await page.$eval('#fixture-essential', element => { element.onclick = () => { window.essentialClicked = true; }; });
+  await assert.rejects(consent(page, context('accept', 100)), error =>
+    error.code === 'EAGLEDIFF_COOKIE_CONSENT_TIMEOUT' && /Webtools/.test(error.message));
+  assert.equal(await page.evaluate(() => !!window.essentialClicked), false);
 });
