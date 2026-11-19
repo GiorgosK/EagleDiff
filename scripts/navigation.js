@@ -1,4 +1,8 @@
 // Keep navigation evidence before closing the failed page or stopping workers.
+function isNavigationContextError(error) {
+  return /Execution context was destroyed|Cannot find context with (?:specified )?id/i.test(error?.message || '');
+}
+
 function diagnosticUrl(value) {
   try {
     const url = new URL(value);
@@ -56,4 +60,4 @@ async function navigate(page, url, { waitUntil, timeout }) {
   }
 }
 
-module.exports = { navigate };
+module.exports = { navigate, isNavigationContextError };

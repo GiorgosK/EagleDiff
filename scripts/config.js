@@ -10,6 +10,7 @@ const {
   resolveChromePath
 } = require('./run');
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
+const { isNavigationContextError } = require('./navigation');
 
 const defaultConfigPath = path.join(helperDir, 'config-default.json');
 const defaultExcludeExtensions = require('../config-default.json').excludeExtensions;
@@ -117,24 +118,17 @@ async function discoverScenarios({ discoverySources, limit, excludeExtensions })
           page.goto(baseUrl, { waitUntil: 'domcontentloaded' }),
           challengeDetected.then(({ provider, url }) => { throw challengeError(provider, url, undefined, 'Page discovery'); })
         ]);
-        await assertNoChallenge(page, navigation, 'Page discovery');
-        await sleep(1000);
-        await assertNoChallenge(page, navigation, 'Page discovery');
-
-        const links = await page.$$eval('a[href]', (anchors) => anchors.map((anchor) => ({
-          href: anchor.getAttribute('href') || '',
-          text: (anchor.textContent || '').replace(/\s+/g, ' ').trim(),
-          title: (anchor.getAttribute('title') || '').trim(),
-          ariaLabel: (anchor.getAttribute('aria-label') || '').trim()
-        })));
-        await assertNoChallenge(page, navigation, 'Page discovery');
+        const { links, pageUrl } = await Promise.race([
+          readDiscoveryLinks(page, navigation),
+          challengeDetected.then(({ provider, url }) => { throw challengeError(provider, url, undefined, 'Page discovery'); })
+        ]);
 
         for (const link of links) {
           if (discovered.length >= limit) {
             break;
           }
 
-          const normalized = normalizeLink(baseUrl, link, excludeExtensions);
+          const normalized = normalizeLink(pageUrl, link, excludeExtensions);
           if (!normalized || seenUrls.has(normalized.url)) {
             continue;
           }
@@ -156,6 +150,39 @@ async function discoverScenarios({ discoverySources, limit, excludeExtensions })
     try { await browserContext?.close(); }
     finally { await browser.close(); }
   }
+}
+
+async function readDiscoveryLinks(page, navigation) {
+  const deadline = Date.now() + 30000;
+  let lastError;
+  for (let attempt = 0; attempt < 3 && Date.now() < deadline; attempt++) {
+    try {
+      if (attempt) await sleep(250);
+      await assertNoChallenge(page, navigation, 'Page discovery');
+      await sleep(1000);
+      const ready = await page.waitForFunction(() => document.readyState !== 'loading', {
+        timeout: Math.max(1, deadline - Date.now())
+      });
+      await ready.dispose();
+      await assertNoChallenge(page, navigation, 'Page discovery');
+      const snapshot = await page.$$eval('a[href]', anchors => ({
+        pageUrl: location.href,
+        links: anchors.map(anchor => ({
+          href: anchor.getAttribute('href') || '',
+          text: (anchor.textContent || '').replace(/\s+/g, ' ').trim(),
+          title: (anchor.getAttribute('title') || '').trim(),
+          ariaLabel: (anchor.getAttribute('aria-label') || '').trim()
+        }))
+      }));
+      await assertNoChallenge(page, navigation, 'Page discovery');
+      if (page.url() === snapshot.pageUrl) return snapshot;
+      lastError = new Error('The page navigated after its links were read.');
+    } catch (error) {
+      if (!isNavigationContextError(error)) throw error;
+      lastError = error;
+    }
+  }
+  throw new Error(`Page discovery was interrupted by repeated navigation at ${page.url()}. Try --links with the final destination URL.`, { cause: lastError });
 }
 
 function normalizeLink(pageUrl, link, excludeExtensions = defaultExcludeExtensions) {

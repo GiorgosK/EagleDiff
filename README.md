@@ -197,6 +197,8 @@ or deleted screenshots; reports and history remain available.
 pages. Set `--limit` to change the discovery limit; the homepage counts toward it.
 Edit saved base URLs directly to change environments. The command adds `.reg/`
 to the project's `.gitignore`.
+If the page redirects while links are being read, discovery retries the inspection
+up to twice, within a 30-second readiness budget. Links use the final page URL.
 
 `excludeExtensions` skips file links, including common documents and archives by
 default; see [config-default.json](config-default.json) for the list. For example:

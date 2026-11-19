@@ -55,9 +55,11 @@ test('config CLI saves defaults and uses existing exclusions before applying the
         newPage: async () => ({
           goto: async () => {}, close: async () => {},
           on: () => {}, off: () => {}, evaluate: async () => null,
-          $$eval: async () => [
+          url: () => 'https://example.org',
+          waitForFunction: async () => ({ dispose: async () => {} }),
+          $$eval: async () => ({ pageUrl: 'https://example.org', links: [
             { href: '/file.pdf' }, { href: '/archive.zip' }, { href: '/page', text: 'Page' }
-          ]
+          ] })
         }),
         close: async () => {}
       }),
@@ -149,4 +151,68 @@ test('CLI discovers 25 pages by default in the current directory and keeps expli
   const custom = JSON.parse(await fs.readFile(path.join(project, 'custom/config.json')));
   assert.equal(custom.scenarios.length, 3);
   assert.equal(await fs.readFile(configPath, 'utf8'), saved);
+});
+
+test('discovery recovers a destroyed execution context and resolves links from the redirected page', async t => {
+  const f = await require('./helpers/cli-fixture')(t);
+  f.pages['/'] = '<a href="/stale">Old document</a>';
+  f.pages['/language/'] = '<a href="child">Final page</a><a href="/guide">Guide</a>';
+  const preload = path.join(f.directory, 'navigation.cjs');
+  await fs.writeFile(preload, `
+    const puppeteerPath = ${JSON.stringify(require.resolve('puppeteer-core'))};
+    const puppeteer = require(puppeteerPath);
+    const launch = puppeteer.launch.bind(puppeteer);
+    require.cache[puppeteerPath].exports = { ...puppeteer, launch: async (...args) => {
+      const browser = await launch(...args);
+      const createContext = browser.createBrowserContext.bind(browser);
+      browser.createBrowserContext = async () => {
+        const context = await createContext();
+        const newPage = context.newPage.bind(context);
+        context.newPage = async () => {
+          const page = await newPage();
+          const evaluate = page.evaluate.bind(page);
+          let interrupted = false;
+          page.evaluate = async (...args) => {
+            require('node:fs').appendFileSync(__dirname + '/inspection-attempts.txt', 'x');
+            if (process.env.EAGLEDIFF_TEST_NAVIGATION_MODE === 'unexpected') throw new Error('Unexpected discovery failure');
+            if (!interrupted || process.env.EAGLEDIFF_TEST_NAVIGATION_MODE === 'repeat') {
+              interrupted = true;
+              return evaluate(async () => {
+                location.replace('/language/');
+                await new Promise(() => {});
+              });
+            }
+            return evaluate(...args);
+          };
+          return page;
+        };
+        return context;
+      };
+      return browser;
+    } };
+  `);
+  const configPath = path.join(f.directory, 'config.json');
+  await fs.unlink(configPath);
+  const run = mode => promisify(execFile)(process.execPath, [
+    '--require', preload, path.join(__dirname, '../scripts/config.js'), '--ref=' + f.baseURL
+  ], { timeout: 15000, env: { ...process.env, EAGLEDIFF_DIR: f.directory,
+    EAGLEDIFF_CONFIG: configPath, GLOBAL_EAGLEDIFF_CONFIG: configPath,
+    EAGLEDIFF_SCRIPT_DIR: path.join(__dirname, '..'), EAGLEDIFF_TEST_NAVIGATION_MODE: mode } });
+  const result = await run('once');
+  const config = JSON.parse(await fs.readFile(configPath));
+  assert.deepEqual(config.scenarios.map(scenario => scenario.url), ['/', '/language/child', '/guide'], JSON.stringify({output:result.stdout,requests:f.requests}));
+  assert.match(result.stdout, /3 discovered scenarios/);
+  assert.equal(config.referenceBaseURL, f.baseURL);
+  assert(f.requests.includes('/language/'));
+  const saved = await fs.readFile(configPath);
+  const gitignore = await fs.readFile(path.join(f.directory, '.gitignore'));
+  for (const [mode, message] of [['repeat', /interrupted by repeated navigation/], ['unexpected', /Unexpected discovery failure/]]) {
+    f.requests.length = 0;
+    await fs.rm(path.join(f.directory, 'inspection-attempts.txt'));
+    await assert.rejects(run(mode), error => message.test(error.stderr));
+    assert.deepEqual(await fs.readFile(configPath), saved);
+    assert.deepEqual(await fs.readFile(path.join(f.directory, '.gitignore')), gitignore);
+    assert.equal((await fs.readFile(path.join(f.directory, 'inspection-attempts.txt'), 'utf8')).length,
+      mode === 'repeat' ? 3 : 1, 'Only navigation-context errors retry, up to three inspections');
+  }
 });
