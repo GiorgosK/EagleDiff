@@ -358,6 +358,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `referenceBaseURL` / `testBaseURL` | **Root:** base URLs for reference and test captures. | - |
 | `core.thresholdRateColor` | **Root:** colour tolerance when counting changed pixels, from 0–1. `0` is strictest; higher values ignore larger colour differences. This is not a percentage of pixels. | - |
 | `core.temporaryErrorRetries` | **Root:** retries temporary capture failures in a fresh browser context. Default `2`; `0` disables retries. It does not override image or HTTP error policies. | - |
+| `core.temporaryErrorRetryMode` | **Root:** `"immediate"` (default) retries as failures occur; `"deferred"` retries failed captures one at a time after the initial captures finish. | - |
 | `core.temporaryErrorRetryTimeoutMultiplier` | **Root:** scale readiness timeouts on retry. Default `1`; `2` gives budgets of 1×, 2×, then 4×. | - |
 | `fontTimeout` | Maximum wait for web fonts, default `30000` milliseconds. Font timeouts and failed font downloads fail capture and use temporary retries. | `wait-for-fonts` |
 | `retryImageDownloads` | Retry stalled HTTP image downloads on the existing page through Node, then require successful browser decoding. Default `false`. Cookies are scoped to each destination, including redirects. | `load-lazy-images` |
@@ -700,6 +701,20 @@ navigation interrupts later preparation, the whole capture uses these retries
 so its hooks run again before saving a screenshot.
 A disconnected worker browser is restarted on retry. Retries do not override
 image or HTTP error policies.
+
+To finish the initial captures first, then retry temporary failures one at a time,
+set this inside the existing `core` object:
+
+```json
+"temporaryErrorRetryMode": "deferred"
+```
+
+Only the failed page/viewport pairs are retried. `temporaryErrorRetries` still
+limits retries per capture; `0` disables them. Deferred retries use fresh browser
+contexts and run with one capture at a time, regardless of the initial worker
+count. If any remain unsuccessful, the run fails without promoting references or
+publishing a partial comparison. Security challenges and permanent errors still
+stop the initial run immediately. This does not retry visual differences.
 
 `core.temporaryErrorRetryTimeoutMultiplier: 2` gives retries longer readiness
 budgets: 1×, 2×, then 4×. It does not change workers, delays, or retry count.

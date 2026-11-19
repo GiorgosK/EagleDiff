@@ -24,6 +24,7 @@ const trackImageRequests = require('./image-request-diagnostics');
 const { navigate, isNavigationContextError, inspectInitialDocument } = require('./navigation');
 const { applyCookies } = require('./cookies');
 const { withRetryTimeouts, retryTimeoutFactor } = require('./retry-timeouts');
+const { resolveRetryMode, runDeferredCaptures } = require('./deferred-retries');
 const { readResults } = require('./results-history');
 const { readLastComparison, retainPreviousComparison, saveComparison } = require('./comparison-reports');
 const { referenceReportPath } = require('./reference-report');
@@ -61,6 +62,7 @@ async function main() {
   if (!Number.isInteger(workers) || workers < 1) {
     throw new Error(`Invalid workers count: ${workers}. Expected a positive integer.`);
   }
+  resolveRetryMode(config);
   let selectedScenarios = filterScenarios(config.scenarios || [], filter, config);
   if (lastFailed) {
     const previous = await readLastComparison(rootDir);
@@ -166,6 +168,7 @@ async function main() {
         await captureScreenshots(browser, config, selectedScenarios, actualCacheDir, captureBaseUrl, addPara, command, {
           warningReporter,
           retryReporter: diagnostics.retry,
+          deferredReporter: diagnostics.deferred,
           relaunchBrowser: async () => {
             await browser.close().catch(() => {});
             browser = await puppeteer.launch(buildBrowserLaunchOptions(config));
@@ -234,6 +237,7 @@ async function main() {
 }
 
 async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl, addPara, command, options = {}) {
+  const retryMode = resolveRetryMode(config);
   validateScreenshotNames(scenarios);
   for (const scenario of scenarios.scenarios) {
     resolveIframeOptions(config, scenario);
@@ -251,6 +255,8 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
   const waitUntil = config.defaults?.waitUntil || 'networkidle2';
   const fullPage = config.defaults?.fullPage !== false;
   const temporaryErrorRetries = Math.max(0, Number(config.core?.temporaryErrorRetries ?? 2) || 0);
+  const deferRetries = retryMode === 'deferred' && temporaryErrorRetries > 0 && !options.deferredRetry;
+  const deferred = [];
   const runtimeConfig = options.parallel
     ? {
         ...config,
@@ -314,7 +320,8 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
           command,
           filePath,
           fullPage,
-          temporaryErrorRetries,
+          temporaryErrorRetries: deferRetries ? 0 : temporaryErrorRetries,
+          startAttempt: options.deferredRetry ? 1 : 0,
           retryReporter: options.retryReporter,
           isCancelled: options.isCancelled,
           relaunchBrowser: options.relaunchBrowser ? async () => {
@@ -324,9 +331,35 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
         });
       } catch (error) {
         const worker = options.workerId ? ` [w${options.workerId}]` : '';
-        throw new Error(`Capture failed${worker}: ${getScenarioLabel(scenario)} @ ${viewport.label} (${viewport.width}x${viewport.height})\nPage URL: ${url}\n${error.message}`, { cause: error });
+        const failure = new Error(`Capture failed${worker}: ${getScenarioLabel(scenario)} @ ${viewport.label} (${viewport.width}x${viewport.height})\nPage URL: ${url}\n${error.message}`, { cause: error });
+        if (!deferRetries || options.isCancelled?.() || !isTemporaryCaptureError(error)) throw failure;
+        const event = { url, scenarioLabel: getScenarioLabel(scenario), viewportLabel: viewport.label,
+          attempt: 1, retries: temporaryErrorRetries, factor: retryTimeoutFactor(runtimeConfig, 1),
+          message: error.message, details: captureErrorDetails(failure) };
+        const entry = { scenario, viewport, event };
+        deferred.push(entry);
+        if (options.deferredReporter) options.deferredReporter(entry);
+        else console.warn(`[eaglediff] Warning: ${url} — ${event.scenarioLabel} @ ${viewport.label}: retry deferred until the end of the run.`);
       }
     }
+  }
+  if (deferred.length && !options.deferToParent) {
+    console.log(`[eaglediff] Retrying ${deferred.length} failed capture(s) one at a time.`);
+    await runDeferredCaptures(deferred, async ({ scenario, viewport, event }, index) => {
+      options.retryReporter?.(event);
+      await captureScreenshots(browser, config, { scenarios: [scenario], viewports: [viewport] },
+        actualDir, baseUrl, addPara, command, {
+          ...options, deferredRetry: true,
+          progressReporter: progress => {
+            if (reportProgress) reportProgress({ ...progress, phase: 'retry', current: index + 1, total: deferred.length });
+            else console.log(`[retry ${index + 1}/${deferred.length}] ${progress.scenarioLabel} @ ${progress.viewportLabel}`);
+          },
+          relaunchBrowser: options.relaunchBrowser ? async () => {
+            browser = await options.relaunchBrowser();
+            return browser;
+          } : null
+        });
+    }, options.isCancelled);
   }
 }
 
@@ -346,11 +379,12 @@ async function captureScenarioScreenshot({
   filePath,
   fullPage,
   temporaryErrorRetries,
+  startAttempt = 0,
   retryReporter,
   isCancelled,
   relaunchBrowser
 }) {
-  let attempt = 0;
+  let attempt = startAttempt;
 
   while (true) {
     const { config: attemptConfig, scenario: attemptScenario } = withRetryTimeouts(runtimeConfig, scenario, attempt);
@@ -1109,84 +1143,99 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
     ? (message, code, context) => diagnostics.warning(code, message, context) : undefined);
   let aborted = false;
 
+  const deferred = [];
+  const runBatch = (captures, workerId, phase = 'initial') => new Promise((resolve, reject) => {
+    const child = fork(workerPath, [], {
+      cwd: rootDir,
+      env: process.env,
+      stdio: ['inherit', 'inherit', 'inherit', 'ipc']
+    });
+    children.push(child);
+    let settled = false;
+    let retriedScreenshots = 0;
+
+    const fail = (error) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      reject(error);
+    };
+
+    child.on('message', (message) => {
+      if (aborted || !message || typeof message !== 'object') {
+        return;
+      }
+
+      if (message.type === 'deferred') {
+        deferred.push(message.entry);
+        diagnostics?.deferred(message.entry);
+        return;
+      }
+
+      if (message.type === 'warning') {
+        reportWarning(message.code, message.message, message.context);
+        return;
+      }
+
+      if (message.type === 'retry') {
+        diagnostics?.retry(message.event);
+        return;
+      }
+
+      if (message.type === 'progress') {
+        if (phase === 'deferred') {
+          console.log(`[retry ${++retriedScreenshots}/${captures.length}] ${message.scenarioLabel} @ ${message.viewportLabel}`);
+          return;
+        }
+        completedScreenshots += 1;
+        const workerTag = captureBatches.length > 1 ? ` [w${workerId}]` : '';
+        console.log(`[${completedScreenshots}/${totalScreenshots}]${workerTag} ${message.scenarioLabel} @ ${message.viewportLabel}`);
+        return;
+      }
+
+      if (message.type === 'error') {
+        const error = new Error(message.message || `Worker ${workerId} failed`);
+        error.workerStack = message.stack;
+        error.workerDetails = message.details;
+        fail(error);
+      }
+    });
+
+    child.on('error', fail);
+    child.on('exit', (code) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      reject(new Error(`Worker ${workerId} exited with code ${code}`));
+    });
+
+    child.send({
+      command,
+      config,
+      captures,
+      actualDir,
+      baseUrl,
+      addPara,
+      workerId,
+      phase
+    });
+  });
   try {
-    await Promise.all(
-    captureBatches.map((captures, index) => new Promise((resolve, reject) => {
-      const workerId = index + 1;
-      const child = fork(workerPath, [], {
-        cwd: rootDir,
-        env: process.env,
-        stdio: ['inherit', 'inherit', 'inherit', 'ipc']
-      });
-      children.push(child);
-      let settled = false;
-
-      const fail = (error) => {
-        if (settled) {
-          return;
-        }
-
-        settled = true;
-        reject(error);
-      };
-
-      child.on('message', (message) => {
-        if (aborted || !message || typeof message !== 'object') {
-          return;
-        }
-
-        if (message.type === 'warning') {
-          reportWarning(message.code, message.message, message.context);
-          return;
-        }
-
-        if (message.type === 'retry') {
-          diagnostics?.retry(message.event);
-          return;
-        }
-
-        if (message.type === 'progress') {
-          completedScreenshots += 1;
-          const workerTag = captureBatches.length > 1 ? ` [w${workerId}]` : '';
-          console.log(`[${completedScreenshots}/${totalScreenshots}]${workerTag} ${message.scenarioLabel} @ ${message.viewportLabel}`);
-          return;
-        }
-
-        if (message.type === 'error') {
-          const error = new Error(message.message || `Worker ${workerId} failed`);
-          error.workerStack = message.stack;
-          error.workerDetails = message.details;
-          fail(error);
-        }
-      });
-
-      child.on('error', fail);
-      child.on('exit', (code) => {
-        if (settled) {
-          return;
-        }
-
-        settled = true;
-
-        if (code === 0) {
-          resolve();
-          return;
-        }
-
-        reject(new Error(`Worker ${workerId} exited with code ${code}`));
-      });
-
-      child.send({
-        command,
-        config,
-        captures,
-        actualDir,
-        baseUrl,
-        addPara,
-        workerId
-      });
-    }))
-    );
+    await Promise.all(captureBatches.map((captures, index) => runBatch(captures, index + 1)));
+    if (deferred.length) {
+      console.log(`[eaglediff] Retrying ${deferred.length} failed capture(s) one at a time.`);
+      await runBatch(deferred, 1, 'deferred');
+    }
   } catch (error) {
     aborted = true;
     for (const child of children) {

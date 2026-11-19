@@ -100,6 +100,13 @@ viewport, failing hook, and relevant resource or navigation state.
 Workers receive batches of scenario/viewport pairs. `core.workers` controls
 capture concurrency, with a CLI override available. Automated test-file
 concurrency is a separate setting and does not change project workers.
+With `core.temporaryErrorRetryMode: "deferred"`, workers report temporary failures
+to the parent without retrying them during the initial pass. After all initial
+workers exit, one worker retries those pairs sequentially using the original
+retry count and timeout scaling. Single-worker runs use the same queue in process.
+Exhausted retries are collected so the other queued captures can still retry;
+security challenges stop the queue immediately. Any remaining failure prevents
+reference promotion and comparison publication.
 
 ## Hook responsibilities and order
 

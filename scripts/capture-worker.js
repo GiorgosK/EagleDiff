@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer-core');
 const { buildBrowserLaunchOptions, captureScreenshots } = require('./run');
 const { captureErrorDetails } = require('./capture-diagnostics');
+const { runDeferredCaptures } = require('./deferred-retries');
 
 process.once('message', async (job) => {
   if (!job || typeof job !== 'object') {
@@ -28,6 +29,11 @@ process.once('message', async (job) => {
       },
       workerId: job.workerId,
       parallel: true,
+      deferredRetry: job.phase === 'deferred',
+      deferToParent: job.phase !== 'deferred',
+      deferredReporter: entry => {
+        if (process.connected) process.send({ type: 'deferred', entry });
+      },
       warningReporter: require('./warnings').createWarningReporter((message, code, context) => {
         if (process.connected) process.send({ type: 'warning', code, message, context });
       }),
@@ -40,7 +46,8 @@ process.once('message', async (job) => {
         }
       }
     };
-    for (const { scenario, viewport } of job.captures) {
+    const capture = async ({ scenario, viewport, event }) => {
+      if (job.phase === 'deferred' && event) options.retryReporter(event);
       await captureScreenshots(
         browser,
         job.config,
@@ -51,7 +58,9 @@ process.once('message', async (job) => {
         job.command,
         options
       );
-    }
+    };
+    if (job.phase === 'deferred') await runDeferredCaptures(job.captures, capture, () => cancelled);
+    else for (const entry of job.captures) await capture(entry);
 
     if (process.send) {
       process.send({ type: 'done', workerId: job.workerId });

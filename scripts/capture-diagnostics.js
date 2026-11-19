@@ -48,6 +48,12 @@ function createCaptureDiagnostics(root, command, output = printWarning) {
     if (!announced) { output(`Details: ${logPath}`); announced = true; }
   };
   return {
+    deferred({ event }) {
+      const full = `Retry deferred until the end of the run.\nPage URL: ${event.url}\n${event.details || event.message}`;
+      if (!write('DEFERRED', full)) { output(full); return; }
+      output(`Warning: ${event.url} — ${event.scenarioLabel} @ ${event.viewportLabel}: retry deferred until the end of the run.`);
+      announce();
+    },
     warning(code, message, context = {}) {
       const saved = write('WARNING ' + code, `${context.url ? `Page URL: ${context.url}\n` : ''}${message}`);
       const body = String(message).replace(/^Warning:\s*/, '');
