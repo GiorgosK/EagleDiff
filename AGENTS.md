@@ -4,6 +4,12 @@ These instructions apply to all AI assistants working in this repository.
 Read them before changing files. Read [README.md](README.md) for commands and
 [docs/overview.md](docs/overview.md) for architecture and future improvements.
 
+Before starting new work, read `TODO.md` and the `notes/` folder when they
+exist, and check them for pending related tasks, earlier decisions and test
+beds. Both are local working notes, ignored through `.git/info/exclude`: never
+commit them or copy their private details into tracked files. When work
+changes what they say, offer to update them.
+
 ## Human review and commit approval
 
 - Implement and validate requested changes, then leave them uncommitted for
