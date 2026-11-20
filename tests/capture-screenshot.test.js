@@ -17,7 +17,8 @@ test('primes the selected capture area without saving the incomplete first image
     const options = { path: '/output.png', ...captureOptions };
     assert.equal(await captureScreenshot(page, options), 'final');
     // The priming pass paints the same area but encodes a cheap, unsaved JPEG.
-    assert.deepEqual(calls, ['settled', { ...captureOptions, type: 'jpeg', quality: 1 }, 'settled', options]);
+    assert.deepEqual(calls, ['settled', { ...captureOptions, type: 'jpeg', quality: 1 }, 'settled',
+      { optimizeForSpeed: true, ...options }]);
     assert.equal(options.path, '/output.png');
   }
 });
@@ -47,8 +48,27 @@ test('rendering pass preserves viewport height, fixed elements, and clip geometr
     assert.equal(png.readUInt32BE(20), height);
     assert.deepEqual(page.viewport(), viewport);
     assert.deepEqual(await page.evaluate(() => ({ height: innerHeight, mainHeight: document.querySelector('main').getBoundingClientRect().height, headerTop: document.querySelector('header').getBoundingClientRect().top })), { height: 200, mainHeight: 200, headerTop: 0 });
-    // Byte-identical to a default capture, so unchanged screenshots keep
-    // matching existing references without a pixel comparison.
-    assert.deepEqual(png, Buffer.from(await page.screenshot(options)));
+    // Repeat captures are byte-identical, so the comparison can skip
+    // unchanged screenshots; fast encoding keeps the default PNG's pixels.
+    const repeat = Buffer.from(await page.screenshot({ ...options, optimizeForSpeed: true }));
+    assert.deepEqual(png, repeat);
+    assert.equal(await decodedPixelsMatch(browser, png, Buffer.from(await page.screenshot(options))), true);
   }
 });
+
+async function decodedPixelsMatch(browser, first, second) {
+  const page = await browser.newPage();
+  try {
+    return await page.evaluate(async sources => {
+      const pixels = await Promise.all(sources.map(async source => {
+        const bitmap = await createImageBitmap(await (await fetch(source)).blob());
+        const context = new OffscreenCanvas(bitmap.width, bitmap.height).getContext('2d');
+        context.drawImage(bitmap, 0, 0);
+        return context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+      }));
+      return pixels[0].length === pixels[1].length && pixels[0].every((value, index) => value === pixels[1][index]);
+    }, [first, second].map(buffer => 'data:image/png;base64,' + buffer.toString('base64')));
+  } finally {
+    await page.close();
+  }
+}

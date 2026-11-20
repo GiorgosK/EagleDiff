@@ -17,7 +17,8 @@ module.exports = async function captureScreenshot(page, options, beforeCapture) 
     await settleLayout(page);
   }
   if (beforeCapture) await beforeCapture();
-  // The saved PNG keeps Chrome's default encoding: identical pixels then give
-  // identical bytes, which lets the comparison skip unchanged screenshots.
-  return page.screenshot(options);
+  // Fast PNG encoding is lossless and about 3x faster on tall pages, at the
+  // cost of larger files. It is deterministic, so unchanged pixels still give
+  // identical bytes and the comparison can skip them.
+  return page.screenshot({ optimizeForSpeed: true, ...options });
 };
