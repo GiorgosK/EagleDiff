@@ -336,7 +336,7 @@ These share names or concepts with [Backstop settings](https://github.com/garris
 | `id` | Scenario | Optional extra name to distinguish scenarios with the same URL and label. Import adds it only when needed. | - |
 | `defaults` | Root | Shared capture settings, like Backstop's `scenarioDefaults`. | - |
 | `onBeforeScript` / `onReadyScript` | Root or scenario | Script lists run before navigation or after navigation and `delay`. Scenario scripts run after the root list. | Listed scripts |
-| `delay` | Defaults or scenario | Pause before ready hooks, default `1500`. | - |
+| `delay` | Defaults or scenario | Pause before ready hooks, default `500`. Existing configs keep their saved value; a page whose content starts late (for example a JavaScript widget) may need a longer scenario `delay`. | - |
 | `readySelector` | Defaults or scenario | Optional element to wait for; empty by default. A missing required element fails capture. | `wait-for-element` |
 | `readyTimeout` | Defaults or scenario | Maximum selector wait, default `10000`. | `wait-for-element` |
 | `hideSelectors` | Defaults or scenario | Hide matching elements, keeping their space. | - |
