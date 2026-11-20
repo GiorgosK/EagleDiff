@@ -10,7 +10,7 @@ module.exports = async function loadLazyImages(page, context = {}) {
   if (typeof retryDownloads !== 'boolean') throw new Error('retryImageDownloads must be a boolean.');
   if (!Number.isFinite(downloadTimeout) || downloadTimeout <= 0) throw new Error('imageDownloadTimeout must be a positive number.');
 
-  const failures = await withImageCaptureCheck(page, check => page.evaluate(async ({ timeoutMs, failurePolicy, finalCheck }, isExcluded) => {
+  const failures = await withImageCaptureCheck(page, check => page.evaluate(async ({ timeoutMs, failurePolicy, finalCheck, scrolled }, isExcluded) => {
     const promoted = new WeakMap();
     const promoteSources = ({ removeLazyAttributes = true } = {}) => {
       // Common lazy-loader attributes, independent of any particular library.
@@ -41,7 +41,9 @@ module.exports = async function loadLazyImages(page, context = {}) {
     // Native loaders also use these attributes to initialize layout or handlers.
     // Keep them through the scroll pass, then consume any fallback sources below.
     promoteSources({ removeLazyAttributes: finalCheck });
-    if (!finalCheck) await new Promise((resolve) => {
+    // scroll-to-bottom has already run lazy loaders for this capture; with
+    // eager loading and promoted sources a second page scroll adds only time.
+    if (!finalCheck && !scrolled) await new Promise((resolve) => {
       let total = 0;
       const step = 400;
       const timer = setInterval(() => {
@@ -105,7 +107,8 @@ module.exports = async function loadLazyImages(page, context = {}) {
     }));
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     return failures;
-  }, { timeoutMs: timeout, failurePolicy: policy, finalCheck: context.imageReadinessFinalCheck === true }, check)).catch(error => {
+  }, { timeoutMs: timeout, failurePolicy: policy, finalCheck: context.imageReadinessFinalCheck === true,
+    scrolled: context.scrolledToBottom === true }, check)).catch(error => {
     if (/Cannot load image before capture:[\s\S]*Timed out after \d+ms/.test(error.message)) {
       error.code = 'EAGLEDIFF_IMAGE_TIMEOUT';
     }

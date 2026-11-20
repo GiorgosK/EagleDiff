@@ -764,6 +764,8 @@ height keeps growing.
 attributes, including `data-lazy-*`, then waits for image decoding.
 Lazy attributes are kept during the initial scroll so the site's own loader can
 finish layout initialization, then cleaned up. Native source choices are preserved.
+When `scroll-to-bottom` has already run for the capture, the hook does not scroll
+the page again; without it (or if it is listed later), the hook scrolls itself.
 If a source changes during decoding, the hook makes up to two additional decode
 attempts within the same timeout. Broken images still follow `imageFailurePolicy`.
 CSS background images are checked separately. CSS-hidden backgrounds are skipped; visible

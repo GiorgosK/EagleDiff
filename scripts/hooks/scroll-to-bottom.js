@@ -40,4 +40,6 @@ module.exports = async function scrollToBottom(page, context) {
     if (/Cannot finish lazy-content scroll within/.test(error.message)) error.code = 'EAGLEDIFF_SCROLL_TIMEOUT';
     throw error;
   });
+  // Lets load-lazy-images skip its own page scroll for this capture.
+  context.scrolledToBottom = true;
 };

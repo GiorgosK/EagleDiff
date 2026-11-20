@@ -169,3 +169,44 @@ test('a source changed during decoding is decoded again without accepting a brok
   await prepare('data:image/png,invalid');
   await assert.rejects(load(page, { imageReadinessFinalCheck: true }), /Cannot load image before capture/);
 });
+
+test('skips the second page scroll after scroll-to-bottom ran, and still loads lazy images', async t => {
+  const scroll = require('../scripts/hooks/scroll-to-bottom');
+  const server = http.createServer((request, response) => {
+    if (request.url === '/image.svg') {
+      response.setHeader('Content-Type', 'image/svg+xml');
+      response.end('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect width="100%" height="100%" fill="green"/></svg>');
+      return;
+    }
+    response.setHeader('Content-Type', 'text/html');
+    response.end(`<div style="height:2000px"></div><img id="observed" data-src="/image.svg" width="200" height="100">
+      <img id="plain" data-src="/image.svg" width="200" height="100"><div style="height:1000px"></div>
+      <script>window.scrolls=0;addEventListener('scroll',()=>window.scrolls++);
+      new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting&&entry.target.dataset.src){
+        entry.target.src=entry.target.dataset.src;delete entry.target.dataset.src;}})).observe(document.querySelector('#observed'));</script>`);
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const browser = await puppeteer.launch(buildBrowserLaunchOptions());
+  t.after(async () => {
+    await browser.close(); server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 360, height: 400 });
+  const url = `http://127.0.0.1:${server.address().port}/`;
+  const loaded = () => page.$$eval('img', images => images.map(image => image.naturalWidth));
+
+  const context = { mode: 'ready', scenario: {}, config: { defaults: { scrollStepDelayMs: 10, scrollSettleDelayMs: 10 } } };
+  await page.goto(url);
+  await scroll(page, context);
+  const scrollsBefore = await page.evaluate(() => window.scrolls);
+  await load(page, context);
+  assert.equal(await page.evaluate(() => window.scrolls), scrollsBefore, 'load-lazy-images must not scroll again');
+  assert.deepEqual(await loaded(), [200, 200]);
+
+  // Without scroll-to-bottom (removed or ordered later), the hook scrolls itself.
+  await page.goto(url);
+  await load(page, {});
+  assert(await page.evaluate(() => window.scrolls) > 0);
+  assert.deepEqual(await loaded(), [200, 200]);
+});
