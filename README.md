@@ -437,7 +437,8 @@ Older `waitForTriggerSelectors`, `waitForSelectors`,
 
 `carouselSelectors: null` detects Swiper, Slick, Owl Carousel, Bootstrap Carousel,
 Fotorama, Flickity, FlexSlider, and Unite Gallery. It pauses supported carousels,
-selects their first slide, and checks resulting images. Custom galleries or
+and selects their first slide; the final image checks cover the images this
+reveals. Custom galleries or
 unsupported versions may need a project hook.
 
 Use a selector list to restrict detection, or `[]` to disable it. Config updates

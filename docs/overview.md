@@ -21,6 +21,7 @@ and comparison behavior across projects.
 | `scripts/capture-worker.js` | Execute assigned captures in a worker-owned browser and relay progress, warnings, and errors. |
 | `scripts/capture-diagnostics.js` | Summarize capture messages and save full diagnostics in a separate log for each run. |
 | `scripts/hooks/` | Prepare page content, wait for resources, normalize variable rendering, and define capture regions. |
+| `scripts/hook-phases.js` | Decide which bundled ready hooks are deferred to, or repeated in, the final capture phases. |
 | `scripts/hook-path.js` | Resolve bundled hook spellings and project-relative or absolute custom hooks consistently. |
 | `scripts/results.js` and `scripts/report.js` | Display run history and open the latest or combined comparison report. |
 | `scripts/reference-report.js` | Build a reference capture gallery without comparison or approval results. |
@@ -113,8 +114,14 @@ reference promotion and comparison publication.
 Native video placeholders measure their box after source/poster removal, retaining
 explicit sizing without a race between empty-video and metadata-derived dimensions.
 
-Hooks run in configured order, with the bundled selector-clipping hook deferred
-until after final DOM edits and font readiness. Project-specific order matters:
+Hooks run in configured order, with a few bundled hooks moved to fixed phases
+(`scripts/hook-phases.js`). `prepare-iframes`, `stabilize-svg-animations` and
+`keep-selectors` run only after the configured pass, hide/remove selectors and
+injected content. `freeze-web-animations`, `pause-media`, the four image hooks
+and `wait-for-fonts` run in the configured pass and once more before the
+screenshot; that final image pass is where images revealed by later hooks, such
+as a carousel reset, are checked. Only configured hooks take part in these later
+passes; custom hooks run once. Project-specific order matters:
 a selector initialized on `window.load`, for example, can depend on images
 finishing first.
 
@@ -189,7 +196,8 @@ propagate to capture recovery.
 
 Carousel stabilization detects supported instances through known selectors when
 `carouselSelectors` is null; explicit lists restrict it and `[]` disables it.
-After resetting a gallery, it rechecks lazy sources, decoding, and backgrounds.
+Images a reset reveals are checked by the final image pass, using the configured
+image hooks; the carousel hook does not run image checks itself.
 
 Hooks can hide dynamic content, replace random content, pause media, stabilize
 carousels, or apply project CSS. These transformations are configuration choices:

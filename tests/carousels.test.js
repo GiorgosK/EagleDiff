@@ -1,5 +1,7 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
+const fs = require('node:fs/promises');
+const path = require('node:path');
 const puppeteer = require('puppeteer-core');
 const { buildBrowserLaunchOptions } = require('../scripts/run');
 const stabilize = require('../scripts/hooks/stabilize-carousels');
@@ -60,22 +62,62 @@ test('Unite Gallery controls stop playback and select the first item', async t =
   assert.equal(await page.$('.ug-stop-mode'), null);
 });
 
-test('images inserted by a slide change are decoded, and broken images still fail', async t => {
+test('the carousel hook leaves image checks to the configured image hooks', async t => {
   const page = await fixture(t);
-  // Set the lazy source through the DOM to avoid HTML attribute quoting rules.
   await page.evaluate(() => {
     document.querySelector('#slides').swiper.slideTo = () => {
       const image = document.createElement('img');
-      image.dataset.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="7" height="9"/>');
+      image.src = 'data:image/png,broken';
       document.querySelector('#slides').replaceChildren(image);
     };
   });
+  // Without image hooks in onReadyScript, a broken slide image is not checked.
   await stabilize(page, context({}));
-  assert.deepEqual(await page.$eval('img', image => [image.complete, image.naturalWidth, image.naturalHeight]), [true, 7, 9]);
-  await page.evaluate(() => {
-    document.querySelector('#slides').swiper.slideTo = () => { document.querySelector('img').src = 'data:image/png,broken'; };
-  });
-  await assert.rejects(stabilize(page, context({})), /Cannot load image before capture/);
+  assert.equal(await page.$eval('img', image => image.naturalWidth), 0);
+});
+
+async function capturedPixel(png, x, y) {
+  const browser = await puppeteer.launch(buildBrowserLaunchOptions());
+  try {
+    const page = await browser.newPage();
+    return await page.evaluate(async ({ png, x, y }) => {
+      const image = new Image(); image.src = 'data:image/png;base64,' + png; await image.decode();
+      const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(image, 0, 0);
+      return [...ctx.getImageData(x, y, 1, 1).data];
+    }, { png: png.toString('base64'), x, y });
+  } finally {
+    await browser.close();
+  }
+}
+
+test('images revealed by a slide reset are decoded before capture, and broken ones still fail', async t => {
+  const fixture = await require('./helpers/cli-fixture')(t);
+  const slidePage = source => `<style>body{margin:0}img{display:block}</style>
+    <div class="swiper" id="slides">Second slide</div>
+    <script>
+      const root = document.querySelector('#slides');
+      root.swiper = { slideTo() {
+        const image = document.createElement('img');
+        image.dataset.src = ${JSON.stringify(source)};
+        root.replaceChildren(image);
+      } };
+    </script>`;
+  const green = 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="30"><rect width="40" height="30" fill="#00ff00"/></svg>');
+  fixture.pages['/one'] = slidePage(green);
+  fixture.config.scenarios = [{ url: '/one', label: 'slides' }];
+  fixture.config.defaults.carouselSettleDelayMs = 0;
+  fixture.config.onReadyScript = template.onReadyScript;
+  await fixture.save();
+  await fixture.run(['reference']);
+  const [file] = await fixture.files();
+  const png = await fs.readFile(path.join(fixture.directory, '.reg/reference', file));
+  assert.deepEqual(await capturedPixel(png, 20, 15), [0, 255, 0, 255]);
+
+  fixture.pages['/one'] = slidePage('data:image/png,broken');
+  const result = await fixture.run(['reference'], 1);
+  assert.match(result.stderr + result.stdout, /Cannot load image before capture/);
 });
 
 test('config updates enable automatic detection only when no explicit choice exists', () => {

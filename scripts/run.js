@@ -30,6 +30,7 @@ const { readResults } = require('./results-history');
 const { readLastComparison, retainPreviousComparison, saveComparison } = require('./comparison-reports');
 const { referenceReportPath } = require('./reference-report');
 const { resolveHookPath } = require('./hook-path');
+const { planReadyHooks } = require('./hook-phases');
 const { resolveReadySelector } = require('./ready-selector');
 const { detectChallengeHeaders, challengeError, assertNoChallenge } = require('./challenge-detector');
 const { getConfigPath, helperDir, rootDir } = require('./config-path');
@@ -449,46 +450,26 @@ async function captureScenarioScreenshot({
         await assertNoChallenge(activePage, readyContext);
       }
 
-      const keepScripts = readyScripts.filter(script =>
-        resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'keep-selectors.js'));
-      const iframeScripts = readyScripts.filter(script =>
-        resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'prepare-iframes.js'));
-      const svgScripts = readyScripts.filter(script =>
-        resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'stabilize-svg-animations.js'));
-      await runScripts(activePage, readyScripts.filter(script =>
-        !keepScripts.includes(script) && !iframeScripts.includes(script) && !svgScripts.includes(script)), readyContext);
+      const hooks = planReadyHooks(readyScripts, resolveScriptPath);
+      await runScripts(activePage, hooks.configured, readyContext);
       await assertNoChallenge(activePage, readyContext);
       await applyHideAndRemoveSelectors(activePage, attemptScenario, attemptConfig);
       await runAddParagraph(activePage, attemptScenario, attemptConfig, addPara, command);
 
-      await runScripts(activePage, iframeScripts, readyContext);
+      await runScripts(activePage, hooks.iframes, readyContext);
       const iframeOptions = resolveIframeOptions(attemptConfig, attemptScenario);
-      await runScripts(activePage, svgScripts, readyContext);
-
+      await runScripts(activePage, hooks.svg, readyContext);
       // Catch animations started by late page changes, including viewport-dependent players.
-      const animationScripts = readyScripts.filter(script =>
-        resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'freeze-web-animations.js'));
-      await runScripts(activePage, animationScripts, readyContext);
-
+      await runScripts(activePage, hooks.animations, readyContext);
       // Later hooks can introduce videos or change their sources.
-      const mediaScripts = readyScripts.filter(script =>
-        resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'pause-media.js'));
-      await runScripts(activePage, mediaScripts, readyContext);
-
-      // A later hook may reveal a previously display:none image. Revalidate the
-      // configured image preparation without another page-wide scroll.
-      const imageHooks = ['load-lazy-images', 'normalize-responsive-images',
-        'normalize-image-decoding', 'wait-for-background-images'];
-      const imageScripts = readyScripts.filter(script => imageHooks.some(name =>
-        resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', name + '.js')));
-      await runScripts(activePage, imageScripts, { ...readyContext, imageReadinessFinalCheck: true });
-
+      await runScripts(activePage, hooks.media, readyContext);
+      // Later hooks (carousel resets, late edits) may reveal or add images.
+      // Revalidate the configured image preparation without another page-wide scroll.
+      await runScripts(activePage, hooks.images, { ...readyContext, imageReadinessFinalCheck: true });
       // Late content and final DOM changes can request additional font faces.
       // Recheck configured font readiness immediately before rendering.
-      const fontScripts = readyScripts.filter(script =>
-        resolveScriptPath(script) === path.join(helperDir, 'scripts', 'hooks', 'wait-for-fonts.js'));
-      await runScripts(activePage, fontScripts, readyContext);
-      await runScripts(activePage, keepScripts, readyContext);
+      await runScripts(activePage, hooks.fonts, readyContext);
+      await runScripts(activePage, hooks.keep, readyContext);
 
       const screenshotOptions = {
         path: filePath,

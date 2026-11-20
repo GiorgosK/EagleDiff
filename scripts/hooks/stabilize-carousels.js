@@ -1,8 +1,3 @@
-const loadImages = require('./load-lazy-images');
-const normalizeResponsiveImages = require('./normalize-responsive-images');
-const normalizeImageDecoding = require('./normalize-image-decoding');
-const waitForImages = require('./wait-for-background-images');
-
 const automaticSelectors = [
   '.swiper', '.swiper-container', '.slick-slider', '.owl-carousel', '.carousel',
   '.fotorama', '.flickity-enabled', '.flexslider', '.ug-gallery-wrapper'
@@ -70,11 +65,7 @@ module.exports = async function stabilizeCarousels(page, context) {
     }
     return stabilized;
   }, list);
-  if (!count) return;
-  if (delay) await new Promise(resolve => setTimeout(resolve, delay));
-  // Switching slides can introduce lazy sources and invalidate earlier image checks.
-  await loadImages(page, context);
-  await normalizeResponsiveImages(page, context);
-  await normalizeImageDecoding(page, context);
-  await waitForImages(page, context);
+  // Switching slides can introduce lazy sources. The capture's final image pass
+  // (see hook-phases.js) runs the configured image hooks after this hook.
+  if (count && delay) await new Promise(resolve => setTimeout(resolve, delay));
 };
