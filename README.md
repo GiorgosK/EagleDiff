@@ -507,6 +507,26 @@ saved `hideSelectors`; add the My Maps selector there if needed. For a changing
 reCAPTCHA badge, add `.grecaptcha-badge`. Review the resulting captures before
 replacing references; excluded embed content is no longer compared.
 
+#### Known noisy embeds
+
+These embeds often render differently between runs. None is hidden by default
+except the ad slots and Google Maps iframes above; copy the selectors you need
+into `hideSelectors` (keeps layout space) and adjust them to your markup.
+
+| Embed | Selectors |
+| --- | --- |
+| Google Maps JavaScript API maps | `.gm-style` |
+| reCAPTCHA badge | `.grecaptcha-badge` |
+| Instagram posts | `.instagram-media`, `iframe[src*="instagram.com"]` |
+| Facebook page/post plugins | `.fb-page`, `.fb-post`, `iframe[src*="facebook.com/plugins"]` |
+| X (Twitter) posts and timelines | `.twitter-tweet`, `.twitter-timeline`, `iframe[src*="platform.twitter.com"]` |
+| TikTok videos | `.tiktok-embed` |
+
+YouTube and Vimeo players are already replaced by `pause-media` (see
+[Changing videos and social feeds](#changing-videos-and-social-feeds)); cookie
+banners are handled by `cookieConsent` (see [Cookie banners](#cookie-banners)).
+Chat widgets and other fixed overlays vary by provider: hide their container.
+
 ### `replaceContent`
 
 Add to `defaults` or a scenario:
