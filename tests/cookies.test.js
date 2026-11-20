@@ -69,6 +69,23 @@ test('cookies keep scope and expiry unless explicitly changed, and invalid files
   }, configPath, () => {}), /Cannot load cookiePath.*missing.json/);
 });
 
+test('a missing or invalid cookie file fails the run before browser requests or output writes', async t => {
+  const f = await require('./helpers/cli-fixture')(t);
+  f.config.defaults.cookiePath = 'backstop_data/cookies.json';
+  await f.save();
+  const result = await f.run(['reference'], 1);
+  assert.match(result.stderr, /Cannot load cookiePath .*backstop_data\/cookies\.json/);
+  assert.equal(result.stderr.match(/Cannot load cookiePath/g).length, 1);
+  assert.deepEqual(f.requests, []);
+  await assert.rejects(fs.access(path.join(f.directory, '.reg')), { code: 'ENOENT' });
+  await fs.writeFile(path.join(f.directory, 'cookies.json'), '{}');
+  f.config.defaults.cookiePath = 'backstop_data/cookies.json';
+  f.config.scenarios = [{ url: '/one', cookiePath: 'cookies.json' }, { url: '/two', cookiePath: null }];
+  await f.save();
+  assert.match((await f.run(['reference'], 1)).stderr, /JSON array of cookies/);
+  assert.deepEqual(f.requests, []);
+});
+
 test('capture sends cookies on the first request and isolates each scenario', async t => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-cookie-capture-'));
   const seen = [];

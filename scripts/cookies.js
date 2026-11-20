@@ -1,28 +1,39 @@
 const fs = require('fs/promises');
 const path = require('path');
 
+async function readCookieFile(cookiePath, configPath) {
+  const file = path.resolve(path.dirname(configPath), cookiePath);
+  let cookies;
+  try {
+    cookies = JSON.parse(await fs.readFile(file, 'utf8'));
+  } catch (error) {
+    throw new Error(`Cannot load cookiePath ${file}: ${error.message}`, { cause: error });
+  }
+  if (!Array.isArray(cookies)) throw new Error(`cookiePath must contain a JSON array of cookies: ${file}`);
+  return cookies;
+}
+
+// Read each selected cookie file once before the browser starts, so a missing
+// or invalid file fails the run immediately instead of every capture.
+async function validateCookieFiles(scenarios, defaults, configPath) {
+  const cookiePaths = new Set(scenarios.map(scenario =>
+    Object.hasOwn(scenario, 'cookiePath') ? scenario.cookiePath : defaults?.cookiePath).filter(Boolean));
+  for (const cookiePath of cookiePaths) await readCookieFile(cookiePath, configPath);
+}
+
 async function applyCookies(context, url, scenario, defaults, configPath, reportWarning) {
   const setting = key => Object.hasOwn(scenario, key) ? scenario[key] : defaults?.[key];
   const cookiePath = setting('cookiePath');
-  let cookies = [];
-  if (cookiePath) {
-    const file = path.resolve(path.dirname(configPath), cookiePath);
-    try {
-      cookies = JSON.parse(await fs.readFile(file, 'utf8'));
-    } catch (error) {
-      throw new Error(`Cannot load cookiePath ${file}: ${error.message}`, { cause: error });
-    }
-    if (!Array.isArray(cookies)) throw new Error('cookiePath must contain a JSON array of cookies.');
-  }
+  const cookies = cookiePath ? await readCookieFile(cookiePath, configPath) : [];
   const inline = setting('cookies') ?? [];
   if (!Array.isArray(inline)) throw new Error('cookies must be an array.');
-  cookies = [...cookies, ...inline];
+  const allCookies = [...cookies, ...inline];
   const hostname = new URL(url).hostname;
   const domainOverride = setting('cookieDomain');
   const expiry = setting('cookieExpiry');
   if (expiry && expiry !== 'session') throw new Error('cookieExpiry must be "session" or null.');
   const prepared = [];
-  for (const cookie of cookies) {
+  for (const cookie of allCookies) {
     if (!cookie || typeof cookie.name !== 'string' || !cookie.name || typeof cookie.value !== 'string') {
       throw new Error('Each cookie must have a non-empty name and a string value.');
     }
@@ -48,4 +59,4 @@ async function applyCookies(context, url, scenario, defaults, configPath, report
   if (prepared.length) await context.setCookie(...prepared);
 }
 
-module.exports = { applyCookies };
+module.exports = { applyCookies, validateCookieFiles };

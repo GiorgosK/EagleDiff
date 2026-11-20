@@ -23,7 +23,7 @@ const { resolveOptions: resolveDrupalReadyOptions } = require('./hooks/wait-for-
 const { resolveOptions: resolveIframeOptions } = require('./iframe-capture');
 const trackImageRequests = require('./image-request-diagnostics');
 const { navigate, isNavigationContextError, inspectInitialDocument } = require('./navigation');
-const { applyCookies } = require('./cookies');
+const { applyCookies, validateCookieFiles } = require('./cookies');
 const { withRetryTimeouts, retryTimeoutFactor } = require('./retry-timeouts');
 const { resolveRetryMode, runDeferredCaptures } = require('./deferred-retries');
 const { readResults } = require('./results-history');
@@ -97,6 +97,7 @@ async function main() {
       resolveBrowserVerificationOptions(config, scenario);
       resolveHttp404Policy(config, scenario);
     }
+    await validateCookieFiles(selectedScenarios.scenarios, config.defaults, configPath);
   }
   if (command === 'calibrate') {
     for (const scenario of selectedScenarios.scenarios) {

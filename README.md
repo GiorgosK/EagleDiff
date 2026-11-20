@@ -121,7 +121,8 @@ existing config directly instead.
 
 Use `cookiePath` for a JSON array of cookies, or inline `cookies`. File cookies
 are applied first; inline cookies can override the same cookie. Values are not
-logged. Each capture uses an isolated browser context.
+logged. Each capture uses an isolated browser context. Cookie files are read
+once before the browser starts; a missing or invalid file stops the run there.
 
 For reusable test cookies across environments:
 
