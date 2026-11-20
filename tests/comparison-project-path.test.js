@@ -33,6 +33,8 @@ test('projects nested inside the checkout compare their own staged screenshots',
   const generated = JSON.parse(await fs.readFile(path.join(directory, '.reg/regconfig.generated.json')));
   assert(path.isAbsolute(generated.core.actualDir), 'comparison input must not resolve relative to the enclosing repository');
   assert.equal(generated.core.actualDir, path.join(directory, '.reg/staging/screenshots'));
+  // Comparison runs in parallel on multi-core machines, with a memory cap.
+  assert(generated.core.concurrency >= 4 && generated.core.concurrency <= 8, `concurrency ${generated.core.concurrency}`);
   const staged = await fs.readdir(generated.core.actualDir);
   assert.equal(staged.length, 1);
   const out = () => fs.readFile(path.join(directory, '.reg/run/out.json')).then(JSON.parse);

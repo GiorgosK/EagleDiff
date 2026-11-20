@@ -1,5 +1,6 @@
 const reportError = require('./cli-error');
 const fs = require('fs');
+const os = require('os');
 const fsp = require('fs/promises');
 const path = require('path');
 const { createHash } = require('crypto');
@@ -882,7 +883,11 @@ function buildRegSuitConfig(config) {
       workingDir,
       actualDir: stagingActualDir,
       thresholdRate,
-      matchingThreshold
+      matchingThreshold,
+      // reg-suit compares 4 images at a time (one at a time below 20 images).
+      // Decoding and diffing large PNGs is CPU-bound; use more cores, capped
+      // because each process holds several full-page images in memory.
+      concurrency: Math.min(8, Math.max(4, os.availableParallelism()))
     }
   };
 }
