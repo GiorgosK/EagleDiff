@@ -16,7 +16,8 @@ test('primes the selected capture area without saving the incomplete first image
     };
     const options = { path: '/output.png', ...captureOptions };
     assert.equal(await captureScreenshot(page, options), 'final');
-    assert.deepEqual(calls, ['settled', captureOptions, 'settled', options]);
+    // The priming pass paints the same area but encodes a cheap, unsaved JPEG.
+    assert.deepEqual(calls, ['settled', { ...captureOptions, type: 'jpeg', quality: 1 }, 'settled', options]);
     assert.equal(options.path, '/output.png');
   }
 });
@@ -46,6 +47,8 @@ test('rendering pass preserves viewport height, fixed elements, and clip geometr
     assert.equal(png.readUInt32BE(20), height);
     assert.deepEqual(page.viewport(), viewport);
     assert.deepEqual(await page.evaluate(() => ({ height: innerHeight, mainHeight: document.querySelector('main').getBoundingClientRect().height, headerTop: document.querySelector('header').getBoundingClientRect().top })), { height: 200, mainHeight: 200, headerTop: 0 });
+    // Byte-identical to a default capture, so unchanged screenshots keep
+    // matching existing references without a pixel comparison.
     assert.deepEqual(png, Buffer.from(await page.screenshot(options)));
   }
 });
