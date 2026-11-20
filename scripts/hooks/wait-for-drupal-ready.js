@@ -106,7 +106,8 @@ module.exports = async function waitForDrupalReady(page, context = {}) {
     error.code = 'EAGLEDIFF_DRUPAL_READY_TIMEOUT';
     throw error;
   }
-  if (result.imagesChanged) await loadLazyImages(page, context);
+  // Skipped when the project removed hooks/load-lazy-images (see hook-phases.js).
+  if (result.imagesChanged && context.loadsLazyImages !== false) await loadLazyImages(page, context);
 };
 
 module.exports.resolveOptions = resolveOptions;

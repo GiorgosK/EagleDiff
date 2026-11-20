@@ -387,6 +387,7 @@ async function captureScenarioScreenshot({
   relaunchBrowser
 }) {
   let attempt = startAttempt;
+  const hooks = planReadyHooks(readyScripts, resolveScriptPath);
 
   while (true) {
     const { config: attemptConfig, scenario: attemptScenario } = withRetryTimeouts(runtimeConfig, scenario, attempt);
@@ -399,6 +400,7 @@ async function captureScenarioScreenshot({
       scenario: attemptScenario,
       readySelector: resolveReadySelector(attemptConfig, attemptScenario),
       readyTimeout: attemptScenario.readyTimeout ?? attemptConfig.defaults?.readyTimeout,
+      loadsLazyImages: hooks.loadsLazyImages,
       navigationResponseStatus: null,
       navigationResponseUrl: null,
       navigationResponseOk: null
@@ -450,7 +452,6 @@ async function captureScenarioScreenshot({
         await assertNoChallenge(activePage, readyContext);
       }
 
-      const hooks = planReadyHooks(readyScripts, resolveScriptPath);
       await runScripts(activePage, hooks.configured, readyContext);
       await assertNoChallenge(activePage, readyContext);
       await applyHideAndRemoveSelectors(activePage, attemptScenario, attemptConfig);

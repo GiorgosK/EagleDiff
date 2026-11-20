@@ -39,6 +39,9 @@ function planReadyHooks(readyScripts, resolveScriptPath) {
   }
   const deferred = new Set([...plan.iframes, ...plan.svg, ...plan.keep]);
   plan.configured = readyScripts.filter(script => !deferred.has(script));
+  // Startup hooks (jQuery/Drupal ready) recheck lazy images only when the
+  // project has the lazy-image hook; removing it turns those rechecks off too.
+  plan.loadsLazyImages = pick(['load-lazy-images']).length > 0;
   return plan;
 }
 

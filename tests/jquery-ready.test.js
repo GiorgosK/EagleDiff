@@ -91,6 +91,15 @@ test('rechecks lazy images created by startup callbacks', async t => {
   assert.deepEqual(await pixel(page, await page.screenshot()), [0, 255, 0, 255]);
 });
 
+test('without the lazy-image hook in the project, startup image changes are not rechecked', async t => {
+  const { browser, base, requests } = await fixture(t);
+  const page = await browser.newPage();
+  await page.goto(base + '/image', { waitUntil: 'load' });
+  await wait(page, { loadsLazyImages: false });
+  assert.equal(await page.$eval('img', image => image.getAttribute('data-src')), '/green.svg');
+  assert.equal(requests.get('/green.svg'), undefined);
+});
+
 test('can disable the hook per scenario and pages without jQuery remain unchanged', async t => {
   const { browser, base } = await fixture(t);
   const page = await browser.newPage();

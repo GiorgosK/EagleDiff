@@ -27,4 +27,6 @@ test('removed bundled hooks have no later pass, and custom hooks run once in con
   assert.deepEqual(plan.images, ['scripts/hooks/load-lazy-images.js']);
   assert.deepEqual([plan.fonts, plan.media, plan.animations, plan.iframes, plan.svg], [[], [], [], [], []]);
   assert.deepEqual(plan.keep, ['hooks/keep-selectors']);
+  assert.equal(plan.loadsLazyImages, true);
+  assert.equal(planReadyHooks(['hooks/wait-for-jquery-ready'], resolve).loadsLazyImages, false);
 });

@@ -145,7 +145,8 @@ inherit that exemption. Mixed local/download sources remain strict.
 readiness and registered jQuery ready callbacks when the library is available,
 including unreleased startup holds. It observes initialization without releasing
 holds or changing visibility. New/changed image sources get another lazy-image
-pass before subsequent responsive, decoding, background and final font checks.
+pass before subsequent responsive, decoding, background and final font checks,
+when `load-lazy-images` is configured; `wait-for-drupal-ready` does the same.
 `jqueryReadyTimeout` bounds the wait and participates in temporary retries;
 `waitForJQueryReady: false` or removing the hook disables it. This is not a signal
 for arbitrary asynchronous application work; selectors/custom hooks remain needed
