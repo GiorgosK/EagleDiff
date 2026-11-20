@@ -36,6 +36,9 @@ module.exports = async function stabilizeCarousels(page, context) {
         else swiper.slideTo(0, 0, false);
       } else if (slick && typeof slick.slickGoTo === 'function') {
         slick.slickPause();
+        // Slick ignores slickGoTo during an autoplay transition unless
+        // waitForAnimate is off; the reset would then be silently skipped.
+        if (slick.options) slick.options.waitForAnimate = false;
         slick.slickGoTo(0, true);
       } else if (data('owl.carousel') && $) {
         $(element).trigger('stop.owl.autoplay');

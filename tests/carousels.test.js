@@ -123,3 +123,23 @@ test('scenario automatic detection overrides a disabled default and library fail
   });
   await assert.rejects(stabilize(page, options), /Gallery reset failed/);
 });
+
+test('a Slick carousel caught mid-transition still returns to the first slide', async t => {
+  const page = await fixture(t);
+  await page.setContent('<div class="slick-slider" id="slick">Third slide</div>');
+  await page.evaluate(() => {
+    const root = document.querySelector('#slick');
+    // Slick ignores slickGoTo while an autoplay transition is running and
+    // waitForAnimate is true (its default).
+    root.slick = {
+      animating: true, options: { waitForAnimate: true },
+      slickPause() {},
+      slickGoTo(index) {
+        if (this.animating && this.options.waitForAnimate) return;
+        root.textContent = index === 0 ? 'First slide' : 'Other slide';
+      }
+    };
+  });
+  await stabilize(page, context({}));
+  assert.equal(await page.$eval('#slick', root => root.textContent), 'First slide');
+});
