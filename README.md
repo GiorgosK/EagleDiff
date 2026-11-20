@@ -104,7 +104,8 @@ eaglediff import --backstop=/path/to/tests/backstop/backstop.json
 
 Import derives base URLs, scenarios, and supported settings. It converts
 `asyncCaptureLimit` to `core.workers` unless workers are already set in Eaglediff.
-Cookie file paths are made relative to `config.json`. Custom Backstop scripts
+Cookie file paths are made relative to `config.json`; import warns about cookie
+files that do not exist (often never committed). Custom Backstop scripts
 are not executed; review the imported config before capturing.
 
 Repeated URLs with different labels stay separate. If URL and label both repeat,

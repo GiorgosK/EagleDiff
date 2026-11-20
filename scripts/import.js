@@ -33,9 +33,32 @@ async function main() {
     console.warn(`[eaglediff] Duplicate URL ${JSON.stringify(url)}: kept ${labels.length} scenarios${explanation}: ${details.join(', ')}.`);
   }
 
+  for (const cookiePath of await missingCookieFiles(importedConfig, configPath)) {
+    console.warn(`[eaglediff] Cookie file not found: ${cookiePath} (relative to ${path.relative(rootDir, configPath)}). ` +
+      'Captures that use it will fail; add the file or set cookiePath to null.');
+  }
+
   const scenarioCount = Array.isArray(importedConfig.scenarios) ? importedConfig.scenarios.length : 0;
   console.log(`[eaglediff] Imported ${scenarioCount} scenarios from ${backstopPath}`);
   console.log(`[eaglediff] Wrote ${path.relative(rootDir, configPath)}`);
+}
+
+// Backstop projects often reference cookie files that were never committed.
+// Report them at import time instead of failing every capture later.
+async function missingCookieFiles(config, configPath) {
+  const scenarios = Array.isArray(config.scenarios) ? config.scenarios : [];
+  const cookiePaths = new Set([config.defaults?.cookiePath, ...scenarios.map(scenario => scenario?.cookiePath)]
+    .filter(cookiePath => typeof cookiePath === 'string' && cookiePath));
+  const missing = [];
+  for (const cookiePath of cookiePaths) {
+    try {
+      await fsp.access(path.resolve(path.dirname(configPath), cookiePath));
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      missing.push(cookiePath);
+    }
+  }
+  return missing;
 }
 
 function buildImportedConfig(baseConfig, templateConfig, backstopConfig, backstopPath,

@@ -39,3 +39,25 @@ test('Backstop import adopts the capture limit and preserves existing worker ove
   await run();
   assert.equal(JSON.parse(await fs.readFile(configPath)).core.workers, template.core.workers);
 });
+
+test('Backstop import warns about cookie files that do not exist and keeps the setting', async t => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-import-cookies-'));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const backstopPath = path.join(directory, 'backstop.json');
+  const configPath = path.join(directory, 'config.json');
+  await fs.writeFile(path.join(directory, 'present.json'), '[]');
+  await fs.writeFile(backstopPath, JSON.stringify({ scenarios: [
+    { url: 'https://example.test/', cookiePath: 'backstop_data/cookies.json' },
+    { url: 'https://example.test/two', cookiePath: 'backstop_data/cookies.json' },
+    { url: 'https://example.test/three', cookiePath: 'present.json' }
+  ] }));
+  const { stderr } = await promisify(execFile)(process.execPath, [
+    path.join(__dirname, '../scripts/import.js'), `--backstop=${backstopPath}`
+  ], { env: { ...process.env, EAGLEDIFF_DIR: directory, EAGLEDIFF_CONFIG: configPath,
+    GLOBAL_EAGLEDIFF_CONFIG: configPath, EAGLEDIFF_SCRIPT_DIR: path.join(__dirname, '..') } });
+  const warnings = stderr.split('\n').filter(line => line.includes('Cookie file not found'));
+  assert.equal(warnings.length, 1, stderr);
+  assert.match(warnings[0], /backstop_data\/cookies\.json/);
+  const config = JSON.parse(await fs.readFile(configPath));
+  assert.ok(JSON.stringify(config).includes('backstop_data/cookies.json'));
+});
