@@ -210,3 +210,19 @@ test('skips the second page scroll after scroll-to-bottom ran, and still loads l
   assert(await page.evaluate(() => window.scrolls) > 0);
   assert.deepEqual(await loaded(), [200, 200]);
 });
+
+test('lazy-image failures name the broken image element in errors and warnings', async t => {
+  const browser = await puppeteer.launch(buildBrowserLaunchOptions());
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  await page.setContent('<img id="logo" class="brand site-logo" src="data:image/png,broken" width="10" height="10">');
+  await assert.rejects(load(page, { scenario: {}, config: { defaults: {} } }),
+    /Cannot load image before capture: data:image\/png,broken\nElement: img#logo\.brand\.site-logo\n/);
+  const warnings = [];
+  await load(page, { scenario: { imageFailurePolicy: 'warn' }, config: { defaults: {} },
+    reportWarning: (key, message) => warnings.push(message) });
+  assert.match(warnings.join('\n'), /\(img#logo\.brand\.site-logo\): /);
+  // Unnamed images are described through their nearest named ancestor.
+  await page.setContent('<div class="slide"><p><img src="data:image/png,broken" width="10" height="10"></p></div>');
+  await assert.rejects(load(page, { scenario: {}, config: { defaults: {} } }), /\nElement: div\.slide img\n/);
+});

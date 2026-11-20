@@ -141,3 +141,25 @@ test('empty url() backgrounds are ignored, like the browser does, while real one
   await page.goto(base + '/broken');
   await assert.rejects(wait(page), /missing.svg/);
 });
+
+test('image failure messages name the element that owns the broken image', async t => {
+  const server = http.createServer((req, res) => {
+    if (req.url.endsWith('.svg')) { res.writeHead(404); res.end(); return; }
+    res.setHeader('Content-Type', 'text/html');
+    res.end(req.url === '/background'
+      ? '<section id="hero" class="banner wide" style="height:20px;background-image:url(/hero.svg)"></section>'
+      : '<img class="logo" src="/logo.svg" width="10" height="10">');
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const browser = await puppeteer.launch(buildBrowserLaunchOptions());
+  t.after(async () => { await browser.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
+  const page = await browser.newPage();
+  const base = `http://127.0.0.1:${server.address().port}`;
+  await page.goto(base + '/background');
+  await assert.rejects(wait(page), /hero\.svg\nElement: section#hero\.banner\.wide \(background-image\)\n/);
+  await page.goto(base + '/image');
+  const warnings = [];
+  await wait(page, { scenario: {}, config: { defaults: { imageFailurePolicy: 'warn' } },
+    reportWarning: (key, message) => warnings.push(message) });
+  assert.match(warnings.join('\n'), /logo\.svg\nElement: img\.logo\n/);
+});

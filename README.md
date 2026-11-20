@@ -786,7 +786,9 @@ layout. Hidden empty `data:,` placeholders are also ignored. Visible broken imag
 still fail capture.
 
 If an unimportant image repeatedly fails, hide it before image checks with a
-scenario's `cssOverrides`. Use the image's actual CSS selector; for example:
+scenario's `cssOverrides`. Use the image's actual CSS selector; image failure
+messages name the owning element (for example `Element: img#logo.brand`, or
+`Element: section#hero.banner (background-image)`) to help find it:
 
 ```json
 "cssOverrides": "img.optional-image { display: none !important; }"

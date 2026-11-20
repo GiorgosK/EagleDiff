@@ -60,6 +60,7 @@ module.exports = async function loadLazyImages(page, context = {}) {
     // Scrolling can create additional image elements.
     promoteSources();
 
+    const describe = isExcluded.describe;
     const failures = [];
     await Promise.all(Array.from(document.images).map(async image => {
       if (isExcluded(image)) return;
@@ -91,16 +92,18 @@ module.exports = async function loadLazyImages(page, context = {}) {
         ]);
       } catch (error) {
         if (error.code === 'EAGLEDIFF_IMAGE_TIMEOUT') {
-          failures.push({ sources: [image.currentSrc, image.src].filter(Boolean), message: error.message, timedOut: true });
+          failures.push({ sources: [image.currentSrc, image.src].filter(Boolean), element: describe(image),
+            message: error.message, timedOut: true });
           return;
         }
         // A timeout leaves the image unresolved: it can still load and move
         // the layout during capture. Let the runner retry even in warning mode.
         if (failurePolicy === 'warn' && error.code !== 'EAGLEDIFF_IMAGE_TIMEOUT') {
-          failures.push({ sources: [image.currentSrc, image.src].filter(Boolean), message: error.message });
+          failures.push({ sources: [image.currentSrc, image.src].filter(Boolean), element: describe(image),
+            message: error.message });
           return;
         }
-        throw new Error(`Cannot load image before capture: ${image.currentSrc || image.src}\n${error.message}`);
+        throw new Error(`Cannot load image before capture: ${image.currentSrc || image.src}\nElement: ${describe(image)}\n${error.message}`);
       } finally {
         clearTimeout(timer);
       }
@@ -121,7 +124,7 @@ module.exports = async function loadLazyImages(page, context = {}) {
       if (!retryDownloads) throw new Error(failure.message);
       await require('../recover-images')(page, timedOut, downloadTimeout);
     } catch (cause) {
-      const error = new Error(`Cannot load image before capture: ${failure.sources[0]}\n${failure.message}\n${cause.message}`, { cause });
+      const error = new Error(`Cannot load image before capture: ${failure.sources[0]}\nElement: ${failure.element}\n${failure.message}\n${cause.message}`, { cause });
       error.code = 'EAGLEDIFF_IMAGE_TIMEOUT';
       throw error;
     }
@@ -138,7 +141,7 @@ module.exports = async function loadLazyImages(page, context = {}) {
       try { const url = new URL(source); return url.origin + url.pathname; } catch { return '(unknown image URL)'; }
     };
     const message = `Captured with ${failures.length} unresolved image(s) because imageFailurePolicy="warn". These may create visual differences. Page: ${safeUrl(page.url())}\n` +
-      failures.slice(0, 5).map(failure => `  ${safeUrl(failure.sources[0])}: ${failure.message}`).join('\n');
+      failures.slice(0, 5).map(failure => `  ${safeUrl(failure.sources[0])} (${failure.element}): ${failure.message}`).join('\n');
     if (context.reportWarning) context.reportWarning(`image-load-failure:${safeUrl(page.url())}`, message);
     else console.warn(`[eaglediff] ${message}`);
   }

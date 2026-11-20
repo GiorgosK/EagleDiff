@@ -6,9 +6,12 @@ module.exports = async function waitForBackgroundImages(page, context = {}) {
   if (!Number.isFinite(timeout) || timeout <= 0) throw new Error('lazyImageTimeout must be a positive number.');
   if (!['error', 'warn'].includes(policy)) throw new Error('imageFailurePolicy must be "error" or "warn".');
   const failures = await withImageCaptureCheck(page, check => page.evaluate(async ({ failedSources, timeout }, isExcluded) => {
+    const describe = isExcluded.describe;
+    const owners = new Map();
     const images = [...document.images].filter(image =>
       !isExcluded(image) &&
       (image.currentSrc || image.getAttribute('src') || image.srcset) && !failedSources.includes(image.currentSrc) && !failedSources.includes(image.src));
+    for (const image of images) owners.set(image, describe(image));
     const seen = new Set();
     const canPaintBackground = (element, elementStyle) => {
       // Root/body backgrounds can paint the canvas even without a layout box.
@@ -34,6 +37,7 @@ module.exports = async function waitForBackgroundImages(page, context = {}) {
         if (!source || seen.has(source)) continue;
         seen.add(source);
         const image = new Image(); image.src = source; images.push(image);
+        owners.set(image, describe(element) + ' (background-image)');
       }
     }
     const results = await Promise.all(images.map(async image => {
@@ -45,7 +49,8 @@ module.exports = async function waitForBackgroundImages(page, context = {}) {
         if (!image.naturalWidth) throw new Error('Image has no decoded pixels.');
         return null;
       } catch (error) {
-        return { source: image.currentSrc || image.src, timedOut: error.message === 'Image loading timed out.' };
+        return { source: image.currentSrc || image.src, element: owners.get(image),
+          timedOut: error.message === 'Image loading timed out.' };
       } finally { clearTimeout(timer); }
     }));
     return results.filter(Boolean);
@@ -53,7 +58,9 @@ module.exports = async function waitForBackgroundImages(page, context = {}) {
   for (const failure of failures) {
     const url = new URL(failure.source);
     const source = url.origin + url.pathname;
-    const message = `Cannot load image before capture: ${source}` + (failure.timedOut ? `\nTimed out after ${timeout}ms` : '\nImage decoding failed.');
+    const message = `Cannot load image before capture: ${source}` +
+      (failure.element ? `\nElement: ${failure.element}` : '') +
+      (failure.timedOut ? `\nTimed out after ${timeout}ms` : '\nImage decoding failed.');
     if (failure.timedOut || policy === 'error') {
       const error = new Error(message);
       if (failure.timedOut) error.code = 'EAGLEDIFF_IMAGE_TIMEOUT';
