@@ -999,3 +999,7 @@ nvm use 22.19.0
 ```
 
 Then retry your Eaglediff command.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

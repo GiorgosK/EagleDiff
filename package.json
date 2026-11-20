@@ -1,10 +1,16 @@
 {
   "name": "eaglediff",
   "version": "0.1.0",
-  "private": true,
+  "license": "MIT",
   "bin": {
     "eaglediff": "bin/eaglediff.js"
   },
+  "files": [
+    "bin/",
+    "scripts/",
+    "docs/",
+    "config-default.json"
+  ],
   "type": "commonjs",
   "scripts": {
     "cli": "node bin/eaglediff.js",
