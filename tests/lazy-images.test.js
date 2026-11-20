@@ -199,8 +199,14 @@ test('skips the second page scroll after scroll-to-bottom ran, and still loads l
   const context = { mode: 'ready', scenario: {}, config: { defaults: { scrollStepDelayMs: 10, scrollSettleDelayMs: 10 } } };
   await page.goto(url);
   await scroll(page, context);
+  // Scroll events are dispatched on the next frame; count them only after
+  // scroll-to-bottom's own final scroll has been delivered.
+  const flushScrollEvents = () => page.evaluate(() => new Promise(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await flushScrollEvents();
   const scrollsBefore = await page.evaluate(() => window.scrolls);
   await load(page, context);
+  await flushScrollEvents();
   assert.equal(await page.evaluate(() => window.scrolls), scrollsBefore, 'load-lazy-images must not scroll again');
   assert.deepEqual(await loaded(), [200, 200]);
 
