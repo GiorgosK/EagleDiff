@@ -498,7 +498,9 @@ handling; no extra hook is needed. Adjust the selector for your embed URL.
 Use this when testing the surrounding page, since map content is no longer compared.
 Avoid `removeSelectors` here: removing the iframe shifts the content below it.
 
-The default config already hides the Google Maps selector above. For a changing
+The default config already hides the Google Maps selector above and Google My
+Maps embeds (`https://www.google.com/maps/d/embed`). Existing configs keep their
+saved `hideSelectors`; add the My Maps selector there if needed. For a changing
 reCAPTCHA badge, add `.grecaptcha-badge`. Review the resulting captures before
 replacing references; excluded embed content is no longer compared.
 
