@@ -28,10 +28,12 @@ module.exports = async function waitForBackgroundImages(page, context = {}) {
       const background = style.backgroundImage;
       if (!background.includes('url(') || !canPaintBackground(element, style)) continue;
       for (const match of background.matchAll(/url\((?:"([^"]*)"|'([^']*)'|([^)]*))\)/g)) {
-        const source = match[1] ?? match[2] ?? match[3];
-        if (seen.has(source)) continue;
+        const source = (match[1] ?? match[2] ?? match[3]).trim();
+        // An empty url() loads nothing in the browser; as an image source it
+        // would resolve to the page URL and fail as a broken image.
+        if (!source || seen.has(source)) continue;
         seen.add(source);
-        const image = new Image(); image.src = source.trim(); images.push(image);
+        const image = new Image(); image.src = source; images.push(image);
       }
     }
     const results = await Promise.all(images.map(async image => {

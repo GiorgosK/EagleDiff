@@ -117,3 +117,27 @@ test('canvas backgrounds stay strict and stalled foreground images become requir
     } finally { await page.close(); }
   }
 });
+
+test('empty url() backgrounds are ignored, like the browser does, while real ones stay required', async t => {
+  const server = http.createServer((req, res) => {
+    if (req.url === '/one.svg') {
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.end('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>');
+      return;
+    }
+    if (req.url === '/missing.svg') { res.writeHead(404); res.end(); return; }
+    res.setHeader('Content-Type', 'text/html');
+    // An empty url() resolves to no image; it must not be checked as the page URL.
+    res.end(`<div style="height:20px;background-image:url()"></div><div style="height:20px;background-image:url('')"></div>
+      <div style="height:20px;background-image:url(/one.svg)"></div>${req.url === '/broken' ? '<div style="height:20px;background-image:url(/missing.svg)"></div>' : ''}`);
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const browser = await puppeteer.launch(buildBrowserLaunchOptions());
+  t.after(async () => { await browser.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
+  const page = await browser.newPage();
+  const base = `http://127.0.0.1:${server.address().port}`;
+  await page.goto(base + '/');
+  await wait(page);
+  await page.goto(base + '/broken');
+  await assert.rejects(wait(page), /missing.svg/);
+});
