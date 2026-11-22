@@ -1,0 +1,4 @@
+bugs:
+  css:
+    theme:
+      css/bugs.css: { weight: 100 }

@@ -1,0 +1,5 @@
+services:
+  visual_bugs.broken_image:
+    class: Drupal\visual_bugs\BrokenImageSubscriber
+    tags:
+      - { name: event_subscriber }

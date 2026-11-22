@@ -1,0 +1,60 @@
+/* Known visual bugs for the Umami demo; see ../../bugs.json. */
+
+/* b01: heading font falls back to a different family. */
+[data-visual-bug="b01"] h1.page-title { font-family: Georgia, serif !important; }
+
+/* b02: ingredients list moved 1px to the right. */
+[data-visual-bug="b02"] .field--name-field-ingredients { position: relative; left: 1px; }
+
+/* b03: tag links slightly faded. */
+[data-visual-bug="b03"] .field--name-field-tags a { opacity: 0.85; }
+
+/* b04: the difficulty badge disappears. */
+[data-visual-bug="b04"] .block-field-blocknoderecipefield-difficulty { display: none; }
+
+/* b05: broken main image (src/BrokenImageSubscriber.php). */
+
+/* b06: the wrong main image. */
+[data-visual-bug="b06"] .block-field-blocknoderecipefield-media-image img { content: url(/sites/default/files/chili-sauce-umami.jpg); object-fit: cover; }
+
+/* b07: slightly wider letter spacing, so text wraps differently. */
+[data-visual-bug="b07"] .field--name-field-recipe-instruction { letter-spacing: 0.02em; }
+
+/* b08: taller line height in the instructions. */
+[data-visual-bug="b08"] .field--name-field-recipe-instruction { line-height: 1.75; }
+
+/* b09: phone only: the breadcrumb disappears. */
+@media (max-width: 599px) {
+  [data-visual-bug="b09"] .breadcrumb { display: none; }
+}
+
+/* b10: wide screens only: extra space above the footer, below the fold. */
+@media (min-width: 1440px) {
+  [data-visual-bug="b10"] .layout-footer { padding-top: 12px; }
+}
+
+/* b11: body text a little lighter. */
+[data-visual-bug="b11"] .field--name-field-body { opacity: 0.9; }
+
+/* b12: rounded image corners. */
+[data-visual-bug="b12"] .node--view-mode-full .field--name-field-media-image img { border-radius: 8px; }
+
+/* b13: a typo in the page title (visual_bugs_preprocess_page_title). */
+
+/* b14: article meta overlaps the image below it. */
+[data-visual-bug="b14"] .node__meta { position: relative; top: 1.5em; }
+
+/* b15: justified paragraphs. */
+[data-visual-bug="b15"] .field--name-field-body { text-align: justify; }
+
+/* b16: a faint shadow on the article cards. */
+[data-visual-bug="b16"] .umami-card { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
+
+/* b17: underlined "View recipe" links on the recipe cards. */
+[data-visual-bug="b17"] .umami-card__read-more { text-decoration: underline; }
+
+/* b18: the banner button moved 2px down. */
+[data-visual-bug="b18"] .banner__button { position: relative; top: 2px; }
+
+/* b19: the second main menu item is invisible (Spanish home page). */
+[data-visual-bug="b19"] .menu-main__item:nth-child(2) { visibility: hidden; }

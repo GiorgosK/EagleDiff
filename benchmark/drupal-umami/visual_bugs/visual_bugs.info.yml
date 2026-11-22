@@ -1,0 +1,5 @@
+name: 'Visual bugs (benchmark)'
+type: module
+description: 'Adds known visual bugs to the Umami demo, one per page, for testing visual regression tools. Uninstall to restore the clean site.'
+core_version_requirement: ^10.3 || ^11
+package: Testing

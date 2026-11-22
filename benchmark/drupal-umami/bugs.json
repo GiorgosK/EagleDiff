@@ -1,0 +1,48 @@
+{
+  "site": "Drupal 11.4 Umami demo (demo_umami install profile), clean install",
+  "enable": "drush en visual_bugs (uninstall with drush pmu visual_bugs)",
+  "viewports": [
+    {
+      "label": "phone",
+      "width": 360,
+      "height": 640
+    },
+    {
+      "label": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "label": "pc",
+      "width": 1920,
+      "height": 1080
+    }
+  ],
+  "pages": [
+    { "id": "b01", "url": "/en/recipes/deep-mediterranean-quiche", "kind": "font", "bug": "Page title font falls back to Georgia", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b02", "url": "/en/recipes/vegan-chocolate-and-nut-brownies", "kind": "layout", "bug": "Ingredients list moved 1px to the right", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b03", "url": "/en/recipes/super-easy-vegetarian-pasta-bake", "kind": "colour", "bug": "Tag links slightly faded (opacity 0.85)", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b04", "url": "/en/recipes/watercress-soup", "kind": "missing", "bug": "Difficulty badge missing", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b05", "url": "/en/recipes/victoria-sponge-cake", "kind": "image", "bug": "Main image broken", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b06", "url": "/en/recipes/gluten-free-pizza", "kind": "image", "bug": "Main image replaced by another recipe's image", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b07", "url": "/en/recipes/thai-green-curry", "kind": "text", "bug": "Instructions letter-spacing 0.02em, so lines wrap differently", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b08", "url": "/en/recipes/crema-catalana", "kind": "layout", "bug": "Instructions line height 1.75", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b09", "url": "/en/recipes/fiery-chili-sauce", "kind": "viewport", "bug": "Phone only (under 600px): breadcrumb missing", "visibleAt": ["phone"] },
+    { "id": "b10", "url": "/en/recipes/borscht-with-pork-ribs", "kind": "viewport", "bug": "Wide screens only (1440px+): 12px extra space above the footer, below the fold", "visibleAt": ["pc"] },
+    { "id": "b11", "url": "/en/articles/give-it-a-go-and-grow-your-own-herbs", "kind": "colour", "bug": "Article text slightly lighter (opacity 0.9)", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b12", "url": "/en/articles/dairy-free-and-delicious-milk-chocolate", "kind": "subtle", "bug": "Main image corners rounded 8px", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b13", "url": "/en/articles/the-real-deal-for-supermarket-savvy-shopping", "kind": "content", "bug": "One-letter typo in the title (supermaket)", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b14", "url": "/en/articles/lets-hear-it-for-carrots", "kind": "layout", "bug": "Article author/date line moved down, overlapping the content below", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b15", "url": "/en/about-umami", "kind": "text", "bug": "Paragraphs justified", "visibleAt": ["phone", "tablet"] },
+    { "id": "b16", "url": "/en/articles", "kind": "subtle", "bug": "Faint shadow on the article cards", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b17", "url": "/en/recipes", "kind": "text", "bug": "\"View recipe\" links underlined", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b18", "url": "/en", "kind": "layout", "bug": "Banner button moved 2px down", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "b19", "url": "/es", "kind": "missing", "bug": "Second main menu item invisible (Spanish home page)", "visibleAt": ["tablet", "pc"] },
+    { "id": "c01", "url": "/en/articles/the-umami-guide-to-our-favorite-mushrooms", "kind": "control", "bug": null, "visibleAt": [] },
+    { "id": "c02", "url": "/en/articles/baking-mishaps-our-troubleshooting-tips", "kind": "control", "bug": null, "visibleAt": [] },
+    { "id": "c03", "url": "/en/articles/skip-the-spirits-with-delicious-mocktails", "kind": "control", "bug": null, "visibleAt": [] },
+    { "id": "c04", "url": "/en/articles/give-your-oatmeal-the-ultimate-makeover", "kind": "control", "bug": null, "visibleAt": [] },
+    { "id": "c05", "url": "/en/tags/baking", "kind": "control", "bug": null, "visibleAt": [] },
+    { "id": "c06", "url": "/es/recipes", "kind": "control", "bug": null, "visibleAt": [] }
+  ]
+}
