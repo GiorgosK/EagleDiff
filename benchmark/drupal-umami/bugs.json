@@ -1,5 +1,6 @@
 {
   "site": "Drupal 11.4 Umami demo (demo_umami install profile), clean install",
+  "baseURL": "https://eaglediff-umami.ddev.site",
   "enable": "drush en visual_bugs (uninstall with drush pmu visual_bugs)",
   "viewports": [
     {

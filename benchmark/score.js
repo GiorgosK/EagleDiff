@@ -1,16 +1,17 @@
 #!/usr/bin/env node
-// Score a visual regression run against bugs.json.
+// Score a visual regression run against a benchmark's bugs.json.
 //
-//   node score.js flagged.txt          one "<page id> <viewport>" per line,
-//                                       for any tool (use "<id> error" for a
-//                                       capture error on that page)
-//   node score.js --eaglediff <dir>    read eaglediff's latest comparison
+//   node score.js <benchmark> flagged.txt        one "<page id> <viewport>" per
+//                                                line, from any tool ("<id> error"
+//                                                for a capture error on that page)
+//   node score.js <benchmark> --eaglediff <dir>  read Eaglediff's latest comparison
+//
+// <benchmark> is a benchmark folder, such as drupal-umami or wordpress.
 const fs = require('fs');
 const path = require('path');
-const bugs = require('./bugs.json');
 
 function flaggedFromEaglediff(dir) {
-  const { getScreenshotFileName } = require('../../scripts/run');
+  const { getScreenshotFileName } = require('../scripts/run');
   const out = JSON.parse(fs.readFileSync(path.join(dir, '.reg', 'run', 'out.json'), 'utf8'));
   const changed = new Set([...out.failedItems, ...out.newItems, ...out.deletedItems]);
   return bugs.pages.flatMap(page => bugs.viewports
@@ -18,11 +19,12 @@ function flaggedFromEaglediff(dir) {
     .map(viewport => `${page.id} ${viewport.label}`));
 }
 
-const args = process.argv.slice(2);
-if (!args.length) {
-  console.error('Usage: node score.js flagged.txt | node score.js --eaglediff <dir>');
+const [benchmark, ...args] = process.argv.slice(2);
+if (!benchmark || !args.length) {
+  console.error('Usage: node score.js <benchmark> flagged.txt | node score.js <benchmark> --eaglediff <dir>');
   process.exit(2);
 }
+const bugs = JSON.parse(fs.readFileSync(path.join(path.resolve(__dirname, benchmark), 'bugs.json'), 'utf8'));
 const flagged = new Set(args[0] === '--eaglediff'
   ? flaggedFromEaglediff(path.resolve(args[1] || 'eaglediff'))
   : fs.readFileSync(args[0], 'utf8').split('\n').map(line => line.trim().replace(/\s+/g, ' ')).filter(Boolean));

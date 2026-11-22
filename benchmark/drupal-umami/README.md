@@ -57,7 +57,7 @@ not enable it yet.
    (`b13 phone`), or `b05 error` for a capture error, then score it:
 
    ```bash
-   node benchmark/drupal-umami/score.js flagged.txt
+   node benchmark/score.js drupal-umami flagged.txt
    ```
 
 5. Remove the bugs again with `ddev drush pmu visual_bugs -y && ddev drush cr`.
@@ -67,8 +67,9 @@ clean site; any difference there is a false alarm.
 
 ## Run with Eaglediff
 
-[eaglediff/config.json](eaglediff/config.json) has the same pages and
-viewports, and otherwise uses Eaglediff's defaults:
+[eaglediff/config.json](eaglediff/config.json) has the same pages and viewports
+and otherwise uses Eaglediff's defaults. Rebuild it after updating Eaglediff with
+`node benchmark/make-config.js drupal-umami`.
 
 ```bash
 cd benchmark/drupal-umami/eaglediff
@@ -76,23 +77,30 @@ eaglediff reference          # clean site
 eaglediff calibrate          # should pass: no false alarms
 # add the bugs (step 2 above), then:
 eaglediff test
-node ../score.js --eaglediff .
+node ../../score.js drupal-umami --eaglediff .
 ```
 
-A broken image (b05) stops an Eaglediff run with a capture error by default,
-before the comparison. Score it as `b05 error`, and score the other pages from a
-run without that page.
+The broken image (b05) is reported as a capture error; the other pages are
+still compared and appear in the report.
 
 ## Results
 
-Eaglediff 0.1.0, Chrome 157, Linux, default settings (2026-11-22):
+Eaglediff 0.1.0, Chrome 157, Linux (2026-11-22):
 
 | Setting | Bugs caught | False alarms |
 | --- | --- | --- |
-| Defaults (`thresholdRate: 0.001`, `thresholdRateColor: 0.05`) | 14/19 | 0 |
+| Defaults (`thresholdMaxPixels: 500`) | 18/19 | 0 |
+| Defaults without `thresholdMaxPixels` | 14/19 | 0 |
 | Pixel-exact (`thresholdRate: 0`, `thresholdRateColor: 0`) | 19/19 | 0 |
 
-Missed with the defaults: faded tag links, rounded image corners, underlined
-links, a 2px button shift and an invisible menu item. The typo was caught only
-on the widest screen. Each of these changes fewer than 0.1% of a full-page
-screenshot's pixels, which is what `thresholdRate: 0.001` allows.
+Still missed with the defaults: rounded image corners (b12), which change about
+80 pixels. Without the pixel cap, `thresholdRate: 0.001` (0.1% of a full-page
+screenshot) also let through faded tag links, underlined links, a 2px button
+shift, an invisible menu item, and the typo on phone and tablet.
+
+The clean site gave identical pixels on every calibration, so no site-specific
+settings were needed.
+
+To record `visibleAt` again, run the clean site through `calibrate` with
+`thresholdRate: 0`, `thresholdRateColor: 0` and `thresholdMaxPixels: null`, add
+the bugs, run `test`, and then `node ../../ground-truth.js drupal-umami .`.

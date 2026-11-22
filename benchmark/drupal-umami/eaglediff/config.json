@@ -1,5 +1,5 @@
 {
-  "version": "2026.11.20.02",
+  "version": "2026.11.22.01",
   "referenceBaseURL": "https://eaglediff-umami.ddev.site",
   "testBaseURL": "https://eaglediff-umami.ddev.site",
   "excludeExtensions": [
@@ -20,6 +20,7 @@
     "workers": 10,
     "thresholdRate": 0.001,
     "thresholdRateColor": 0.05,
+    "thresholdMaxPixels": 500,
     "temporaryErrorRetries": 2,
     "temporaryErrorRetryMode": "immediate",
     "temporaryErrorRetryTimeoutMultiplier": 1,
@@ -95,7 +96,6 @@
     "replaceContent": {},
     "cssOverrides": "",
     "hideDynamicSelectors": [
-      ".anrt-gdpr-floating-cookie",
       "#toolbar-administration",
       "#toolbar-item-administration-tray",
       ".toolbar-tray-open"
