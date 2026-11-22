@@ -39,6 +39,7 @@ default hooks back; use a documented disabling setting to keep a feature off.
     "hooks/apply-css-overrides",
     "hooks/normalize-image-decoding",
     "hooks/wait-for-stable-content",
+    "hooks/wait-for-counters",
     "hooks/keep-selectors",
     "hooks/wait-for-background-images",
     "hooks/wait-for-network-idle",
@@ -70,6 +71,24 @@ The image-decoding hook also freezes GIF `<img>` elements at their first frame.
 CSS background GIFs and iframe images are excluded. If cross-origin conversion
 is blocked, a working original is kept with a warning and may still animate.
 Use `normalizeImageDecodingSelectors: []` to disable conversion.
+
+## Count-up counters
+
+Statistics widgets often count from 0 up to their number (for example 0 → 1,200)
+for a second or two after they scroll into view. `wait-for-counters` waits until
+the visible counters' text has stopped changing for half a second, so the
+screenshot always shows the final number.
+
+With `counterSelectors: null` (the default) it looks for known widgets:
+Elementor's counter (tested), Odometer, Kadence Blocks, Divi and Avada. List
+your own selectors to use only those, or set `[]` to turn the wait off. A
+counter that never stops, such as a live clock, produces a warning after
+`counterTimeout` (default `10000`) and the capture continues; hide it with
+`hideSelectors` instead.
+
+```json
+"counterSelectors": [".stats-number"]
+```
 
 ## `waitUntilGone`, `carouselSelectors`, and `keepSelectors`
 

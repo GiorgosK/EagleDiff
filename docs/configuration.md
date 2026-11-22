@@ -213,6 +213,8 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `freezeWebAnimations` | Freeze time-based browser animations at their first frame. Default `true`; `false` disables it. | `freeze-web-animations` |
 | `carouselSelectors` | Pause supported carousels and return them to the first slide. `null` detects known libraries; `[]` disables it. | `stabilize-carousels` |
 | `carouselSettleDelayMs` | Pause after resetting carousels. | `stabilize-carousels` |
+| `counterSelectors` | Wait until count-up numbers stop changing. `null` detects known widgets; `[]` disables it. See [Count-up counters](site-adjustments.md#count-up-counters). | `wait-for-counters` |
+| `counterTimeout` | Longest wait for counters, default `10000`. A counter still changing after it gives a warning, not an error. | `wait-for-counters` |
 | `hideDynamicSelectors` | Apply `display: none`, including to elements added later. | `hide-dynamic-elements` |
 | `cookieConsent` | `"hide"` (default), `"accept"` all cookies, or `"leave"` recognized banners alone. Scenario values override defaults. | `handle-cookie-consent` |
 | `cookieConsentTimeout` | Wait up to `3000` milliseconds for a banner and its acceptance. A recognized banner that stays open fails capture and can retry. | `handle-cookie-consent` |

@@ -1,5 +1,5 @@
 {
-  "version": "2026.11.22.01",
+  "version": "2026.11.22.02",
   "referenceBaseURL": "https://example.com",
   "testBaseURL": "https://example.test",
   "excludeExtensions": [".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".zip",".rar",".7z",".tar",".gz"],
@@ -62,6 +62,8 @@
     "scrollTimeout": 30000,
     "carouselSelectors": null,
     "carouselSettleDelayMs": 500,
+    "counterSelectors": null,
+    "counterTimeout": 10000,
     "keepSelectors": [],
     "lazyImageTimeout": 15000,
     "retryImageDownloads": false,
@@ -121,6 +123,7 @@
     "hooks/apply-css-overrides",
     "hooks/normalize-image-decoding",
     "hooks/wait-for-stable-content",
+    "hooks/wait-for-counters",
     "hooks/keep-selectors",
     "hooks/wait-for-background-images",
     "hooks/wait-for-network-idle",
