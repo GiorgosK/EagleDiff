@@ -1,0 +1,31 @@
+/* Known visual bugs for the Elementor benchmark; see ../../bugs.json. */
+
+/* e01: the animated hero heading falls back to a different font. */
+[data-visual-bug="e01"] h1.elementor-heading-title { font-family: Georgia, serif !important; }
+
+/* e02: icon box icons slightly faded. */
+[data-visual-bug="e02"] .elementor-icon-box-icon { opacity: 0.85; }
+
+/* e03, e04, e05, e07, e12: content bugs (visual-bugs.php). */
+
+/* e06: the middle plan's button moved 2px down. */
+[data-visual-bug="e06"] .e-con-inner > .e-con:nth-child(2) .elementor-widget-button { position: relative; top: 2px; }
+
+/* e08: wider letter spacing in the tab titles. */
+[data-visual-bug="e08"] .elementor-tab-title { letter-spacing: 0.05em; }
+
+/* e09: phone only: the social icons disappear. */
+@media (max-width: 599px) {
+  [data-visual-bug="e09"] .elementor-widget-social-icons { display: none; }
+}
+
+/* e10: wide screens only: extra space above the footer. */
+@media (min-width: 1440px) {
+  [data-visual-bug="e10"] footer#site-footer { padding-top: 12px; }
+}
+
+/* e11: rounded image corners. */
+[data-visual-bug="e11"] .elementor-widget-image img { border-radius: 8px; }
+
+/* e13: the alert box is missing. */
+[data-visual-bug="e13"] .elementor-widget-alert { display: none; }

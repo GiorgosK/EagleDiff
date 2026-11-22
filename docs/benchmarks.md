@@ -35,14 +35,16 @@ appear only on phones or only on wide screens.
 | Benchmark | Bugs found | False alarms | Site-specific settings |
 | --- | --- | --- | --- |
 | [Drupal 11 Umami](../benchmark/drupal-umami/README.md) | 18 of 19 | 0 | none |
+| [WordPress with Elementor](../benchmark/wordpress-elementor/README.md) (JavaScript widgets and animations) | 12 of 13 | 0 | none |
 
 Eaglediff 0.1.0 with default settings, Chrome 157 on Linux, 2026-11-22.
 
-The bug still missed changes about 80 pixels: an image's corners rounded by
-8px. Before `thresholdMaxPixels` (see
+The bug still missed on both sites changes about 80 pixels: an image's corners
+rounded by 8px. Before `thresholdMaxPixels` (see
 [comparison thresholds](configuration.md#comparison-thresholds)), Eaglediff
-found 14 of 19; the four extra bugs it now finds each change 500–1,600 pixels
-on long full-page screenshots.
+found 14 of 19 on Umami; the four extra bugs it now finds each change
+500–1,400 pixels on long full-page screenshots. The Elementor benchmark found
+counters captured mid-count, fixed with the `wait-for-counters` hook.
 
 ## Settings for each benchmark
 
@@ -51,8 +53,7 @@ A benchmark's Eaglediff config is built by
 Eaglediff's defaults, the benchmark's optional `eaglediff/defaults.json`, and
 the pages in `bugs.json`. Anything tuned for a particular site is in that
 `defaults.json` file, in the [team defaults](configuration.md#team-or-agency-defaults)
-format, so it is easy to see what a site needed. The Umami benchmark needs no
-such file.
+format, so it is easy to see what a site needed. Neither benchmark needs one.
 
 ```bash
 node benchmark/make-config.js drupal-umami

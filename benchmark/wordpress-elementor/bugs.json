@@ -1,0 +1,41 @@
+{
+  "site": "WordPress 7.1.5, Hello Elementor 3.5.2, Elementor 4.4.1, content from benchmark/wordpress-elementor/content.php",
+  "baseURL": "https://eaglediff-elementor.ddev.site",
+  "enable": "wp plugin activate visual-bugs (deactivate with wp plugin deactivate visual-bugs)",
+  "viewports": [
+    {
+      "label": "phone",
+      "width": 360,
+      "height": 640
+    },
+    {
+      "label": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "label": "pc",
+      "width": 1920,
+      "height": 1080
+    }
+  ],
+  "pages": [
+    { "id": "e01", "url": "/", "kind": "font", "bug": "Hero heading falls back to Georgia (animated heading)", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "e02", "url": "/services/", "kind": "colour", "bug": "Icon box icons slightly faded (opacity 0.85)", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "e03", "url": "/about/", "kind": "content", "bug": "Counter counts to a wrong number (1,200 shows 1,020)", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "e04", "url": "/gallery/", "kind": "image", "bug": "Second carousel slide shows another image", "visibleAt": ["tablet", "pc"] },
+    { "id": "e05", "url": "/team/", "kind": "image", "bug": "Second team photo broken (HTTP 404)", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "e06", "url": "/pricing/", "kind": "layout", "bug": "Middle plan button moved 2px down", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "e07", "url": "/faq/", "kind": "content", "bug": "One-letter typo in the first accordion title (Shiping)", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "e08", "url": "/process/", "kind": "text", "bug": "Tab titles letter-spacing 0.05em", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "e09", "url": "/contact/", "kind": "viewport", "bug": "Phone only (under 600px): social icons missing", "visibleAt": ["phone"] },
+    { "id": "e10", "url": "/testimonials/", "kind": "viewport", "bug": "Wide screens only (1440px+): 12px extra space above the footer", "visibleAt": ["pc"] },
+    { "id": "e11", "url": "/features/", "kind": "subtle", "bug": "Image corners rounded 8px", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "e12", "url": "/skills/", "kind": "content", "bug": "Progress bar shows 75% instead of 80%", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "e13", "url": "/events/", "kind": "missing", "bug": "Alert box missing", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "c01", "url": "/careers/", "kind": "control", "bug": null, "visibleAt": [] },
+    { "id": "c02", "url": "/history/", "kind": "control", "bug": null, "visibleAt": [] },
+    { "id": "c03", "url": "/partners/", "kind": "control", "bug": null, "visibleAt": [] },
+    { "id": "c04", "url": "/press/", "kind": "control", "bug": null, "visibleAt": [] }
+  ]
+}

@@ -66,15 +66,16 @@ so it works in CI.
 
 ## How well does it find bugs?
 
-The [benchmark](docs/benchmarks.md) adds 19 known visual bugs to Drupal's Umami
-demo site and counts how many are found, and how many unchanged pages are
-wrongly flagged. Anyone can set it up and run it with any tool.
+The [benchmarks](docs/benchmarks.md) add known visual bugs to demo sites and
+count how many are found, and how many unchanged pages are wrongly flagged.
+Anyone can set them up and run them with any tool.
 
 | Site | Bugs found | False alarms |
 | --- | --- | --- |
 | Drupal 11 Umami demo | 18 of 19 | 0 |
+| WordPress with Elementor (carousels, counters, animations) | 12 of 13 | 0 |
 
-This used Eaglediff's default settings, with no site-specific configuration.
+Both used Eaglediff's default settings, with no site-specific configuration.
 
 ## Documentation
 
