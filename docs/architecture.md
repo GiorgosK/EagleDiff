@@ -1,4 +1,7 @@
-# Architecture overview
+# Architecture
+
+This page is for contributors: how Eaglediff is built and why. For using
+Eaglediff, start with the [README](../README.md).
 
 Eaglediff performs visual regression testing by capturing browser-rendered
 content and comparing screenshots with reg-suit. It owns page discovery,
@@ -17,8 +20,11 @@ and comparison behavior across projects.
 | `scripts/config.js` | Discover internal page links, exclude configured file extensions, and merge scenarios with existing configuration. |
 | `scripts/import.js` | Translate Backstop scenarios, viewports, cookies, and supported settings into Eaglediff configuration. |
 | `scripts/config-update.js` | Add missing defaults and hooks while preserving explicit overrides and existing hook order. |
+| `scripts/agency-defaults.js` | Load optional team defaults (`--defaults`, `EAGLEDIFF_DEFAULTS` or the user file) and merge them over `config-default.json` for config, import and config-update. |
 | `scripts/run.js` | Coordinate reference capture, testing, approval, browser workers, comparison, and history. |
 | `scripts/capture-worker.js` | Execute assigned captures in a worker-owned browser and relay progress, warnings, and errors. |
+| `scripts/pixel-limit.js` | Apply `core.thresholdMaxPixels` after reg-suit's comparison, and rewrite its JSON and HTML report when captures move from passed to failed. |
+| `scripts/image-request-diagnostics.js` | Record image response status and network failures, explain image errors, and mark temporary server answers as retryable. |
 | `scripts/capture-diagnostics.js` | Summarize capture messages and save full diagnostics in a separate log for each run. |
 | `scripts/hooks/` | Prepare page content, wait for resources, normalize variable rendering, and define capture regions. |
 | `scripts/hook-phases.js` | Decide which bundled ready hooks are deferred to, or repeated in, the final capture phases. |
@@ -106,8 +112,14 @@ to the parent without retrying them during the initial pass. After all initial
 workers exit, one worker retries those pairs sequentially using the original
 retry count and timeout scaling. Single-worker runs use the same queue in process.
 Exhausted retries are collected so the other queued captures can still retry;
-security challenges stop the queue immediately. Any remaining failure prevents
-reference promotion and comparison publication.
+security challenges stop the queue immediately.
+
+In `test` and `calibrate`, a capture that still fails is recorded and the run
+continues, so the report shows every other page (the failed one appears as
+deleted). The run then fails without writing a capture manifest or history
+entry, so it cannot be approved or used by `--last-failed`; it stops early after
+10 failed captures. In `reference`, any failure stops the run and leaves the
+references unchanged.
 
 ## Hook responsibilities and order
 
@@ -223,6 +235,12 @@ config with `testBaseURL` set to `referenceBaseURL`. Capture navigation uses
 requires existing selected references, preserves saved config and baselines,
 and records the effective reference-site comparison in results history.
 
+reg-cli accepts either a pixel count or a ratio as its threshold, not both. The
+comparison therefore runs with `thresholdRate`, and `scripts/pixel-limit.js`
+recounts only the captures that passed although their bytes differ, using
+reg-cli's own pixel counter and colour threshold. Captures over
+`thresholdMaxPixels` move to the failed list and the report is rebuilt.
+
 Passing comparisons exit with code `0`; changed, new, or deleted screenshots
 return `1`. Reports and history remain available when differences are found.
 
@@ -260,7 +278,8 @@ navigation diagnostics, retries, workers, fonts, image loading and normalization
 CSS/content transformations, screenshot geometry, baseline preservation,
 approval, comparison exit codes, and history.
 
-See [Contributing](../README.md#contributing) for setup and test commands:
+See [Contributing](contributing.md) for setup and test commands. The
+[benchmarks](benchmarks.md) measure detection and false alarms on real sites:
 
 ```sh
 pnpm run test:unit
@@ -296,11 +315,10 @@ These are development directions rather than requirements for using Eaglediff.
 3. **Strengthen storage integrity.** Stage baseline and history changes for
    atomic replacement where practical. Introduce a project lock or independent
    run directories so overlapping invocations cannot delete each other's work.
-4. **Make capture phases explicit.** Formalize preparation, page readiness,
-   deterministic transformations, final asset/layout checks, clipping, and
-   capture. Preserve project-specific dependencies. Recheck assets introduced
-   by late carousel changes and define whether placeholder replacement should
-   require the original image to load successfully.
+4. **Make capture phases explicit.** `scripts/hook-phases.js` now fixes when
+   bundled hooks run again. Formalizing the remaining phases (preparation,
+   readiness, transformations, final checks, clipping) would make custom hook
+   placement easier to explain.
 5. **Broaden lifecycle tests.** Add coverage for worker launch failure,
    cancellation, disconnects during different capture phases, stable-content
    readiness, interrupted storage writes, overlapping runs, and complete hook
@@ -313,7 +331,10 @@ These are development directions rather than requirements for using Eaglediff.
 7. **Measure scheduling before changing it.** Track capture duration, memory,
    and worker utilization. Consider dynamic task assignment if static batches
    leave workers idle on representative workloads.
-8. **Clarify environment and distribution settings.** Make certificate bypass
-   and browser sandbox options explicit environment choices. Complete license
-   and package metadata before public distribution; choose npm publication
-   settings separately from GitHub hosting.
+8. **Clarify environment settings.** Make certificate bypass and browser
+   sandbox options explicit environment choices.
+9. **Consider replacing reg-suit.** Eaglediff uses only its comparison and
+   report. Owning the comparison would allow per-image thresholds without the
+   recount in `scripts/pixel-limit.js` and a report that shows capture errors.
+10. **Test on macOS and Windows.** Browser discovery covers their usual install
+   paths, but no run has been verified there.

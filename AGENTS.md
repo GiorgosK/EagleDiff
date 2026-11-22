@@ -2,7 +2,7 @@
 
 These instructions apply to all AI assistants working in this repository.
 Read them before changing files. Read [README.md](README.md) for commands and
-[docs/overview.md](docs/overview.md) for architecture and future improvements.
+[docs/architecture.md](docs/architecture.md) for architecture and future improvements.
 
 Before starting new work, read `TODO.md` and the `notes/` folder when they
 exist, and check them for pending related tasks, earlier decisions and test
@@ -61,7 +61,7 @@ changes what they say, offer to update them.
   otherwise. Explain any compatibility impact before making it.
 - Update documentation when behavior, defaults, configuration, or commands
   change. When a config revision is required, follow the version convention in
-  the README and test config-update without losing explicit overrides.
+  docs/configuration.md and test config-update without losing explicit overrides.
 - Prefer project configuration for site-specific behavior. Add runner features
   when they solve a general problem; keep defaults predictable.
 - Do not change worker counts, comparison thresholds, hide selectors, or image
