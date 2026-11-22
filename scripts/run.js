@@ -116,12 +116,26 @@ async function main() {
   }
 
   const diagnostics = createCaptureDiagnostics(rootDir, command);
+  // test/calibrate continue after a failed capture so the report still shows
+  // the other pages; the run then fails and cannot be approved.
+  const captureFailures = [];
+  const onCaptureFailure = command === 'test' || command === 'calibrate' ? failure => {
+    captureFailures.push(failure);
+    const [summary] = failure.message.split('\n');
+    console.error(`[eaglediff] ${summary}; continuing with the other pages.`);
+    if (captureFailures.length >= maxCaptureFailures) {
+      throw new Error(`${maxCaptureFailures} captures failed; stopping the run.\n${failure.message}`, { cause: failure });
+    }
+  } : undefined;
   const warningReporter = require('./warnings').createWarningReporter((message, code, context) => diagnostics.warning(code, message, context));
   let failed = false;
   try {
     if (command === 'approve') {
       await normalizeReferenceDir(referenceDir);
-      const manifest = await readJson(path.join(workingDir, 'capture-manifest.json'));
+      const manifest = await readJson(path.join(workingDir, 'capture-manifest.json')).catch(error => {
+        if (error.code !== 'ENOENT') throw error;
+        throw new Error('No completed comparison to approve. Run eaglediff test again; runs with failed captures cannot be approved.', { cause: error });
+      });
       if (manifest.version !== 1 || typeof manifest.fullRun !== 'boolean' || !Array.isArray(manifest.fileNames)
         || !manifest.fileNames.length || manifest.fileNames.some(name => typeof name !== 'string'
           || path.basename(name) !== name || !name.endsWith('.png'))) {
@@ -161,7 +175,8 @@ async function main() {
         addPara,
         workers,
         diagnostics,
-        parallel: true
+        parallel: true,
+        onCaptureFailure
       });
     }
     else {
@@ -174,6 +189,7 @@ async function main() {
           warningReporter,
           retryReporter: diagnostics.retry,
           deferredReporter: diagnostics.deferred,
+          onCaptureFailure,
           relaunchBrowser: async () => {
             await browser.close().catch(() => {});
             browser = await puppeteer.launch(buildBrowserLaunchOptions(config));
@@ -197,7 +213,8 @@ async function main() {
 
     await fsp.rm(stagingActualDir, { recursive: true, force: true });
     await fsp.mkdir(stagingActualDir, { recursive: true });
-    await stageActuals(actualCacheDir, stagingActualDir, selectedScenarios);
+    const failedFileNames = new Set(captureFailures.map(failure => failure.fileName));
+    await stageActuals(actualCacheDir, stagingActualDir, selectedScenarios, failedFileNames);
     await populateExpectedSnapshots(workingDir, referenceDir, selectedScenarios, partial);
     await runRegSuit(['compare', '--config', generatedRegConfigPath]);
     const compareResult = await applyPixelLimit(await readCompareResult(), {
@@ -205,6 +222,7 @@ async function main() {
       maxPixels: validateMaxPixels(config.core?.thresholdMaxPixels),
       matchingThreshold: config.core?.thresholdRateColor ?? 0
     });
+    if (captureFailures.length) throw incompleteRunError(captureFailures, compareResult, failedFileNames);
     await fsp.writeFile(path.join(workingDir, 'capture-manifest.json'), JSON.stringify({
       version: 1, fullRun: !partial,
       fileNames: selectedScenarios.scenarios.flatMap(scenario =>
@@ -341,7 +359,12 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
       } catch (error) {
         const worker = options.workerId ? ` [w${options.workerId}]` : '';
         const failure = new Error(`Capture failed${worker}: ${getScenarioLabel(scenario)} @ ${viewport.label} (${viewport.width}x${viewport.height})\nPage URL: ${url}\n${error.message}`, { cause: error });
-        if (!deferRetries || options.isCancelled?.() || !isTemporaryCaptureError(error)) throw failure;
+        if (!deferRetries || options.isCancelled?.() || !isTemporaryCaptureError(error)) {
+          if (!options.onCaptureFailure || options.isCancelled?.() || isChallengeError(error)) throw failure;
+          failure.fileName = fileName;
+          options.onCaptureFailure(failure);
+          continue;
+        }
         const event = { url, scenarioLabel: getScenarioLabel(scenario), viewportLabel: viewport.label,
           attempt: 1, retries: temporaryErrorRetries, factor: retryTimeoutFactor(runtimeConfig, 1),
           message: error.message, details: captureErrorDetails(failure) };
@@ -542,6 +565,28 @@ async function safeClosePage(page) {
   } catch (error) {
     // Ignore close errors during recovery.
   }
+}
+
+const maxCaptureFailures = 10;
+
+// The report from an incomplete run shows the captured pages, but the run is
+// not saved as a completed comparison, so approve and --last-failed ignore it.
+function incompleteRunError(failures, compareResult, failedFileNames) {
+  const differences = ['failedItems', 'newItems', 'deletedItems']
+    .flatMap(key => compareResult[key] || []).filter(name => !failedFileNames.has(name)).length;
+  const summary = `${failures.length} capture(s) failed, so this comparison is incomplete and cannot be approved.\n` +
+    `The other pages have ${differences} visual difference(s); see eaglediff report.`;
+  const error = new Error(`${summary}\n\n${failures.map(failure => failure.message).join('\n\n')}`, { cause: failures[0] });
+  error.summary = summary;
+  error.captureFailures = failures;
+  return error;
+}
+
+function isChallengeError(error) {
+  for (let cause = error; cause; cause = cause.cause) {
+    if (cause.code === 'EAGLEDIFF_CHALLENGE_DETECTED') return true;
+  }
+  return false;
 }
 
 function isTemporaryCaptureError(error) {
@@ -1067,10 +1112,10 @@ async function listImageFiles(directoryPath) {
   }
 }
 
-async function stageActuals(actualDir, stageActualDir, scenarios) {
+async function stageActuals(actualDir, stageActualDir, scenarios, failedFileNames = new Set()) {
   const selectedFileNames = scenarios.scenarios.flatMap((scenario) =>
     scenarios.viewports.map((viewport) => getScreenshotFileName(scenario, viewport))
-  );
+  ).filter(fileName => !failedFileNames.has(fileName));
 
   for (const fileName of selectedFileNames) {
     const sourcePath = path.join(actualDir, fileName);
@@ -1146,7 +1191,7 @@ async function getSelectedActualFileNames(actualDir, scenarios, options = {}) {
   return selectedFileNames;
 }
 
-async function captureScreenshotsInWorkers({ command, config, scenarios, actualDir, baseUrl, addPara, workers, diagnostics }) {
+async function captureScreenshotsInWorkers({ command, config, scenarios, actualDir, baseUrl, addPara, workers, diagnostics, onCaptureFailure }) {
   const captureBatches = partitionCaptures(scenarios, workers);
   const totalScreenshots = scenarios.scenarios.length * scenarios.viewports.length;
   let completedScreenshots = 0;
@@ -1197,6 +1242,15 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
         return;
       }
 
+      if (message.type === 'capture-failed') {
+        const error = new Error(message.message);
+        error.fileName = message.fileName;
+        error.workerStack = message.stack;
+        error.workerDetails = message.details;
+        try { onCaptureFailure(error); } catch (stop) { fail(stop); }
+        return;
+      }
+
       if (message.type === 'progress') {
         if (phase === 'deferred') {
           console.log(`[retry ${++retriedScreenshots}/${captures.length}] ${message.scenarioLabel} @ ${message.viewportLabel}`);
@@ -1240,7 +1294,8 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
       baseUrl,
       addPara,
       workerId,
-      phase
+      phase,
+      continueOnFailure: typeof onCaptureFailure === 'function'
     });
   });
   try {

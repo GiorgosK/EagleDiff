@@ -123,7 +123,10 @@ test('exhausted deferred captures do not prevent other queued retries or replace
       f.reset('always');
       const result = await f.run([command], 1);
       assertDeferredPass(f, 6, 2, 2);
-      assert.match(result.stderr, /2 deferred captures did not recover/);
+      // test reports an incomplete run and still compares the other pages.
+      assert.match(result.stderr, command === 'reference'
+        ? /2 deferred captures did not recover/
+        : /2 capture\(s\) failed, so this comparison is incomplete and cannot be approved/);
       assert.match(readLog(result.stderr), /\/one[\s\S]*\/two/);
       assert.deepEqual(await f.references(), before);
       assert.deepEqual(await fs.readFile(path.join(f.directory, '.reg/reports/latest.json')), pointer);

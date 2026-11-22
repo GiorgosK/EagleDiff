@@ -40,6 +40,13 @@ process.once('message', async (job) => {
       retryReporter: event => {
         if (process.connected) process.send({ type: 'retry', event });
       },
+      // test/calibrate: report a failed capture and continue with the others.
+      onCaptureFailure: job.continueOnFailure ? failure => {
+        if (process.connected) {
+          process.send({ type: 'capture-failed', message: failure.message, fileName: failure.fileName, stack: failure.stack,
+            details: captureErrorDetails(failure) });
+        }
+      } : undefined,
       progressReporter: (event) => {
         if (process.send) {
           process.send({ type: 'progress', ...event, workerId: job.workerId });

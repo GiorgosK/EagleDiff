@@ -71,6 +71,20 @@ function createCaptureDiagnostics(root, command, output = printWarning) {
       announce();
     },
     failure(error) {
+      // An incomplete test/calibrate run: log every failed capture in full and
+      // show a short summary of each.
+      if (Array.isArray(error.captureFailures)) {
+        if (!error.captureFailures.every(failure => write('ERROR', captureErrorDetails(failure)))) return;
+        const summaries = error.captureFailures.map(failure => {
+          const { title, page, hook, reason } = describe(failure.message);
+          return [title, page, `${hook ? compact(hook, 100) + ': ' : ''}${compact(reason)}`].filter(Boolean).join('\n');
+        });
+        Object.defineProperty(error, 'displayMessage', {
+          value: [error.summary, ...summaries, `Details: ${logPath}`].join('\n\n'),
+          configurable: true
+        });
+        return;
+      }
       if (!/^Capture failed/.test(error.message)) return;
       if (!write('ERROR', captureErrorDetails(error))) return;
       const { title, page, hook, reason } = describe(error.message);
