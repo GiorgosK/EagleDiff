@@ -726,6 +726,10 @@ navigation interrupts later preparation, the whole capture uses these retries
 so its hooks run again before saving a screenshot.
 A disconnected worker browser is restarted on retry. Retries do not override
 image or HTTP error policies.
+An image answered with HTTP 429, 502, 503 or 504, or with an empty body, counts
+as temporary and is retried. For example, Drupal answers 503 while it creates a
+new image style, and the web server can serve that file while it is still
+being written. Other broken images fail immediately.
 
 To finish the initial captures first, then retry temporary failures one at a time,
 set this inside the existing `core` object:

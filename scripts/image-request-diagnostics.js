@@ -5,9 +5,13 @@ module.exports = function trackImageRequests(page) {
   const onResponse = response => {
     const request = response.request();
     if (request.resourceType() !== 'image') return;
+    const headers = response.headers();
     const details = {
       status: response.status(),
-      type: (response.headers()['content-type'] || 'unknown content type').replace(/[\r\n]/g, ' ').slice(0, 160)
+      type: (headers['content-type'] || 'unknown content type').replace(/[\r\n]/g, ' ').slice(0, 160),
+      // A web server can serve an image file while another request is still
+      // writing it (for example a new Drupal image style derivative).
+      empty: headers['content-length'] === '0'
     };
     for (const source of sources(request)) requests.set(source, details);
   };
@@ -24,7 +28,7 @@ module.exports = function trackImageRequests(page) {
       const lines = new Set();
       for (const [source, details] of requests) {
         if (!error.message.includes(source)) continue;
-        if (details.status) lines.add(`Image response: HTTP ${details.status} (${details.type}).`);
+        if (details.status) lines.add(`Image response: HTTP ${details.status} (${details.type}${details.empty ? ', empty body' : ''}).`);
         if (details.failure) lines.add(`Image network error: ${details.failure}.`);
       }
       return [...lines].join('\n');

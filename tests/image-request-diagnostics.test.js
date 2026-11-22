@@ -114,3 +114,74 @@ test('image network failures retry in fresh contexts, respect zero, and stop at 
   assert.deepEqual(await fs.readdir(path.join(directory, 'captures')), captures);
   assert.equal(browser.browserContexts().length, 1, 'all attempt contexts are closed');
 });
+
+test('temporary image responses (503, 429, empty file) retry the capture; the retry limit still applies', async t => {
+  // While Drupal creates an image style derivative, other requests get 503
+  // "Image generation in progress", or the web server already serves the
+  // empty file that is still being written.
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'eaglediff-image-busy-'));
+  const requests = new Map();
+  const server = http.createServer((request, response) => {
+    const count = (requests.get(request.url) || 0) + 1;
+    requests.set(request.url, count);
+    if (request.url.endsWith('.svg')) {
+      if (count === 1 && request.url.includes('empty')) {
+        response.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Content-Length': '0' });
+        response.end();
+        return;
+      }
+      const status = request.url.includes('rate') ? 429 : 503;
+      if (count === 1 || request.url.includes('always')) {
+        response.writeHead(status, { 'Content-Type': 'text/html', 'Retry-After': '1' });
+        response.end('Image generation in progress. Try again shortly.');
+        return;
+      }
+      response.writeHead(200, { 'Content-Type': 'image/svg+xml' });
+      response.end('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="red"/></svg>');
+    } else {
+      response.writeHead(200, { 'Content-Type': 'text/html' });
+      response.end(`<style>body{margin:0}</style><img src="${request.url}.svg">`);
+    }
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const browser = await puppeteer.launch(buildBrowserLaunchOptions());
+  t.after(async () => {
+    await browser.close(); server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+    await fs.rm(directory, { recursive: true, force: true });
+  });
+  const captures = path.join(directory, 'captures');
+  await fs.mkdir(captures);
+  const config = { defaults: { waitUntil: 'load', fullPage: false },
+    onReadyScript: ['hooks/load-lazy-images'], core: { temporaryErrorRetries: 1 } };
+  const capture = url => captureScreenshots(browser, config,
+    { scenarios: [{ url, label: url.slice(1) }], viewports: [{ label: 'phone', width: 100, height: 100 }] },
+    captures, `http://127.0.0.1:${server.address().port}`, false, 'reference');
+
+  await capture('/busy');
+  await capture('/rate');
+  await capture('/empty');
+  assert.equal(requests.get('/busy.svg'), 2);
+  assert.equal(requests.get('/rate.svg'), 2);
+  assert.equal(requests.get('/empty.svg'), 2);
+  const saved = await fs.readdir(captures);
+  assert.equal(saved.length, 3);
+  // The retried capture shows the image (red), not a broken-image placeholder.
+  const page = await browser.newPage();
+  for (const file of saved) {
+    const data = (await fs.readFile(path.join(captures, file))).toString('base64');
+    const pixel = await page.evaluate(async source => {
+      const image = new Image(); image.src = source; await image.decode();
+      const canvas = Object.assign(document.createElement('canvas'), { width: 100, height: 100 });
+      const context = canvas.getContext('2d'); context.drawImage(image, 0, 0);
+      return [...context.getImageData(50, 50, 1, 1).data];
+    }, `data:image/png;base64,${data}`);
+    assert.deepEqual(pixel, [255, 0, 0, 255], file);
+  }
+  await page.close();
+
+  await assert.rejects(capture('/always'), /Image response: HTTP 503 \(text\/html\)/);
+  assert.equal(requests.get('/always.svg'), 2, 'one retry, then the failure is reported');
+  assert.equal((await fs.readdir(captures)).length, 3, 'a failed capture saves nothing');
+  assert.equal(browser.browserContexts().length, 1, 'all attempt contexts are closed');
+});

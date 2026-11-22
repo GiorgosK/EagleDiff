@@ -549,6 +549,10 @@ function isTemporaryCaptureError(error) {
     if (['EAGLEDIFF_NAVIGATION_TIMEOUT', 'EAGLEDIFF_IMAGE_TIMEOUT', 'EAGLEDIFF_IFRAME_TIMEOUT', 'EAGLEDIFF_READY_TIMEOUT', 'EAGLEDIFF_STABLE_CONTENT_TIMEOUT', 'EAGLEDIFF_JQUERY_READY_TIMEOUT', 'EAGLEDIFF_COOKIE_CONSENT_TIMEOUT', 'EAGLEDIFF_SVG_ANIMATION_TIMEOUT', 'EAGLEDIFF_DRUPAL_READY_TIMEOUT', 'EAGLEDIFF_SCROLL_TIMEOUT', 'EAGLEDIFF_FONT_TIMEOUT', 'EAGLEDIFF_FONT_LOAD'].includes(cause.code)) return true;
   }
   const message = String(error?.message || error || '');
+  // Images answered with a temporary server status (Drupal's 503 "Image
+  // generation in progress", rate limits, gateway errors) or with an empty file
+  // that is still being written can load on retry.
+  if (/^Image response: HTTP (?:(?:429|502|503|504) |\d+ \(.*, empty body\)\.$)/m.test(message)) return true;
   return /ERR_NETWORK_CHANGED|net::ERR_NETWORK_CHANGED|ERR_INTERNET_DISCONNECTED|ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED|ERR_CONNECTION_TIMED_OUT|ERR_TIMED_OUT|ERR_ADDRESS_UNREACHABLE|ERR_CERT_COMMON_NAME_INVALID|net::ERR_CERT_COMMON_NAME_INVALID|ERR_CERT_AUTHORITY_INVALID|net::ERR_CERT_AUTHORITY_INVALID|Runtime\.callFunctionOn timed out|Protocol error[^\n]*: (?:Target|Session|Connection) closed|Connection closed\.|Navigation failed because browser has disconnected/i.test(message);
 }
 
