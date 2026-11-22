@@ -572,36 +572,51 @@ function buildBrowserLaunchOptions(config = {}) {
   return launchOptions;
 }
 
-function resolveChromePath() {
-  const candidates = [
-    process.env.PUPPETEER_EXECUTABLE_PATH,
-    process.env.CHROME_BIN,
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser'
-  ].filter(Boolean);
+// Usual Chrome/Chromium locations. Linux is tested; macOS and Windows paths
+// follow the browsers' standard installers but are untested.
+function chromeCandidates(platform, env) {
+  if (platform === 'darwin') {
+    const apps = ['Google Chrome.app/Contents/MacOS/Google Chrome', 'Chromium.app/Contents/MacOS/Chromium'];
+    return [
+      ...apps.map(app => path.join('/Applications', app)),
+      ...(env.HOME ? apps.map(app => path.join(env.HOME, 'Applications', app)) : [])
+    ];
+  }
+  if (platform === 'win32') {
+    const roots = [env.PROGRAMFILES, env['PROGRAMFILES(X86)'], env.LOCALAPPDATA].filter(Boolean);
+    return roots.flatMap(root => [
+      path.win32.join(root, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      path.win32.join(root, 'Chromium', 'Application', 'chrome.exe')
+    ]);
+  }
+  return ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser'];
+}
+
+function resolveChromePath({ platform = process.platform, env = process.env, exists = fs.existsSync } = {}) {
+  const candidates = [env.PUPPETEER_EXECUTABLE_PATH, env.CHROME_BIN, ...chromeCandidates(platform, env)].filter(Boolean);
 
   for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
+    if (exists(candidate)) {
       return candidate;
     }
   }
 
-  try {
-    const resolved = execFileSync('bash', [
-      '-lc',
-      'command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser'
-    ], { encoding: 'utf8' }).trim();
+  if (platform !== 'win32') {
+    try {
+      const resolved = execFileSync('bash', [
+        '-lc',
+        'command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser'
+      ], { encoding: 'utf8' }).trim();
 
-    if (resolved) {
-      return resolved;
+      if (resolved) {
+        return resolved;
+      }
+    } catch (error) {
+      // Fall through to the final error below.
     }
-  } catch (error) {
-    // Fall through to the final error below.
   }
 
-  throw new Error('No Chrome/Chromium executable found. Set CHROME_BIN or PUPPETEER_EXECUTABLE_PATH.');
+  throw new Error('No Chrome/Chromium executable found. Install Chrome or Chromium, or set CHROME_BIN to the browser\'s full path.');
 }
 
 function comparisonMetadata(selection, command = 'test') {
