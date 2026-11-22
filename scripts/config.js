@@ -9,10 +9,10 @@ const {
   getScenarioUrl,
   resolveChromePath
 } = require('./run');
-const { getConfigPath, helperDir, rootDir } = require('./config-path');
+const { getConfigPath, rootDir } = require('./config-path');
 const { isNavigationContextError } = require('./navigation');
+const { loadDefaults } = require('./agency-defaults');
 
-const defaultConfigPath = path.join(helperDir, 'config-default.json');
 const defaultExcludeExtensions = require('../config-default.json').excludeExtensions;
 const defaultDiscoveryLimit = 25;
 
@@ -388,7 +388,7 @@ function isPlainObject(value) {
 }
 
 async function loadTemplateConfig() {
-  return readJson(defaultConfigPath);
+  return loadDefaults();
 }
 
 async function readJsonIfExists(filePath) {

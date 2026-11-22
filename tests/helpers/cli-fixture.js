@@ -37,12 +37,14 @@ module.exports = async function cliFixture(t) {
     scenarios: [{ url: '/one' }, { url: '/two' }]
   };
   const save = () => fs.writeFile(path.join(directory, 'config.json'), JSON.stringify(config));
-  const run = async (args, expectedExit = 0) => {
+  // Agency defaults are off unless a test sets EAGLEDIFF_DEFAULTS or --defaults.
+  const run = async (args, expectedExit = 0, env = {}) => {
     let result;
     try {
       result = await promisify(execFile)(process.execPath, [path.resolve(__dirname, '../../bin/eaglediff.js'), '--dir', directory, ...args], {
         timeout: 30000,
-        env: { ...process.env, INIT_CWD: '', EAGLEDIFF_DIR: '', EAGLEDIFF_CONFIG: '', GLOBAL_EAGLEDIFF_CONFIG: '', npm_config_config: '', npm_config_workers: '' }
+        env: { ...process.env, INIT_CWD: '', EAGLEDIFF_DIR: '', EAGLEDIFF_CONFIG: '', GLOBAL_EAGLEDIFF_CONFIG: '', npm_config_config: '', npm_config_workers: '',
+          EAGLEDIFF_DEFAULTS: 'none', ...env }
       });
       result.code = 0;
     } catch (error) { result = error; }

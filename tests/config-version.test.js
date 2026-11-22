@@ -82,7 +82,7 @@ test('CLI blocks newer configs before destructive commands; explicit override co
   await fs.mkdir(cache);
   const run = (...args) => promisify(execFile)(process.execPath, [
     path.join(__dirname, '../bin/eaglediff.js'), '--dir', options.directory, ...args
-  ], { timeout: 5000, env: { ...process.env, EAGLEDIFF_DIR: options.directory,
+  ], { timeout: 5000, env: { ...process.env, EAGLEDIFF_DEFAULTS: 'none', EAGLEDIFF_DIR: options.directory,
     EAGLEDIFF_CONFIG: options.configPath, GLOBAL_EAGLEDIFF_CONFIG: options.configPath } });
   await assert.rejects(run('clean'), error => {
     assert.match(error.stderr, /newer/);

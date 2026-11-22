@@ -88,7 +88,7 @@ test('config-update CLI updates only the selected config, is repeatable, and lea
   const run = () => promisify(execFile)(process.execPath, [
     path.join(__dirname, '../bin/eaglediff.js'), '--dir', directory,
     '--script-dir', path.join(__dirname, '..'), 'config-update'
-  ], { env: { ...process.env, EAGLEDIFF_DIR: directory,
+  ], { env: { ...process.env, EAGLEDIFF_DEFAULTS: 'none', EAGLEDIFF_DIR: directory,
     EAGLEDIFF_CONFIG: configPath, GLOBAL_EAGLEDIFF_CONFIG: configPath } });
   await fs.writeFile(configPath, JSON.stringify({ defaults: { delay: 7 }, scenarios: [] }));
   assert((await run()).stdout.includes(`Updated config.json to ${template.version}`));

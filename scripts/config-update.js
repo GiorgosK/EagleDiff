@@ -4,7 +4,8 @@ const path = require('path');
 const { isDeepStrictEqual } = require('util');
 const { hookKey } = require('./hook-path');
 const { compareVersions, versionParts } = require('./config-version');
-const { getConfigPath, helperDir, rootDir } = require('./config-path');
+const { getConfigPath, rootDir } = require('./config-path');
+const { loadDefaults } = require('./agency-defaults');
 
 function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -74,7 +75,7 @@ function updateConfig(current, defaults) {
 async function main() {
   const configPath = getConfigPath();
   const current = JSON.parse(await fsp.readFile(configPath, 'utf8'));
-  const defaults = JSON.parse(await fsp.readFile(path.join(helperDir, 'config-default.json'), 'utf8'));
+  const defaults = loadDefaults();
   const updated = updateConfig(current, defaults);
   if (Object.keys(current)[0] === 'version' && isDeepStrictEqual(current, updated)) {
     console.log(`[eaglediff] Config already up to date (${defaults.version})`);

@@ -4,16 +4,16 @@ const path = require('path');
 const { createHash } = require('crypto');
 const { getScenarioUrl, validateScreenshotNames } = require('./run');
 
-const { getConfigPath, helperDir, rootDir } = require('./config-path');
+const { getConfigPath, rootDir } = require('./config-path');
+const { loadDefaults } = require('./agency-defaults');
 
-const defaultConfigPath = path.join(helperDir, 'config-default.json');
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const backstopPath = resolveBackstopManifestPath(args.backstop);
   const backstopConfig = await readJson(backstopPath);
   const configPath = getConfigPath();
-  const templateConfig = await readJson(defaultConfigPath);
+  const templateConfig = loadDefaults();
   const existingConfig = await readJsonIfExists(configPath);
   const baseConfig = mergeDeep(templateConfig, existingConfig || {});
   const duplicates = [];

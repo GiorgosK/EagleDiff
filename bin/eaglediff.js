@@ -22,7 +22,7 @@ const scriptByCommand = {
 };
 
 async function main() {
-  const { command, projectDir, scriptDir, forwardedArgs } = parseArgs(process.argv.slice(2));
+  const { command, projectDir, scriptDir, defaultsFile, forwardedArgs } = parseArgs(process.argv.slice(2));
 
   if (command === 'help' || forwardedArgs.some(arg => arg === '--help' || arg === '-h')) {
     printUsage(console.log);
@@ -70,7 +70,8 @@ async function main() {
       EAGLEDIFF_INVOCATION_DIR: invocationDir,
       EAGLEDIFF_SCRIPT_DIR: resolvedScriptDir,
       EAGLEDIFF_PROJECT_DIR: resolvedProjectDir,
-      EAGLEDIFF_HELPER_DIR: resolvedScriptDir
+      EAGLEDIFF_HELPER_DIR: resolvedScriptDir,
+      ...(defaultsFile ? { EAGLEDIFF_DEFAULTS: path.resolve(invocationDir, defaultsFile) } : {})
     },
     stdio: 'inherit'
   });
@@ -122,6 +123,7 @@ function parseArgs(argv) {
   let command = null;
   let projectDir = null;
   let scriptDir = null;
+  let defaultsFile = null;
   const forwardedArgs = [];
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -144,6 +146,17 @@ function parseArgs(argv) {
     if (arg === '--script-dir' || arg === '--scriptDir' || arg === '--script-path') {
       scriptDir = argv[i + 1];
       i += 1;
+      continue;
+    }
+
+    if (arg === '--defaults') {
+      defaultsFile = argv[i + 1];
+      i += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--defaults=')) {
+      defaultsFile = arg.slice('--defaults='.length);
       continue;
     }
 
@@ -199,6 +212,7 @@ function parseArgs(argv) {
     command,
     projectDir,
     scriptDir,
+    defaultsFile,
     forwardedArgs
   };
 }
@@ -228,6 +242,7 @@ Commands and examples:
 Options:
   --dir <path>         Project folder; defaults to the current directory.
   --script-dir <path>  Use scripts from another Eaglediff checkout.
+  --defaults <file>    Team defaults merged over Eaglediff's (config, import, config-update).
   --filter <text>      Match labels, IDs or URL paths (not domains).
   --last-failed        Select failed pages from the latest comparison (reference/test/calibrate).
   --reference          Browse reference captures (report only).

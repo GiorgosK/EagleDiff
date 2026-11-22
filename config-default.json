@@ -77,7 +77,6 @@
     "replaceContent": {},
     "cssOverrides": "",
     "hideDynamicSelectors": [
-      ".anrt-gdpr-floating-cookie",
       "#toolbar-administration",
       "#toolbar-item-administration-tray",
       ".toolbar-tray-open"

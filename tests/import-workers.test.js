@@ -17,7 +17,7 @@ test('Backstop import adopts the capture limit and preserves existing worker ove
   }));
   const run = () => promisify(execFile)(process.execPath, [
     path.join(__dirname, '../scripts/import.js'), `--backstop=${backstopPath}`
-  ], { env: { ...process.env, EAGLEDIFF_DIR: directory, EAGLEDIFF_CONFIG: configPath,
+  ], { env: { ...process.env, EAGLEDIFF_DEFAULTS: 'none', EAGLEDIFF_DIR: directory, EAGLEDIFF_CONFIG: configPath,
     GLOBAL_EAGLEDIFF_CONFIG: configPath, EAGLEDIFF_SCRIPT_DIR: path.join(__dirname, '..') } });
   await run();
   assert.equal(JSON.parse(await fs.readFile(configPath)).core.workers, 5);
@@ -53,7 +53,7 @@ test('Backstop import warns about cookie files that do not exist and keeps the s
   ] }));
   const { stderr } = await promisify(execFile)(process.execPath, [
     path.join(__dirname, '../scripts/import.js'), `--backstop=${backstopPath}`
-  ], { env: { ...process.env, EAGLEDIFF_DIR: directory, EAGLEDIFF_CONFIG: configPath,
+  ], { env: { ...process.env, EAGLEDIFF_DEFAULTS: 'none', EAGLEDIFF_DIR: directory, EAGLEDIFF_CONFIG: configPath,
     GLOBAL_EAGLEDIFF_CONFIG: configPath, EAGLEDIFF_SCRIPT_DIR: path.join(__dirname, '..') } });
   const warnings = stderr.split('\n').filter(line => line.includes('Cookie file not found'));
   assert.equal(warnings.length, 1, stderr);

@@ -69,7 +69,7 @@ test('config CLI saves defaults and uses existing exclusions before applying the
   const run = () => promisify(execFile)(process.execPath, [
     '--require', preloadPath, path.join(__dirname, '../scripts/config.js'),
     '--ref=https://example.org', '--links=https://example.org', '--limit=2'
-  ], { env: { ...process.env, EAGLEDIFF_DIR: directory, EAGLEDIFF_CONFIG: configPath,
+  ], { env: { ...process.env, EAGLEDIFF_DEFAULTS: 'none', EAGLEDIFF_DIR: directory, EAGLEDIFF_CONFIG: configPath,
     GLOBAL_EAGLEDIFF_CONFIG: configPath, EAGLEDIFF_SCRIPT_DIR: path.join(__dirname, '..'),
     PUPPETEER_EXECUTABLE_PATH: process.execPath } });
 
@@ -131,7 +131,7 @@ test('CLI discovers 25 pages by default in the current directory and keeps expli
   const configPath = path.join(project, 'config.json');
   const run = args => promisify(execFile)(process.execPath, [path.join(__dirname, '../bin/eaglediff.js'), 'config', ...args], {
     cwd: project, timeout: 15000,
-    env: { ...process.env, INIT_CWD: '', EAGLEDIFF_DIR: '', EAGLEDIFF_PROJECT_DIR: '', EAGLEDIFF_ROOT: '', EAGLEDIFF_CONFIG: '', GLOBAL_EAGLEDIFF_CONFIG: '', EAGLEDIFF_SCRIPT_DIR: '', EAGLEDIFF_HELPER_DIR: '', npm_config_config: '', npm_config_limit: '', npm_config_test: '', npm_config_testurl: '', npm_node_execpath: process.execPath }
+    env: { ...process.env, EAGLEDIFF_DEFAULTS: 'none', INIT_CWD: '', EAGLEDIFF_DIR: '', EAGLEDIFF_PROJECT_DIR: '', EAGLEDIFF_ROOT: '', EAGLEDIFF_CONFIG: '', GLOBAL_EAGLEDIFF_CONFIG: '', EAGLEDIFF_SCRIPT_DIR: '', EAGLEDIFF_HELPER_DIR: '', npm_config_config: '', npm_config_limit: '', npm_config_test: '', npm_config_testurl: '', npm_node_execpath: process.execPath }
   });
   await run(['--ref=' + fixture.baseURL]);
   const created = JSON.parse(await fs.readFile(configPath));
@@ -195,7 +195,7 @@ test('discovery recovers a destroyed execution context and resolves links from t
   await fs.unlink(configPath);
   const run = mode => promisify(execFile)(process.execPath, [
     '--require', preload, path.join(__dirname, '../scripts/config.js'), '--ref=' + f.baseURL
-  ], { timeout: 15000, env: { ...process.env, EAGLEDIFF_DIR: f.directory,
+  ], { timeout: 15000, env: { ...process.env, EAGLEDIFF_DEFAULTS: 'none', EAGLEDIFF_DIR: f.directory,
     EAGLEDIFF_CONFIG: configPath, GLOBAL_EAGLEDIFF_CONFIG: configPath,
     EAGLEDIFF_SCRIPT_DIR: path.join(__dirname, '..'), EAGLEDIFF_TEST_NAVIGATION_MODE: mode } });
   const result = await run('once');
