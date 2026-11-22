@@ -22,6 +22,7 @@ const { resolveOptions: resolveMediaOptions } = require('./hooks/pause-media');
 const { resolveOptions: resolveDrupalReadyOptions } = require('./hooks/wait-for-drupal-ready');
 const { resolveOptions: resolveIframeOptions } = require('./iframe-capture');
 const trackImageRequests = require('./image-request-diagnostics');
+const { applyPixelLimit, validateMaxPixels } = require('./pixel-limit');
 const { navigate, isNavigationContextError, inspectInitialDocument } = require('./navigation');
 const { applyCookies, validateCookieFiles } = require('./cookies');
 const { withRetryTimeouts, retryTimeoutFactor } = require('./retry-timeouts');
@@ -98,6 +99,7 @@ async function main() {
       resolveHttp404Policy(config, scenario);
     }
     await validateCookieFiles(selectedScenarios.scenarios, config.defaults, configPath);
+    validateMaxPixels(config.core?.thresholdMaxPixels);
   }
   if (command === 'calibrate') {
     for (const scenario of selectedScenarios.scenarios) {
@@ -198,7 +200,11 @@ async function main() {
     await stageActuals(actualCacheDir, stagingActualDir, selectedScenarios);
     await populateExpectedSnapshots(workingDir, referenceDir, selectedScenarios, partial);
     await runRegSuit(['compare', '--config', generatedRegConfigPath]);
-    const compareResult = await readCompareResult();
+    const compareResult = await applyPixelLimit(await readCompareResult(), {
+      workingDir,
+      maxPixels: validateMaxPixels(config.core?.thresholdMaxPixels),
+      matchingThreshold: config.core?.thresholdRateColor ?? 0
+    });
     await fsp.writeFile(path.join(workingDir, 'capture-manifest.json'), JSON.stringify({
       version: 1, fullRun: !partial,
       fileNames: selectedScenarios.scenarios.flatMap(scenario =>
