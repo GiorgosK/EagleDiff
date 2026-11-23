@@ -12,6 +12,7 @@ const { createCaptureDiagnostics, captureErrorDetails } = require('./capture-dia
 
 const puppeteer = require('puppeteer-core');
 const captureScreenshot = require('./capture-screenshot');
+const guardCaptureResizes = require('./capture-resize-guard');
 const { resolveHttp404Policy } = require('./hooks/fail-on-response-status');
 const { resolveOptions: resolveJQueryReadyOptions } = require('./hooks/wait-for-jquery-ready');
 const { resolveOptions: resolveCookieConsentOptions } = require('./cookie-consent');
@@ -463,6 +464,7 @@ async function captureScenarioScreenshot({
         height: viewport.height,
         deviceScaleFactor: viewport.deviceScaleFactor || 1
       });
+      await guardCaptureResizes(activePage);
       await applyCookies(browserContext, url, attemptScenario, attemptConfig.defaults, configPath, captureContext.reportWarning);
       await runScripts(activePage, beforeScripts, { scenario: attemptScenario, mode: 'before', config: attemptConfig });
       const navigationTimeout = attemptScenario.navigationTimeout ?? attemptConfig.defaults?.navigationTimeout ?? 30000;
