@@ -28,6 +28,10 @@ four test files in parallel. It needs no production website or project config.
 The fast selection is listed in `tests/fast-tests.json`. It checks shared safety
 rules such as preserving references; also run the tests for the area you change.
 
+GitHub Actions runs the complete suite on every push and pull request
+([.github/workflows/test.yml](../.github/workflows/test.yml)), on Ubuntu with
+the Node version in `.nvmrc` and the runner's Google Chrome.
+
 Add regression tests for changed behavior, overrides, failures, and cleanup.
 Assert resulting screenshots, reports, exit codes, or saved files. Code running
 inside Chromium needs browser assertions; Node coverage alone cannot measure it.
