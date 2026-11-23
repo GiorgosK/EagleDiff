@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Create the Svelte GSAP benchmark site: the pinned template plus the pages in
-# site/, built as static files.
+# site/ and menu links to them (menu-links.patch), built as static files.
 # Usage: benchmark/svelte-gsap/setup.sh <empty directory for the site>
 set -euo pipefail
 
@@ -20,6 +20,8 @@ git checkout --quiet "$commit"
 # Static files instead of a hosting adapter, so serve.js can serve them.
 node -e "const fs=require('fs');const f='svelte.config.js';fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace('@sveltejs/adapter-auto','@sveltejs/adapter-static'))"
 cp -r "$here/site/." .
+# Link the header and footer menus to the added pages.
+git apply "$here/menu-links.patch"
 npm ci --no-audit --no-fund
 npm run build
 

@@ -7,6 +7,8 @@ JavaScript site: the MIT-licensed
 scrolling), pinned to one commit. The template is a single page; [site/](site/)
 adds fifteen more pages built from its sections and in its style: studio,
 services, work and journal pages, a contact form and project and article pages.
+[menu-links.patch](menu-links.patch) links the header menu (Work, Services,
+Studio, Let's Talk) and the footer navigation to them.
 
 The site moves a lot after it loads: an endless logo marquee, entrance
 timelines, scroll-triggered reveals and counters, a testimonial rotator on a
@@ -39,7 +41,7 @@ benchmark/svelte-gsap/setup.sh ~/sites/eaglediff-svelte
 ```
 
 This clones the template at commit `a6648f6`, copies the pages from `site/`,
-switches it to static output, installs its locked dependencies and builds it.
+applies the menu links, switches it to static output, installs its locked dependencies and builds it.
 The fonts load from Google Fonts, so captures need internet access.
 
 Serve the clean site at `http://localhost:4173`:
@@ -66,11 +68,12 @@ Before adding the bugs, compare the clean site with itself. It must report no
 differences. A difference there is a false alarm, and it also makes the bug
 score meaningless: a flagged bug page may only be showing the same noise.
 
-Do not set the thresholds to 0 to make a tool look more sensitive. This site
-shows how real sites behave: compared with itself at zero thresholds, a few
-captures differ by up to about 40 pixels of anti-aliasing between runs, so a
-zero-threshold calibration fails. Zero thresholds are used here only to record
-where each bug changes pixels (`visibleAt`), checked against those noise levels.
+Do not set the thresholds to 0 to make a tool look more sensitive. Most real
+sites differ slightly from one visit to the next (image decoding, font
+rendering, animations, changing content), and on a site this animated a few
+pixels of anti-aliasing can change between runs. With zero thresholds those
+natural differences fail calibration. Zero thresholds are used here only to
+record where each bug changes pixels (`visibleAt`).
 
 ## Run with Eaglediff
 
@@ -94,7 +97,7 @@ Eaglediff 0.1.0 with default settings, Chrome 157, Linux (2026-11-23):
 
 | Check | Result |
 | --- | --- |
-| Clean site compared with itself, 20 times | 48/48 each time |
+| Clean site compared with itself, 10 times | 48/48 each time |
 | Bugs caught | 11 of 12 |
 | False alarms on the control pages | 0 |
 

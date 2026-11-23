@@ -1,0 +1,147 @@
+diff --git a/src/lib/components/Footer.svelte b/src/lib/components/Footer.svelte
+index 677c508..0de17a8 100644
+--- a/src/lib/components/Footer.svelte
++++ b/src/lib/components/Footer.svelte
+@@ -52,24 +52,44 @@
+ 				Navigation
+ 			</h4>
+ 			<a
+-				href="#agency"
++				href="/"
+ 				class="text-white/60 hover:text-white font-sans text-sm transition-colors"
+ 				>Home</a
+ 			>
+ 			<a
+-				href="#services"
++				href="/studio"
++				class="text-white/60 hover:text-white font-sans text-sm transition-colors"
++				>Studio</a
++			>
++			<a
++				href="/services"
+ 				class="text-white/60 hover:text-white font-sans text-sm transition-colors"
+ 				>Services</a
+ 			>
+ 			<a
+-				href="#work"
++				href="/work"
+ 				class="text-white/60 hover:text-white font-sans text-sm transition-colors"
+ 				>Selected Works</a
+ 			>
+ 			<a
+-				href="#faq"
++				href="/journal"
++				class="text-white/60 hover:text-white font-sans text-sm transition-colors"
++				>Journal</a
++			>
++			<a
++				href="/awards"
++				class="text-white/60 hover:text-white font-sans text-sm transition-colors"
++				>Awards</a
++			>
++			<a
++				href="/careers"
++				class="text-white/60 hover:text-white font-sans text-sm transition-colors"
++				>Careers</a
++			>
++			<a
++				href="/contact"
+ 				class="text-white/60 hover:text-white font-sans text-sm transition-colors"
+-				>FAQ</a
++				>Contact</a
+ 			>
+ 		</div>
+ 
+diff --git a/src/lib/components/header.svelte b/src/lib/components/header.svelte
+index 195cbf7..74ec315 100644
+--- a/src/lib/components/header.svelte
++++ b/src/lib/components/header.svelte
+@@ -141,8 +141,7 @@
+ >
+     <a
+         id="logo"
+-        href="#agency"
+-        onclick={(e) => scrollTo(e, "#agency")}
++        href="/"
+         bind:this={logoRef}
+         class="flex-shrink-0 flex items-center justify-center w-auto cursor-pointer mix-blend-difference"
+     >
+@@ -154,23 +153,20 @@
+         <ul class="flex space-x-8 text-sm font-medium text-white/70">
+             <li bind:this={navItemsRef[0]}>
+                 <a
+-                    href="#work"
+-                    onclick={(e) => scrollTo(e, "#work")}
++                    href="/work"
+                     class="hover:text-white transition-colors">Work</a
+                 >
+             </li>
+             <li bind:this={navItemsRef[1]}>
+                 <a
+-                    href="#services"
+-                    onclick={(e) => scrollTo(e, "#services")}
++                    href="/services"
+                     class="hover:text-white transition-colors">Services</a
+                 >
+             </li>
+             <li bind:this={navItemsRef[2]}>
+                 <a
+-                    href="#agency"
+-                    onclick={(e) => scrollTo(e, "#agency")}
+-                    class="hover:text-white transition-colors">Agency</a
++                    href="/studio"
++                    class="hover:text-white transition-colors">Studio</a
+                 >
+             </li>
+         </ul>
+@@ -182,8 +178,7 @@
+         class="flex space-x-1 sm:space-x-3 items-center z-50"
+     >
+         <a
+-            href="#contact"
+-            onclick={(e) => scrollTo(e, "#contact")}
++            href="/contact"
+             class="hidden md:flex items-center justify-center text-sm font-medium bg-white text-black hover:bg-white/80 transition-colors px-6 py-2 rounded-full"
+             >Let's Talk</a
+         >
+@@ -214,8 +209,7 @@
+         <li class="overflow-hidden">
+             <a
+                 bind:this={mobileLinksRef[0]}
+-                href="#work"
+-                onclick={(e) => scrollTo(e, "#work")}
++                href="/work"
+                 class="block text-4xl font-sans font-light text-white/80 hover:text-white transition-colors will-change-transform"
+                 >Work</a
+             >
+@@ -223,8 +217,7 @@
+         <li class="overflow-hidden">
+             <a
+                 bind:this={mobileLinksRef[1]}
+-                href="#services"
+-                onclick={(e) => scrollTo(e, "#services")}
++                href="/services"
+                 class="block text-4xl font-sans font-light text-white/80 hover:text-white transition-colors will-change-transform"
+                 >Services</a
+             >
+@@ -232,17 +225,15 @@
+         <li class="overflow-hidden">
+             <a
+                 bind:this={mobileLinksRef[2]}
+-                href="#agency"
+-                onclick={(e) => scrollTo(e, "#agency")}
++                href="/studio"
+                 class="block text-4xl font-sans font-light text-white/80 hover:text-white transition-colors will-change-transform"
+-                >Agency</a
++                >Studio</a
+             >
+         </li>
+         <li class="overflow-hidden mt-6 pt-8 border-t border-white/10">
+             <a
+                 bind:this={mobileLinksRef[3]}
+-                href="#contact"
+-                onclick={(e) => scrollTo(e, "#contact")}
++                href="/contact"
+                 class="inline-block text-xl font-sans text-white hover:text-white/80 transition-colors will-change-transform"
+                 >Let's talk &rarr;</a
+             >

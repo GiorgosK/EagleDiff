@@ -51,7 +51,7 @@ record where each bug changes pixels.
 | --- | --- | --- | --- |
 | [Drupal 11 Umami](../benchmark/drupal-umami/README.md) | 26 of 27 | 0 | 99/99, twice |
 | [WordPress with Elementor](../benchmark/wordpress-elementor/README.md) (JavaScript widgets and animations) | 15 of 18 | 0 | 66/66, twice |
-| [Svelte with GSAP](../benchmark/svelte-gsap/README.md) (scroll-driven animations, marquee, smooth scrolling) | 11 of 12 | 0 | 48/48, 20 times |
+| [Svelte with GSAP](../benchmark/svelte-gsap/README.md) (scroll-driven animations, marquee, smooth scrolling) | 11 of 12 | 0 | 48/48, 10 times |
 
 Eaglediff 0.1.0 with default settings and no site-specific configuration,
 Chrome 157 on Linux, 2026-11-23.
