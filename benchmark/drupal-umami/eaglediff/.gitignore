@@ -1,1 +1,3 @@
 results.json
+# Created by setup.sh (node benchmark/make-config.js drupal-umami)
+config.json

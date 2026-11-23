@@ -26,6 +26,7 @@ cp -r "$here/visual_bugs" web/modules/custom/
 for url in $(sed -n 's/.*"url": "\([^"]*\)".*/\1/p' "$here/bugs.json"); do
   curl -sk -o /dev/null "https://eaglediff-umami.ddev.site$url"
 done
+node "$here/../make-config.js" drupal-umami
 echo "Clean Umami site ready: https://eaglediff-umami.ddev.site"
 echo "Add the bugs:    ddev drush en visual_bugs -y && ddev drush cr"
 echo "Remove the bugs: ddev drush pmu visual_bugs -y && ddev drush cr"

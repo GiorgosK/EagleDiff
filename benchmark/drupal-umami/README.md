@@ -6,7 +6,7 @@ the bugs live in the test site, not in Eaglediff.
 
 The site is Drupal's [Umami demo](https://www.drupal.org/docs/umami-drupal-demonstration-installation-profile)
 (food magazine, responsive and lazy images, web fonts, two languages). A small
-Drupal module, `visual_bugs`, adds 19 known bugs, one per page. Six other pages
+Drupal module, `visual_bugs`, adds 27 known bugs, one per page. Six other pages
 stay unchanged as controls.
 
 ## What it measures
@@ -25,10 +25,15 @@ changed pixels exactly where listed.
 | --- | --- |
 | Layout | 1px shift, 2px button shift, line height, overlapping text |
 | Text | typo, letter spacing, justified text, underlined links |
-| Colour | faded links, lighter text, faint shadow |
-| Images | broken image (HTTP 404), wrong image, rounded corners |
+| Colour | faded links, lighter text, lighter grey body text, faint shadow |
+| Images | broken image (HTTP 404), broken lazy image below the fold, wrong image, rounded corners, a blurry image on wide screens only (wrong `srcset` candidate) |
+| Fonts | font family changed, web font file missing (HTTP 404) |
 | Missing | hidden badge, invisible menu item |
-| Viewport | phone-only and wide-screen-only bugs, one below the fold |
+| Errors | a page that answers HTTP 500 |
+| Late content | notice bar and fixed newsletter box added by JavaScript after the page loads |
+| Viewport | phone-only and wide-screen-only bugs, a title overflowing narrow screens |
+
+Some pages are Spanish, including a URL with an accented letter.
 
 ## Setup
 
@@ -62,45 +67,52 @@ not enable it yet.
 
 5. Remove the bugs again with `ddev drush pmu visual_bugs -y && ddev drush cr`.
 
-Run step 1 twice before adding the bugs to check that the tool is stable on the
-clean site; any difference there is a false alarm.
+## Calibrate first
+
+Before adding the bugs, compare the clean site with itself. It must report no
+differences. A difference there is a false alarm, and it also makes the bug
+score meaningless: a flagged bug page may only be showing the same noise.
+
+Do not set the thresholds to 0 to make a tool look more sensitive. These demo
+sites happen to give pixel-identical screenshots between runs, but most real
+sites differ slightly from one visit to the next (image decoding, font
+rendering, animations, changing content). With zero thresholds those natural
+differences fail calibration. Zero thresholds are used here only to record
+where each bug changes pixels (`visibleAt`).
 
 ## Run with Eaglediff
 
-[eaglediff/config.json](eaglediff/config.json) has the same pages and viewports
-and otherwise uses Eaglediff's defaults. Rebuild it after updating Eaglediff with
-`node benchmark/make-config.js drupal-umami`.
+`setup.sh` writes `eaglediff/config.json` with
+`node benchmark/make-config.js drupal-umami`: Eaglediff's default settings plus the site
+URL, viewports and pages from [bugs.json](bugs.json), nothing else. Run it again
+after updating Eaglediff.
 
 ```bash
 cd benchmark/drupal-umami/eaglediff
 eaglediff reference          # clean site
-eaglediff calibrate          # should pass: no false alarms
-# add the bugs (step 2 above), then:
+eaglediff calibrate          # must pass: see "Calibrate first"
+# add the bugs, then:
 eaglediff test
 node ../../score.js drupal-umami --eaglediff .
 ```
 
-The broken image (b05) is reported as a capture error; the other pages are
-still compared and appear in the report.
+Broken images (b05, b21), the missing web font (b20) and the server error (b26)
+are reported as capture errors; the other pages are still compared and appear in
+the report.
 
 ## Results
 
-Eaglediff 0.1.0, Chrome 157, Linux (2026-11-22):
+Eaglediff 0.1.0 with default settings, Chrome 157, Linux (2026-11-23):
 
-| Setting | Bugs caught | False alarms |
-| --- | --- | --- |
-| Defaults (`thresholdMaxPixels: 500`) | 18/19 | 0 |
-| Defaults without `thresholdMaxPixels` | 14/19 | 0 |
-| Pixel-exact (`thresholdRate: 0`, `thresholdRateColor: 0`) | 19/19 | 0 |
+| Check | Result |
+| --- | --- |
+| Clean site compared with itself, twice | 99/99 each time |
+| Bugs caught | 26 of 27 |
+| False alarms on the control pages | 0 |
 
-Still missed with the defaults: rounded image corners (b12), which change about
-80 pixels. Without the pixel cap, `thresholdRate: 0.001` (0.1% of a full-page
-screenshot) also let through faded tag links, underlined links, a 2px button
-shift, an invisible menu item, and the typo on phone and tablet.
-
-The clean site gave identical pixels on every calibration, so no site-specific
-settings were needed.
+Missed: rounded image corners (b12). They change about 80 pixels, fewer than
+`thresholdMaxPixels: 500` allows.
 
 To record `visibleAt` again, run the clean site through `calibrate` with
 `thresholdRate: 0`, `thresholdRateColor: 0` and `thresholdMaxPixels: null`, add
-the bugs, run `test`, and then `node ../../ground-truth.js drupal-umami .`.
+the bugs, run `test`, and then `node ../../ground-truth.js drupal-umami <that folder>`.

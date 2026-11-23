@@ -29,3 +29,17 @@
 
 /* e13: the alert box is missing. */
 [data-visual-bug="e13"] .elementor-widget-alert { display: none; }
+
+/* e14: a notice bar added by JavaScript 2 seconds after load (visual-bugs.php). */
+.visual-bugs-notice { margin: 0; padding: 12px; background: #61ce70; color: #fff; text-align: center; }
+
+/* e15: the banner's background image, lazy-loaded below the fold, is missing
+   (HTTP 404). Elementor sets the background only once the banner has been
+   scrolled near, so a tool that never scrolls sees no difference. */
+[data-visual-bug="e15"] .lumen-banner.e-lazyloaded { background-image: url(/wp-content/uploads/visual-bugs-missing.webp) !important; }
+
+/* e16: the title no longer wraps, so it overflows narrow screens. */
+[data-visual-bug="e16"] h1.elementor-heading-title { white-space: nowrap; }
+
+/* e17: buttons a slightly different green (#61ce70 becomes #57c266). */
+[data-visual-bug="e17"] .elementor-button { background-color: #57c266; }

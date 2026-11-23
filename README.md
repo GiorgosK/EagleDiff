@@ -72,8 +72,8 @@ Anyone can set them up and run them with any tool.
 
 | Site | Bugs found | False alarms |
 | --- | --- | --- |
-| Drupal 11 Umami demo | 18 of 19 | 0 |
-| WordPress with Elementor (carousels, counters, animations) | 12 of 13 | 0 |
+| Drupal 11 Umami demo | 26 of 27 | 0 |
+| WordPress with Elementor (carousels, counters, animations) | 15 of 18 | 0 |
 
 Both used Eaglediff's default settings, with no site-specific configuration.
 

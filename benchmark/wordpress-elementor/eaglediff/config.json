@@ -227,6 +227,26 @@
       "url": "/events/"
     },
     {
+      "label": "e14",
+      "url": "/offers/"
+    },
+    {
+      "label": "e15",
+      "url": "/projects/"
+    },
+    {
+      "label": "e16",
+      "url": "/blog/"
+    },
+    {
+      "label": "e17",
+      "url": "/shop/"
+    },
+    {
+      "label": "e18",
+      "url": "/visit/"
+    },
+    {
       "label": "c01",
       "url": "/careers/"
     },

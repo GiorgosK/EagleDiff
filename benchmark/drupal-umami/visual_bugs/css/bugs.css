@@ -58,3 +58,27 @@
 
 /* b19: the second main menu item is invisible (Spanish home page). */
 [data-visual-bug="b19"] .menu-main__item:nth-child(2) { visibility: hidden; }
+
+/* b20: the heading web font file is missing (HTTP 404), so the title falls
+   back to another font. */
+@font-face {
+  font-family: "Scope One Missing";
+  src: url(/sites/default/files/visual-bugs-missing.woff2) format("woff2");
+}
+[data-visual-bug="b20"] h1.page-title { font-family: "Scope One Missing", serif; }
+
+/* b21: the last card image, lazy-loaded below the fold, is broken
+   (src/BrokenImageSubscriber.php). */
+
+/* b22, b25: content added by JavaScript after the page loads
+   (src/BrokenImageSubscriber.php). */
+
+/* b23: the title no longer wraps, so it overflows narrow screens. */
+[data-visual-bug="b23"] h1.page-title { white-space: nowrap; }
+
+/* b24: body text a little lighter grey (#464646 becomes #595959). */
+[data-visual-bug="b24"] body { color: #595959; }
+
+/* Added by b22 and b25. */
+.visual-bugs-notice { margin: 0; padding: 12px; background: #008068; color: #fff; text-align: center; }
+.visual-bugs-popup { position: fixed; right: 16px; bottom: 16px; z-index: 1000; max-width: 280px; padding: 16px; background: #fff; border: 1px solid #ccc; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }

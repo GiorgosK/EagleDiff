@@ -14,8 +14,9 @@ WordPress plugin), not in Eaglediff, so any tool can be scored the same way.
    [DDEV](https://ddev.com/)).
 2. Take reference screenshots of every page in its `bugs.json` at three
    viewports (360×640, 1024×768, 1920×1080), full page.
-3. Compare the clean site with the references. Anything flagged here is a false
-   alarm caused by the tool or by the site changing between visits.
+3. Compare the clean site with the references (calibration). It must flag
+   nothing: anything flagged is a false alarm caused by the tool or by the site
+   changing between visits, and it would also blur the bug score.
 4. Switch the bugs on, compare again, and score the result with
    [`benchmark/score.js`](../benchmark/score.js).
 
@@ -27,33 +28,45 @@ site gave pixel-identical screenshots twice. A capture error on a bug page, such
 as a broken image, also counts as found.
 
 The bugs cover layout shifts of 1–2 pixels, changed fonts and spacing, faded
-colours, a typo, missing elements, broken and swapped images, and bugs that
-appear only on phones or only on wide screens.
+colours, a typo, missing elements, broken and swapped images, broken lazy images
+and backgrounds below the fold, missing web font files, content added by
+JavaScript after the page loads, and bugs that appear only on phones or only on
+wide screens, a page that answers HTTP 500, and a change inside an embedded
+iframe.
+
+## Calibration and zero thresholds
+
+A clean calibration comes first: a tool that flags the unchanged site cannot be
+trusted on the bug pages either. Setting thresholds to 0 is not a way to score
+higher. The demo sites happen to give pixel-identical screenshots between runs,
+but most real sites differ slightly from one visit to the next (image decoding,
+font rendering, animations, changing content), and zero thresholds turn those
+differences into failed calibrations. The benchmarks use zero thresholds only to
+record where each bug changes pixels.
 
 ## Results
 
-| Benchmark | Bugs found | False alarms | Site-specific settings |
+| Benchmark | Bugs found | False alarms | Clean site compared with itself |
 | --- | --- | --- | --- |
-| [Drupal 11 Umami](../benchmark/drupal-umami/README.md) | 18 of 19 | 0 | none |
-| [WordPress with Elementor](../benchmark/wordpress-elementor/README.md) (JavaScript widgets and animations) | 12 of 13 | 0 | none |
+| [Drupal 11 Umami](../benchmark/drupal-umami/README.md) | 26 of 27 | 0 | 99/99, twice |
+| [WordPress with Elementor](../benchmark/wordpress-elementor/README.md) (JavaScript widgets and animations) | 15 of 18 | 0 | 66/66, twice |
 
-Eaglediff 0.1.0 with default settings, Chrome 157 on Linux, 2026-11-22.
+Eaglediff 0.1.0 with default settings and no site-specific configuration,
+Chrome 157 on Linux, 2026-11-23.
 
-The bug still missed on both sites changes about 80 pixels: an image's corners
-rounded by 8px. Before `thresholdMaxPixels` (see
-[comparison thresholds](configuration.md#comparison-thresholds)), Eaglediff
-found 14 of 19 on Umami; the four extra bugs it now finds each change
-500–1,400 pixels on long full-page screenshots. The Elementor benchmark found
-counters captured mid-count, fixed with the `wait-for-counters` hook.
+Missed, because each changes fewer pixels or less colour than the default
+[comparison thresholds](configuration.md#comparison-thresholds) allow:
+
+- image corners rounded by 8px (about 80 pixels), on both sites;
+- one digit changed in small text (about 64 pixels);
+- a button colour changed from `#61ce70` to `#57c266`.
 
 ## Settings for each benchmark
 
-A benchmark's Eaglediff config is built by
-[`benchmark/make-config.js`](../benchmark/make-config.js) from three sources:
-Eaglediff's defaults, the benchmark's optional `eaglediff/defaults.json`, and
-the pages in `bugs.json`. Anything tuned for a particular site is in that
-`defaults.json` file, in the [team defaults](configuration.md#team-or-agency-defaults)
-format, so it is easy to see what a site needed. Neither benchmark needs one.
+Each benchmark's `setup.sh` writes `eaglediff/config.json` with
+[`benchmark/make-config.js`](../benchmark/make-config.js): Eaglediff's default
+settings plus the site URL, viewports and pages from `bugs.json`. Neither site
+needs any other setting.
 
 ```bash
 node benchmark/make-config.js drupal-umami

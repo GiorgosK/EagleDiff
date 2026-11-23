@@ -180,6 +180,44 @@ $pages = [
     $heading('In the press', 'h1'),
     $box([], [$widget('tabs', ['tabs' => $items(['Magazines', 'Radio'])]), $text($paragraph)]),
   ]],
+  'offers' => ['Offers', [
+    $heading('Seasonal offers', 'h1'),
+    $row([$column([$icon_box('seedling', 'Spring planting')]), $column([$icon_box('sun', 'Summer care')]), $column([$icon_box('leaf', 'Autumn tidy')])]),
+    $box([], [$text($paragraph), $button('Ask for an offer')]),
+  ]],
+  'projects' => ['Projects', [
+    $heading('Projects', 'h1'),
+    $box([], [$text($paragraph)]),
+    $row([$column([$widget('image', ['image' => $images[1]])]), $column([$widget('image', ['image' => $images[2]])]), $column([$widget('image', ['image' => $images[3]])])]),
+    $box([], [$text($paragraph)]),
+    $box([], [$heading('A roof terrace in Athens', 'h2'), $text($paragraph)]),
+    $box([
+      'background_background' => 'classic', 'background_image' => $images[5], 'background_size' => 'cover',
+      'background_position' => 'center center', 'min_height' => ['unit' => 'px', 'size' => 320],
+      'justify_content' => 'center', 'css_classes' => 'lumen-banner',
+    ], [$heading('Visit a finished garden', 'h2', ['title_color' => '#ffffff'])]),
+  ]],
+  'blog' => ['Blog', [
+    $heading('Seasonal notes from our gardens', 'h1'),
+    $box([], [$text($paragraph), $widget('image', ['image' => $images[4]]), $text($paragraph)]),
+  ]],
+  'shop' => ['Shop', [
+    $heading('Garden shop', 'h1'),
+    $row([
+      $column([$image_box(1, 'Seed packs'), $button('Add to basket')]),
+      $column([$image_box(2, 'Pots'), $button('Add to basket')]),
+      $column([$image_box(3, 'Tools'), $button('Add to basket')]),
+    ]),
+  ]],
+  'visit' => ['Visit', [
+    $heading('Visit the nursery', 'h1'),
+    $box([], [$text($paragraph), $widget('image', ['image' => $images[6]]), $text($paragraph)]),
+    $box([], [$heading('Opening hours', 'h2'), $widget('html', ['html' => '<iframe src="/opening-hours/" title="Opening hours" loading="lazy" style="width:100%;height:220px;border:1px solid #ddd"></iframe>'])]),
+  ]],
+  // Shown only inside the iframe on the Visit page.
+  'opening-hours' => ['Opening hours', [
+    $box([], [$heading('Monday to Saturday', 'h3'), $text('9:00 to 17:00. Closed on Sundays and public holidays.')]),
+  ]],
 ];
 
 $order = 0;
@@ -188,7 +226,7 @@ foreach ($pages as $slug => [$title, $data]) {
     'post_title' => $title, 'post_name' => $slug, 'post_type' => 'page', 'post_status' => 'publish',
     'post_content' => '', 'menu_order' => $order++, 'post_date' => '2026-01-01 09:00:00',
   ], TRUE);
-  update_post_meta($id, '_wp_page_template', 'elementor_header_footer');
+  update_post_meta($id, '_wp_page_template', $slug === 'opening-hours' ? 'elementor_canvas' : 'elementor_header_footer');
   update_post_meta($id, '_elementor_edit_mode', 'builder');
   update_post_meta($id, '_elementor_template_type', 'wp-page');
   update_post_meta($id, '_elementor_version', ELEMENTOR_VERSION);

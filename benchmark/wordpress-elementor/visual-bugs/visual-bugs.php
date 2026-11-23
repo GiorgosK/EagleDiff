@@ -18,6 +18,9 @@ function visual_bugs_current(): ?string {
       '' => 'e01', 'services' => 'e02', 'about' => 'e03', 'gallery' => 'e04', 'team' => 'e05',
       'pricing' => 'e06', 'faq' => 'e07', 'process' => 'e08', 'contact' => 'e09',
       'testimonials' => 'e10', 'features' => 'e11', 'skills' => 'e12', 'events' => 'e13',
+      'offers' => 'e14', 'projects' => 'e15', 'blog' => 'e16', 'shop' => 'e17',
+      // e18 is on /visit/, inside the iframe that shows /opening-hours/.
+      'opening-hours' => 'e18',
     ];
     $path = trim((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
     $bug = $bugs[$path] ?? NULL;
@@ -33,6 +36,13 @@ add_filter('language_attributes', function (string $output): string {
 add_action('wp_enqueue_scripts', function (): void {
   wp_enqueue_style('visual-bugs', plugins_url('css/bugs.css', __FILE__), [], '1.0.0');
 }, 100);
+
+// e14: a notice bar inserted at the top of the page 2 seconds after load.
+add_action('wp_footer', function (): void {
+  if (visual_bugs_current() === 'e14') {
+    echo '<script>setTimeout(function () { var p = document.createElement("p"); p.className = "visual-bugs-notice"; p.textContent = "Free delivery this weekend"; document.body.prepend(p); }, 2000);</script>';
+  }
+});
 
 // Replaces the n-th <img> in a widget's HTML (1-based).
 function visual_bugs_nth_image(string $html, int $n, string $src): string {
@@ -71,6 +81,10 @@ add_filter('elementor/widget/render_content', function (string $content, $widget
   if ($bug === 'e12' && $type === 'progress') {
     static $bars = 0;
     return ++$bars === 1 ? str_replace(['data-max="80"', 'aria-valuenow="80"', '>80%<'], ['data-max="75"', 'aria-valuenow="75"', '>75%<'], $content) : $content;
+  }
+  // e18: the opening hours in the embedded page say 18:00 instead of 17:00.
+  if ($bug === 'e18' && $type === 'text-editor') {
+    return str_replace('9:00 to 17:00', '9:00 to 18:00', $content);
   }
   return $content;
 }, 10, 2);

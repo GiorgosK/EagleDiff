@@ -33,6 +33,7 @@ cp -r "$here/visual-bugs" web/wp-content/plugins/
 for page in $(sed -n 's/.*"url": "\([^"]*\)".*/\1/p' "$here/bugs.json"); do
   curl -sk -o /dev/null "$url$page"
 done
+node "$here/../make-config.js" wordpress-elementor
 echo "Clean Elementor site ready: $url"
 echo "Add the bugs:    ddev wp plugin activate visual-bugs --path=web"
 echo "Remove the bugs: ddev wp plugin deactivate visual-bugs --path=web"

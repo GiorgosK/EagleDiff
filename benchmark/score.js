@@ -6,7 +6,7 @@
 //                                                for a capture error on that page)
 //   node score.js <benchmark> --eaglediff <dir>  read Eaglediff's latest comparison
 //
-// <benchmark> is a benchmark folder, such as drupal-umami or wordpress.
+// <benchmark> is a benchmark folder, such as drupal-umami or wordpress-elementor.
 const fs = require('fs');
 const path = require('path');
 

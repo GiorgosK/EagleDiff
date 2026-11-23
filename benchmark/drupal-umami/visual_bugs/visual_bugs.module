@@ -32,6 +32,14 @@ function _visual_bugs_current(): ?string {
     'en:/recipes' => 'b17',
     'en:<front>' => 'b18',
     'es:<front>' => 'b19',
+    'es:/node/1' => 'b20',
+    'es:/articles' => 'b21',
+    'es:/node/2' => 'b22',
+    'es:/node/11' => 'b23',
+    'es:/node/12' => 'b24',
+    'es:/node/13' => 'b25',
+    'es:/node/14' => 'b26',
+    'es:/node/15' => 'b27',
   ];
   $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
   $path = \Drupal::service('path.matcher')->isFrontPage() ? '<front>' : \Drupal::service('path.current')->getPath();
