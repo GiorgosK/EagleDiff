@@ -54,7 +54,7 @@ for (const workers of [1, 2]) {
   });
 }
 
-test('a run stops after 10 failed captures', async t => {
+test('a run stops once captures have failed on 10 pages', async t => {
   const fixture = await cliFixture(t);
   fixture.pages['/pic.svg'] = { headers: { 'Content-Type': 'image/svg+xml' }, body: svg };
   fixture.config.onReadyScript = ['hooks/load-lazy-images'];
@@ -64,6 +64,30 @@ test('a run stops after 10 failed captures', async t => {
   await fixture.run(['reference']);
   fixture.pages['/pic.svg'] = { status: 404, body: 'Missing' };
   const result = await fixture.run(['test'], 1);
-  assert.match(result.stderr, /10 captures failed; stopping the run/);
+  assert.match(result.stderr, /Captures failed on 10 pages; stopping the run/);
   assert.equal(fixture.requests.filter(url => url.startsWith('/page-')).length, 12 + 10, 'the last two pages were not captured');
+});
+
+test('failed captures on a few pages at several viewports do not stop the run', async t => {
+  const fixture = await cliFixture(t);
+  fixture.pages['/pic.svg'] = { headers: { 'Content-Type': 'image/svg+xml' }, body: svg };
+  fixture.config.onReadyScript = ['hooks/load-lazy-images'];
+  fixture.config.viewports = [
+    { label: 'phone', width: 360, height: 640 },
+    { label: 'tablet', width: 768, height: 640 },
+    { label: 'pc', width: 1024, height: 640 }
+  ];
+  // Four broken pages at three viewports: 12 failed captures, then a page
+  // that still has to be captured and compared.
+  fixture.config.scenarios = [0, 1, 2, 3].map(index => ({ url: `/broken-${index}` })).concat({ url: '/last' });
+  for (const { url } of fixture.config.scenarios) fixture.pages[url] = '<img src="/pic.svg">';
+  fixture.pages['/last'] = '<h1>Last</h1>';
+  await fixture.save();
+  await fixture.run(['reference']);
+  fixture.pages['/pic.svg'] = { status: 404, body: 'Missing' };
+  const result = await fixture.run(['test'], 1);
+  assert.match(result.stderr, /12 capture\(s\) failed, so this comparison is incomplete/);
+  assert.doesNotMatch(result.stderr, /stopping the run/);
+  const out = JSON.parse(await fs.readFile(path.join(fixture.directory, '.reg/run/out.json'), 'utf8'));
+  assert.equal(out.passedItems.filter(name => name.startsWith('last')).length, 3, '/last was compared at every viewport');
 });

@@ -43,7 +43,7 @@ process.once('message', async (job) => {
       // test/calibrate: report a failed capture and continue with the others.
       onCaptureFailure: job.continueOnFailure ? failure => {
         if (process.connected) {
-          process.send({ type: 'capture-failed', message: failure.message, fileName: failure.fileName, stack: failure.stack,
+          process.send({ type: 'capture-failed', message: failure.message, fileName: failure.fileName, page: failure.page, stack: failure.stack,
             details: captureErrorDetails(failure) });
         }
       } : undefined,

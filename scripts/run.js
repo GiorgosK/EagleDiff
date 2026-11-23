@@ -123,8 +123,10 @@ async function main() {
     captureFailures.push(failure);
     const [summary] = failure.message.split('\n');
     console.error(`[eaglediff] ${summary}; continuing with the other pages.`);
-    if (captureFailures.length >= maxCaptureFailures) {
-      throw new Error(`${maxCaptureFailures} captures failed; stopping the run.\n${failure.message}`, { cause: failure });
+    // Count pages, not captures: a few broken pages at several viewports must
+    // not look like a site that is down.
+    if (new Set(captureFailures.map(item => item.page)).size >= maxFailedPages) {
+      throw new Error(`Captures failed on ${maxFailedPages} pages; stopping the run.\n${failure.message}`, { cause: failure });
     }
   } : undefined;
   const warningReporter = require('./warnings').createWarningReporter((message, code, context) => diagnostics.warning(code, message, context));
@@ -362,6 +364,7 @@ async function captureScreenshots(browser, config, scenarios, actualDir, baseUrl
         if (!deferRetries || options.isCancelled?.() || !isTemporaryCaptureError(error)) {
           if (!options.onCaptureFailure || options.isCancelled?.() || isChallengeError(error)) throw failure;
           failure.fileName = fileName;
+          failure.page = `${getScenarioLabel(scenario)} ${url}`;
           options.onCaptureFailure(failure);
           continue;
         }
@@ -567,7 +570,7 @@ async function safeClosePage(page) {
   }
 }
 
-const maxCaptureFailures = 10;
+const maxFailedPages = 10;
 
 // The report from an incomplete run shows the captured pages, but the run is
 // not saved as a completed comparison, so approve and --last-failed ignore it.
@@ -1245,6 +1248,7 @@ async function captureScreenshotsInWorkers({ command, config, scenarios, actualD
       if (message.type === 'capture-failed') {
         const error = new Error(message.message);
         error.fileName = message.fileName;
+        error.page = message.page;
         error.workerStack = message.stack;
         error.workerDetails = message.details;
         try { onCaptureFailure(error); } catch (stop) { fail(stop); }
