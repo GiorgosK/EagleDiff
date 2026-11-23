@@ -278,13 +278,15 @@ navigation diagnostics, retries, workers, fonts, image loading and normalization
 CSS/content transformations, screenshot geometry, baseline preservation,
 approval, comparison exit codes, and history.
 
-See [Contributing](contributing.md) for setup and test commands. The
-[benchmarks](benchmarks.md) measure detection and false alarms on real sites:
+See [Contributing](contributing.md) for setup and test commands:
 
 ```sh
 pnpm run test:unit
 pnpm run test:coverage
 ```
+
+The [benchmarks](benchmarks.md) measure missed bugs and false alarms on demo
+sites that anyone can install.
 
 Node coverage measures execution observed by the Node collector. It does not
 measure Chromium execution inside `page.evaluate`, and unexecuted modules can

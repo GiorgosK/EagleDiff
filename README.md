@@ -47,7 +47,7 @@ eaglediff report
 ```
 
 If calibration fails, the site changes between visits (rotating content, ads,
-animations). See [Hooks and site adjustments](docs/site-adjustments.md) for
+animations). See [Hooks and site adjustments](docs/configuration.md#hooks-and-site-adjustments) for
 settings that steady it, and recalibrate.
 
 Then set `testBaseURL` in `config.json` to your staging or local site and
@@ -80,9 +80,7 @@ Both used Eaglediff's default settings, with no site-specific configuration.
 ## Documentation
 
 - [Installation](docs/installation.md): prerequisites, source installs, supported systems
-- [Commands and configuration](docs/configuration.md): commands, settings, comparison thresholds, team defaults
-- [Hooks and site adjustments](docs/site-adjustments.md): what Eaglediff does to each page and how to steady difficult sites
-- [Troubleshooting](docs/troubleshooting.md): capture errors, retries and logs
+- [Configuration](docs/configuration.md): commands, settings, comparison thresholds, team defaults, hooks and site adjustments, troubleshooting
 - [Coming from BackstopJS](docs/backstop.md): differences and importing a `backstop.json`
 - [Benchmarks](docs/benchmarks.md): results and how to reproduce them
 - [Contributing](docs/contributing.md) and [Architecture](docs/architecture.md)

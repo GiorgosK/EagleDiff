@@ -1,6 +1,14 @@
-# Commands and configuration
+# Configuration
 
-## Commands
+Everything needed to set up and tune Eaglediff, in one page:
+
+- [Commands and settings](#commands-and-settings)
+- [Hooks and site adjustments](#hooks-and-site-adjustments)
+- [Troubleshooting](#troubleshooting)
+
+## Commands and settings
+
+### Commands
 
 Run commands in the folder containing `config.json`, or use `--dir <folder>`.
 Screenshots and reports are saved in `.reg/`; run history is in `results.json`.
@@ -54,7 +62,7 @@ or deleted screenshots; reports and history remain available.
 `report --all` uses saved results without retesting. Run a full `test` or
 `calibrate` to populate it; overwritten older images cannot be recovered.
 
-### Page discovery
+#### Page discovery
 
 `config` preserves saved URLs, settings, and scenarios while merging discovered
 pages. Set `--limit` to change the discovery limit; the homepage counts toward it.
@@ -74,12 +82,12 @@ Use `[]` to allow all extensions. Matching ignores case, queries, and fragments;
 the leading dot is optional. Running `config` also removes matching existing
 scenarios. Excluded links do not count toward the discovery limit.
 
-## Capture environment
+### Capture environment
 
 Use a consistent OS, browser version, and fonts when sharing reference images.
 Hosting the website in DDEV or Docker does not control the browser that captures it.
 
-## Update An Existing Config
+### Update An Existing Config
 
 After updating Eaglediff:
 
@@ -100,7 +108,7 @@ same day. Commands offer to update older configs. Non-interactive runs continue
 with a warning. Newer configs require confirmation or `--allow-newer-config`;
 `config-update` refuses to downgrade them.
 
-## Team or agency defaults
+### Team or agency defaults
 
 A team can keep its own defaults, such as the cookie banner and chat widget
 selectors used on all its sites, in one JSON file. `config`, `import` and
@@ -139,14 +147,14 @@ set `version`, URLs or `scenarios`, which belong to each project.
 already has its own `hideDynamicSelectors` list keeps it unchanged; add the
 team's selectors there by hand.
 
-## Settings
+### Settings
 
 Edit your project's `config.json`. Default values are in
 [config-default.json](../config-default.json); examples below cover project-specific values.
 All durations are milliseconds. Hook names below omit `hooks/`; use the
-[default lists](site-adjustments.md#default-hooks) for placement. `-` means built-in handling.
+[default lists](#default-hooks) for placement. `-` means built-in handling.
 
-### Familiar to Backstop users
+#### Familiar to Backstop users
 
 These share names or concepts with [Backstop settings](https://github.com/garris/BackstopJS#scenario-properties); behavior can differ.
 
@@ -170,7 +178,7 @@ These share names or concepts with [Backstop settings](https://github.com/garris
 | `keepSelectors` | Defaults or scenario | Similar to Backstop's `selectors`, but produces one crop enclosing all matches. Missing selectors fail capture. | `keep-selectors` |
 | `core.thresholdRate` | Root | Allowed fraction of changed pixels. `0.001` means 0.1%; Backstop's `misMatchThreshold` uses percentages instead. | - |
 
-### Eaglediff-specific settings
+#### Eaglediff-specific settings
 
 Unless marked **Root** or **Scenario only**, put these in `defaults` or a scenario.
 Nested names such as `browserVerification.timeout` belong inside that object's JSON.
@@ -213,7 +221,7 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `freezeWebAnimations` | Freeze time-based browser animations at their first frame. Default `true`; `false` disables it. | `freeze-web-animations` |
 | `carouselSelectors` | Pause supported carousels and return them to the first slide. `null` detects known libraries; `[]` disables it. | `stabilize-carousels` |
 | `carouselSettleDelayMs` | Pause after resetting carousels. | `stabilize-carousels` |
-| `counterSelectors` | Wait until count-up numbers stop changing. `null` detects known widgets; `[]` disables it. See [Count-up counters](site-adjustments.md#count-up-counters). | `wait-for-counters` |
+| `counterSelectors` | Wait until count-up numbers stop changing. `null` detects known widgets; `[]` disables it. See [Count-up counters](#count-up-counters). | `wait-for-counters` |
 | `counterTimeout` | Longest wait for counters, default `10000`. A counter still changing after it gives a warning, not an error. | `wait-for-counters` |
 | `hideDynamicSelectors` | Apply `display: none`, including to elements added later. | `hide-dynamic-elements` |
 | `cookieConsent` | `"hide"` (default), `"accept"` all cookies, or `"leave"` recognized banners alone. Scenario values override defaults. | `handle-cookie-consent` |
@@ -258,7 +266,7 @@ Older `waitForTriggerSelectors`, `waitForSelectors`,
 `waitForTimeout`, and `waitForSettleDelayMs` map to the corresponding
 `waitForStableContent` fields when those nested fields are absent.
 
-## Comparison thresholds
+### Comparison thresholds
 
 A screenshot passes when its changed pixels stay within all three limits in
 `core`:
@@ -281,19 +289,10 @@ limits applies:
 | 1920×1080 (one desktop screen) | 2,074 | 500 |
 | 360×6000 (long page on a phone) | 2,160 | 500 |
 
-The value comes from the [benchmark](benchmarks.md): on Drupal's Umami demo the
-cap raised the bugs caught from 14 to 18 of 19, without false alarms; a cap of
-2000 caught none of the extra four. On five real sites the largest
-change in a capture that otherwise passed was 60 pixels, so 500 leaves a wide
-margin for rendering noise. Only very small changes, such as rounded image
-corners, still pass.
+If `calibrate` shows small, harmless differences between runs on a site, raise
+`thresholdMaxPixels`, or set it to `null` to rely on `thresholdRate` alone.
 
-Raise `thresholdMaxPixels` if a site shows small, harmless differences between
-runs (check with `calibrate` first), or set it to `null` to use `thresholdRate`
-alone, as before version `2026.11.22.01`. `config-update` adds the setting to
-existing configs, so update and then recalibrate.
-
-## Environment variables
+### Environment variables
 
 | Variable | Purpose |
 | --- | --- |
@@ -301,3 +300,590 @@ existing configs, so update and then recalibrate.
 | `EAGLEDIFF_CONFIG`, `GLOBAL_EAGLEDIFF_CONFIG` | Override the config file path. |
 | `EAGLEDIFF_SCRIPT_DIR`, `EAGLEDIFF_HELPER_DIR` | Runner checkout containing scripts and defaults. Prefer `--script-dir`. |
 | `EAGLEDIFF_INVOCATION_DIR` | Original working directory passed by the CLI to resolve import paths. |
+
+## Hooks and site adjustments
+
+Eaglediff prepares each page with hooks before taking the screenshot. Most sites
+need no changes; the sections below explain the defaults and the settings for
+sites that do.
+
+### Default Hooks
+
+Hooks prepare pages before capture. `onBeforeScript` runs before navigation;
+`onReadyScript` runs afterward. The default lists are shown together below.
+When removing a hook, remove each occurrence. `config-update` adds missing
+default hooks back; use a documented disabling setting to keep a feature off.
+
+```json
+{
+  "onBeforeScript": [
+    "hooks/wait-for-drupal-ready",
+    "hooks/handle-cookie-consent",
+    "hooks/hide-dynamic-elements",
+    "hooks/disable-animations",
+    "hooks/apply-css-overrides"
+  ],
+  "onReadyScript": [
+    "hooks/wait-for-browser-verification",
+    "hooks/fail-on-response-status",
+    "hooks/handle-cookie-consent",
+    "hooks/wait-for-element",
+    "hooks/wait-until-gone",
+    "hooks/scroll-to-bottom",
+    "hooks/hide-dynamic-elements",
+    "hooks/disable-animations",
+    "hooks/wait-for-fonts",
+    "hooks/pause-media",
+    "hooks/load-lazy-images",
+    "hooks/wait-for-jquery-ready",
+    "hooks/wait-for-drupal-ready",
+    "hooks/normalize-responsive-images",
+    "hooks/replace-random-content",
+    "hooks/apply-css-overrides",
+    "hooks/normalize-image-decoding",
+    "hooks/wait-for-stable-content",
+    "hooks/wait-for-counters",
+    "hooks/keep-selectors",
+    "hooks/wait-for-background-images",
+    "hooks/wait-for-network-idle",
+    "hooks/stabilize-carousels",
+    "hooks/freeze-web-animations",
+    "hooks/stabilize-svg-animations",
+    "hooks/prepare-iframes"
+  ]
+}
+```
+
+Hooks generally follow list order. Eaglediff defers iframe and SVG preparation
+and selector clipping until after page edits, with a final font check before clipping.
+The CSS hooks apply styles before navigation and again before capture.
+
+### Automatic carousel detection
+
+`carouselSelectors: null` detects Swiper, Slick, Owl Carousel, Bootstrap Carousel,
+Fotorama, Flickity, FlexSlider, and Unite Gallery. It pauses supported carousels,
+and selects their first slide; the final image checks cover the images this
+reveals. Custom galleries or
+unsupported versions may need a project hook.
+
+Use a selector list to restrict detection, or `[]` to disable it. Config updates
+preserve existing `[]`; change it to `null` to enable automatic detection.
+`carouselSettleDelayMs` defaults to `500`.
+
+The image-decoding hook also freezes GIF `<img>` elements at their first frame.
+CSS background GIFs and iframe images are excluded. If cross-origin conversion
+is blocked, a working original is kept with a warning and may still animate.
+Use `normalizeImageDecodingSelectors: []` to disable conversion.
+
+### Count-up counters
+
+Statistics widgets often count from 0 up to their number (for example 0 → 1,200)
+for a second or two after they scroll into view. `wait-for-counters` waits until
+the visible counters' text has stopped changing for half a second, so the
+screenshot always shows the final number.
+
+With `counterSelectors: null` (the default) it looks for known widgets:
+Elementor's counter (tested), Odometer, Kadence Blocks, Divi and Avada. List
+your own selectors to use only those, or set `[]` to turn the wait off. A
+counter that never stops, such as a live clock, produces a warning after
+`counterTimeout` (default `10000`) and the capture continues; hide it with
+`hideSelectors` instead.
+
+```json
+"counterSelectors": [".stats-number"]
+```
+
+### `waitUntilGone`, `carouselSelectors`, and `keepSelectors`
+
+Example scenario: wait for a loader, reset a carousel, then capture the main area.
+
+```json
+{
+  "url": "/gallery",
+  "waitUntilGone": [".loading-overlay"],
+  "carouselSelectors": [".gallery.swiper"],
+  "keepSelectors": ["main"]
+}
+```
+
+Use your site's selectors. Empty lists disable these settings; carousel detection
+is automatic by default.
+
+### `randomImage` and `randomContent`
+
+Example scenario:
+
+```json
+{
+  "url": "/news",
+  "randomImage": [".news-card img"],
+  "randomContent": [".news-card .summary"]
+}
+```
+
+For varying image sizes, an image entry can be
+`{ "selector": ".banner img", "width": 1200, "height": 675 }`.
+Both dimensions are required together; they set the placeholder's intrinsic size.
+A text entry can use `{ "selector": ".summary", "text": "Fixed summary" }`.
+
+### Google Maps and other third-party embeds
+
+Example: exclude a changing Google Maps embed during calibration. Add to your
+existing `hideSelectors` in `defaults` or a scenario:
+
+```json
+"hideSelectors": [
+  "iframe[src^=\"https://www.google.com/maps/embed\"]"
+]
+```
+
+The map becomes blank, keeping its layout space. This uses built-in capture
+handling; no extra hook is needed. Adjust the selector for your embed URL.
+Use this when testing the surrounding page, since map content is no longer compared.
+Avoid `removeSelectors` here: removing the iframe shifts the content below it.
+
+The default config already hides the Google Maps selector above and Google My
+Maps embeds (`https://www.google.com/maps/d/embed`). Existing configs keep their
+saved `hideSelectors`; add the My Maps selector there if needed. For a changing
+reCAPTCHA badge, add `.grecaptcha-badge`. Review the resulting captures before
+replacing references; excluded embed content is no longer compared.
+
+#### Known noisy embeds
+
+These embeds often render differently between runs. None is hidden by default
+except the ad slots and Google Maps iframes above; copy the selectors you need
+into `hideSelectors` (keeps layout space) and adjust them to your markup.
+
+| Embed | Selectors |
+| --- | --- |
+| Google Maps JavaScript API maps | `.gm-style` |
+| reCAPTCHA badge | `.grecaptcha-badge` |
+| Instagram posts | `.instagram-media`, `iframe[src*="instagram.com"]` |
+| Facebook page/post plugins | `.fb-page`, `.fb-post`, `iframe[src*="facebook.com/plugins"]` |
+| X (Twitter) posts and timelines | `.twitter-tweet`, `.twitter-timeline`, `iframe[src*="platform.twitter.com"]` |
+| TikTok videos | `.tiktok-embed` |
+
+YouTube and Vimeo players are already replaced by `pause-media` (see
+[Changing videos and social feeds](#changing-videos-and-social-feeds)); cookie
+banners are handled by `cookieConsent` (see [Cookie banners](#cookie-banners)).
+Chat widgets and other fixed overlays vary by provider: hide their container.
+
+### `replaceContent`
+
+Add to `defaults` or a scenario:
+
+```json
+"replaceContent": {
+  ".open-hours": "This content"
+}
+```
+
+Replaces children with plain text, keeping the matched element and its attributes.
+Missing matches are ignored; `""` clears content. A scenario's `{}` disables
+inherited replacements. When both match, `replaceContent` runs after `randomContent`.
+
+### `cssOverrides`
+
+Add CSS to `defaults` or a scenario. For example:
+
+```json
+"cssOverrides": ".banner { background-image: url('/images/fixed-background.jpg') !important; }"
+```
+
+Use an image available on the site. Scenario CSS replaces the default CSS;
+`""` disables it for that scenario. Hiding a CAPTCHA or other changing element
+excludes it from comparison; review its replacement before updating references.
+
+### Moving content
+
+The `freeze-web-animations` hook pauses time-based browser animations at their
+first frame, including scrolling strips. It handles JavaScript Web Animations
+and CSS animations that override the `disable-animations` rules, including
+animations started or replayed later.
+
+Set `"freezeWebAnimations": false` in `defaults` or a scenario, or remove
+`hooks/freeze-web-animations`, to disable it. Pausing can hide entrance content
+or hold animation-finished callbacks; disable this hook when that is unsuitable.
+Animations driven by timers, direct style updates, scrolling, or iframe players
+may need a custom hook. Browser timers and animation-frame callbacks keep running.
+
+The `stabilize-svg-animations` hook also stops recognized SVGator players and
+native SVG (SMIL) animations, including SVG documents loaded through `<object>` or
+`<embed>`. Set `"stabilizeSVGAnimations": false` or remove the hook to disable it.
+Unknown scripted SVG players may need a project hook.
+
+### Cookie banners
+
+Cookie banners are hidden by default, without accepting cookies. Recognized
+banners include OneTrust, Cookiebot, European Commission Webtools (Europa),
+CookieScript, Didomi, Automattic/A8C,
+and the `cookie-consent` component used by Opera
+(not every custom version is supported).
+
+Set this in `defaults` or an individual scenario:
+
+```json
+"cookieConsent": "hide"
+```
+
+- `"hide"`: hide recognized banners and overlays without granting consent.
+- `"accept"`: click a recognized accept-all button and wait for the banner to close.
+- `"leave"`: leave recognized banners unchanged and do not click them.
+
+Acceptance may load extra tracking, images, or embeds. It runs before the other
+page-readiness checks. `cookieConsentTimeout` bounds the wait (default `3000`
+milliseconds). No recognized banner means no action; a recognized banner that
+cannot be accepted stops capture. Custom, iframe, or shadow-root banners may need
+a project hook. Explicit custom hide rules still apply in every mode.
+`cookieConsent` controls all supported providers. Empty `hideDynamicSelectors`
+opt-outs are preserved; set `cookieConsent` explicitly to override them.
+Survey invitations are separate from cookie banners. Hide their specific
+containers with `cssOverrides` when they should be excluded from comparisons.
+
+### Changing videos and social feeds
+
+The default `pause-media` hook replaces native HTML videos and recognized
+YouTube/Vimeo iframe players with neutral gray placeholders. This includes
+YouTube's privacy-enhanced embeds and lazy iframe URLs in `data-src` or
+`data-lazy-src`. It also pauses audio and blocks later playback.
+
+Explicit CSS and HTML sizes are preserved. Auto-sized native placeholders use
+the browser's empty video sizing, so metadata or poster loading cannot change
+the captured layout. Use a CSS aspect ratio when a particular video shape matters.
+Existing references with auto-sized videos may need review.
+
+Set `"videoCaptureMode": "first-frame"` in `defaults` or an individual scenario
+to capture native videos paused at their first frame instead (up to 15 seconds
+to load). Remove `hooks/pause-media` from `onReadyScript` to disable both modes.
+Existing references containing video frames need review before replacement.
+
+`"first-frame"` works only with native HTML videos (`<video>`). YouTube and
+Vimeo embeds have their own playback controls and loading behavior, so this mode
+leaves them unchanged; use `"placeholder"` for consistent captures of those players.
+Other video providers, custom player wrappers, and changing social feeds may need
+a selector or custom hook.
+Placeholders are applied after initial navigation; navigation timeouts still apply.
+
+To replace changing video tiles with plain placeholders, target the wrapper
+around each video and its controls. For example, if it has class `.video-tile`:
+
+```json
+{
+  "url": "/gallery",
+  "hideSelectors": [".video-tile *"],
+  "cssOverrides": ".video-tile { background: #e2e5e8 !important; }"
+}
+```
+
+Replace `.video-tile` with your site's selector. The contents become invisible,
+keeping their layout space, while the wrapper shows a grey background. This
+checks the tile layout and surrounding page, excluding the video content.
+Review the placeholders before updating references.
+
+### Web fonts
+
+`wait-for-fonts` checks requested web fonts and repeats before capture.
+Use `requiredFonts` to also require specific declared fonts, such as
+`["400 16px Inter"]`. Failed downloads stop capture; `fontTimeout` controls the wait.
+Unavailable aliases that only reference local system fonts are allowed, since
+the browser can fall back to another font. Explicit `requiredFonts` checks remain
+strict, including for local aliases. If the browser cannot inspect a failed
+font's source, it remains an error.
+Waiting for fonts does not rerun a site's cached layout calculations. A project
+hook may be needed if the page calculates dimensions before its fonts load.
+
+### Network idle
+
+`networkIdleTime` is the continuous quiet period to look for; `networkIdleTimeout`
+is the maximum time to spend looking. With the defaults, the hook looks for
+500 ms without active requests and gives up after 5 seconds. It continues when
+that limit expires; it does not wait another 5 seconds after the network settles.
+
+The wait starts when `wait-for-network-idle` is reached in `onReadyScript`, after
+most image/font preparation. Carousel, animation, iframe and final resource checks
+can still run afterward. It does not extend earlier waits, such as browser
+verification, or prove that application content has finished updating. Use a
+ready selector or stable-content check for specific page content.
+
+### Automatic browser verification
+
+For an automatic verification page, `browserVerification.challengeSelectors`
+should identify its HTML container. The default matches a BotBuster script;
+configure other verification pages using their own HTML structure.
+Once detected, the hook remembers the visible elements on that screen in memory.
+It continues when the matching structure disappears, or those original elements
+are removed and replaced with page content while only non-visible markers, such
+as script tags, remain. Text changes and spinner animations do not count as
+completion. No HTML snapshot is saved to disk.
+
+The cleared screen must settle for `settleDelayMs` (default 500 ms), with the
+document no longer loading. Redirects or a reappearing challenge restart that
+settling period. If a site keeps and reuses the same screen container, configure
+its verification container selector for a more precise check.
+
+For example, using the verification page's actual container selector:
+
+```json
+"browserVerification": {
+  "challengeSelectors": [".verification-screen"],
+  "timeout": 60000,
+  "settleDelayMs": 500
+}
+```
+
+The timeout is one total budget, not a separate allowance for each redirect.
+Pages without detected verification skip the settling wait. A visible configured
+error or an unfinished verification stops capture; timeout messages show whether
+the structure was detected or the document was still loading. These failures are
+not automatically retried. Known CDN challenge detection still stops capture,
+as described under [CDN or security verification pages](#cdn-or-security-verification-pages).
+
+Repeated requests may trigger protection, but a timeout alone does not prove
+that. Use filtered runs or fewer workers to reduce traffic while investigating,
+or ask the site's administrator about approved test access. Eaglediff does not
+solve CAPTCHAs or bypass verification.
+
+### jQuery and Drupal startup
+
+`wait-for-jquery-ready` waits for jQuery startup callbacks, including startup
+holds. `wait-for-drupal-ready` separately checks that registered Drupal startup
+behaviors were attached to the document. Both skip when their library is absent.
+
+Use `waitForJQueryReady: false` or `waitForDrupalReady: false` to disable a check.
+`jqueryReadyTimeout` and `drupalReadyTimeout` bound their waits. Timeouts fail
+capture and can retry; the hooks do not force initialization or hide menus.
+Drupal sites that intentionally defer behaviors or initialize only selected
+components may need to disable its check. It watches the main page, not iframes.
+
+A Drupal timeout means Eaglediff could not confirm attachment, not necessarily
+that the page is broken. The error reports whether it observed whole-page
+startup before finding pending behaviors, or never observed startup. Temporary
+failures already get one fresh-page retry by default. A longer timeout helps
+slow startup, but cannot fix scripts that never initialize. Eaglediff does not
+rerun Drupal initialization because that can duplicate page actions.
+
+### Waiting for page content
+
+Library readiness cannot predict later application updates. For a form that
+loads asynchronously, use a specific signal:
+
+```json
+{
+  "url": "/newsletter",
+  "readySelector": ".newsletter-form button[type=submit]",
+  "readyVisible": true,
+  "readyTimeout": 15000
+}
+```
+
+If it loads only after scrolling, put `wait-for-element` after `scroll-to-bottom`.
+Similarly, put image loading before a selector wait that depends on image loading
+or the page's load event. `scrollTimeout` bounds scrolling, including pages whose
+height keeps growing.
+
+### Lazy images
+
+`load-lazy-images` loads common `data-src`, `data-srcset`, and `data-sizes`
+attributes, including `data-lazy-*`, then waits for image decoding.
+Lazy attributes are kept during the initial scroll so the site's own loader can
+finish layout initialization, then cleaned up. Native source choices are preserved.
+When `scroll-to-bottom` has already run for the capture, the hook does not scroll
+the page again; without it (or if it is listed later), the hook scrolls itself.
+If a source changes during decoding, the hook makes up to two additional decode
+attempts within the same timeout. Broken images still follow `imageFailurePolicy`.
+CSS background images are checked separately. CSS-hidden backgrounds are skipped; visible
+backgrounds below the fold are still checked. Newly introduced image sources
+are rechecked.
+
+`imageFailurePolicy` defaults to `"error"`. `"warn"` allows broken images with
+warnings, so their placeholders can still cause visual differences. Stalled
+downloads fail in either mode and can use temporary retries.
+
+Images inside `display: none` subtrees are skipped, including unused lazy sources.
+They are checked again if a later hook reveals them. Offscreen images, transparent
+images, and images hidden with `visibility` still load because they can affect
+layout. Hidden empty `data:,` placeholders are also ignored. Visible broken images
+still fail capture.
+
+If an unimportant image repeatedly fails, hide it before image checks with a
+scenario's `cssOverrides`. Use the image's actual CSS selector; image failure
+messages name the owning element (for example `Element: img#logo.brand`, or
+`Element: section#hero.banner (background-image)`) to help find it:
+
+```json
+"cssOverrides": "img.optional-image { display: none !important; }"
+```
+
+This removes the image and its space from the comparison. Add the rule to any
+existing `cssOverrides` rather than replacing those rules.
+
+`removeSelectors` runs after the initial image checks, so it is too late to prevent
+image-loading errors. `hideSelectors` also keeps checking images. Use
+`cssOverrides` with `display: none` to skip these checks for an unwanted image.
+
+`retryImageDownloads: true` attempts to recover stalled HTTP downloads using the
+browser context's cookies. The recovered image must still decode successfully.
+`imageDownloadTimeout` limits recovery; it defaults to `15000` milliseconds.
+
+### Scroll reveals, fading icons, and moving decorations
+
+`disable-animations` removes CSS animation delays, but JavaScript can still hide
+an element or fade it in. Use `cssOverrides` to show selected content and stop
+selected decorations. Replace `.reveal` with your site's selector:
+
+```json
+"cssOverrides": ".reveal { visibility: visible !important; opacity: 1 !important; animation: none !important; }",
+"waitForStableContent": {
+  "triggerSelectors": [],
+  "selectors": [".reveal"],
+  "timeout": 15000,
+  "settleDelayMs": 1000
+}
+```
+
+### `addParagraph`
+
+Example scenario for checking that a deliberate change is detected:
+
+```json
+{
+  "url": "/about",
+  "addParagraph": true,
+  "addParagraphTarget": ".page-content"
+}
+```
+
+Run `eaglediff test --filter=about --addpara`.
+
+Review captures after changing preparation settings, then update references only
+when the new appearance is intended. Existing configs need the corresponding
+[default hooks](#default-hooks).
+
+## Troubleshooting
+
+### Capture Errors
+
+Terminals show `ERROR:` in red and `Warning:` in orange; logs use plain text.
+Capture failures identify the page, viewport, hook, and available resource/network details.
+In `test` and `calibrate`, a failed capture does not stop the run: the other
+pages are still captured and compared, and the report shows them (the failed
+page appears as deleted). The command then fails, lists every capture error,
+and the run cannot be approved. Once captures have failed on 10 pages the run
+stops, since the site is probably down. In `reference`, the first failure stops the run and
+the references stay unchanged. Progress lines mean a capture started, not that
+its screenshot was saved.
+
+To investigate one page:
+
+```bash
+eaglediff reference --filter=problem-page --workers=1
+```
+
+This replaces matching references if successful. Navigation errors include
+redirects and pending requests. Adjust `navigationTimeout` for slow navigation;
+`core.protocolTimeout` is a separate browser-command timeout.
+
+#### Blank or incomplete iframe screenshots
+
+The default `prepare-iframes` hook waits for visible iframe documents and uses
+`captureBeyondViewport: "auto"` to improve full-page iframe rendering. Nested
+frames are included; hidden and one-pixel tracking frames are ignored.
+
+Set `captureBeyondViewport: false` to always expand the viewport for full-page
+capture, or `true` to keep its layout size unchanged. Expanding can affect
+height-dependent layouts. Try `false` if full-page captures contain partially
+painted images. `waitForIframes: false` disables the document wait;
+removing the hook also disables automatic viewport adjustment. Selector clipping
+keeps its existing capture mode. Content loaded later may need a custom hook.
+
+### Capture messages and logs
+
+Capture warnings, retries and errors show a short summary in the terminal.
+Page URLs stay complete at the start of warnings/retries and in final errors.
+The `Details:` path points to a separate `.reg/logs/*.log` file for that run,
+with full messages, page URLs, hook names and error stacks. Logs also keep
+retries that later succeed and are retained across runs. A clean capture creates
+no log. If writing the log fails, full details stay in the terminal.
+
+A warning does not necessarily trigger a retry. A line saying `retrying 1/2`
+means the first of two allowed retries is starting; `retrying 2/2` is the last
+retry. The Drupal startup check is one source of these failures; retries also
+handle supported network, browser and other readiness failures.
+
+### Slow or interrupted captures
+
+`core.temporaryErrorRetries` defaults to `2`: retry a temporary failure up to
+twice in fresh browser contexts (three attempts total). Existing configs keep
+saved values, including `0` and `1`.
+An initial redirect can resume the first page check on the new document. If a
+navigation interrupts later preparation, the whole capture uses these retries
+so its hooks run again before saving a screenshot.
+A disconnected worker browser is restarted on retry. Retries do not override
+image or HTTP error policies.
+An image answered with HTTP 429, 502, 503 or 504, or with an empty body, counts
+as temporary and is retried. For example, Drupal answers 503 while it creates a
+new image style, and the web server can serve that file while it is still
+being written. Other broken images fail immediately.
+
+To finish the initial captures first, then retry temporary failures one at a time,
+set this inside the existing `core` object:
+
+```json
+"temporaryErrorRetryMode": "deferred"
+```
+
+Only the failed page/viewport pairs are retried. `temporaryErrorRetries` still
+limits retries per capture; `0` disables them. Deferred retries use fresh browser
+contexts and run with one capture at a time, regardless of the initial worker
+count. If any remain unsuccessful, the run fails and cannot be approved (see
+[Capture Errors](#capture-errors)). Security challenges still stop the run
+immediately. This does not retry visual differences.
+
+`core.temporaryErrorRetryTimeoutMultiplier: 2` gives retries longer readiness
+budgets: 1×, 2×, then 4×. It does not change workers, delays, or retry count.
+Keep `core.protocolTimeout` above the longest resulting readiness budget.
+
+### Known problems and fixes
+
+#### Navigation or resource-loading timeouts
+
+Parallel captures can hit timeouts on machines with limited CPU or memory,
+slower internet connections, or busy servers. If you see an error such as
+`Navigation timeout of 30000 ms exceeded`, try one worker to check whether
+loading fewer pages at once avoids it:
+
+```bash
+eaglediff reference --workers=1
+```
+
+A successful `reference` run replaces references. The same flag works with
+`test` and `calibrate`. If fewer workers help, increase the count gradually or
+lower `core.workers` in `config.json`. Persistent timeouts may need further
+investigation of the page or its resources.
+
+#### CDN or security verification pages
+
+Built-in checks detect known challenges from **Cloudflare, AWS WAF, DataDome,
+and HUMAN/PerimeterX**, even without readiness hooks. Detection stops `config`,
+`reference`, `test`, or `calibrate` with exit code `1`, preserving existing configs
+and references. Blocked discovery does not write a partial config. Detection is
+not exhaustive; ordinary CAPTCHA widgets or CDN scripts alone do not trigger it.
+
+Use a staging/development environment, or ask the site's administrator about
+an exception for authorized test traffic. See
+[Cloudflare's exception setup instructions](https://developers.cloudflare.com/waf/custom-rules/skip/).
+Eaglediff does not solve or bypass challenges.
+
+#### No such file or directory
+
+`env: 'node': No such file or directory`
+
+Node.js is missing or unavailable in this terminal. Check [Prerequisites](installation.md#prerequisites)
+to install it and set it up for new terminals. If Node **22.19.0** is already
+installed through nvm, activate it temporarily for this terminal:
+
+```bash
+nvm use 22.19.0
+```
+
+Then retry your Eaglediff command.
