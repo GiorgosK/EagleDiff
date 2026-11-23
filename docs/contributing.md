@@ -41,7 +41,8 @@ See [Architecture](architecture.md) for architecture and implementation details.
 ## AI-assisted development
 
 Parts of Eaglediff's code, tests, and documentation were developed with
-assistance from AI coding tools, including OpenAI Codex. Maintainers direct the
+assistance from AI coding tools, including OpenAI Codex and Anthropic's Claude
+Code. Maintainers direct the
 project and remain responsible for technical decisions, reviewing contributions,
 and validating behavior. AI-assisted contributions are subject to the same
 review and testing standards as other contributions.
