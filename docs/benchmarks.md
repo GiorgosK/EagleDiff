@@ -90,3 +90,42 @@ Then score it:
 ```bash
 node benchmark/score.js drupal-umami flagged.txt
 ```
+
+## BackstopJS
+
+[`benchmark/backstop/`](../benchmark/backstop/) runs the benchmarks with
+[BackstopJS](https://github.com/garris/BackstopJS). `make-config.js` keeps the
+defaults from `backstop init` and only sets the pages, viewports and a JSON
+report; `flagged.js` turns that report into the list for `score.js`.
+
+```bash
+mkdir backstop-umami && cd backstop-umami
+npx backstop init
+node ../benchmark/backstop/make-config.js drupal-umami .
+npx backstop reference             # clean site
+npx backstop test                  # clean site again: anything flagged is a false alarm
+# add the bugs, then:
+npx backstop test
+node ../benchmark/backstop/flagged.js . > flagged.txt
+node ../benchmark/score.js drupal-umami flagged.txt
+```
+
+Results with BackstopJS 6.3.25 and its `backstop init` defaults, on the same
+sites and day as the Eaglediff results above:
+
+| Benchmark | Unchanged site, two runs: screenshots flagged | Bugs found |
+| --- | --- | --- |
+| Drupal 11 Umami | 0 of 99, both runs | 19 of 27 |
+| WordPress with Elementor | 15 of 66, both runs | 15 of 18, but some of those pages also change with no bug |
+| Svelte with GSAP | 45 and 42 of 48 | not meaningful: almost every page changes with no bug |
+
+On Umami, BackstopJS missed content added by JavaScript after load, the broken
+lazy image on phones, and small changes such as faded or underlined links and a
+2px button shift, which stay under its default `misMatchThreshold` of 0.1%. On
+Elementor, the clean pages it flagged are the ones with counters, progress bars,
+carousels and entrance animations. On the Svelte site nearly every page
+differed between runs, including pages whose only animation is the header.
+
+These are BackstopJS's defaults without any tuning. Delays, hide selectors and
+custom scripts can steady many of these pages; the benchmarks measure what each
+tool does before any site-specific work.
