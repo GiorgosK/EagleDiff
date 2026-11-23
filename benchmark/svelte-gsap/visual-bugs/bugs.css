@@ -1,0 +1,31 @@
+/* Known visual bugs for the Svelte GSAP benchmark; see ../bugs.json. */
+
+/* s01, s02, s05, s06, s09: HTML changes (bugs.js). */
+
+/* s03: wider letter spacing in the service card descriptions. */
+[data-visual-bug="s03"] .service-grid-card p { letter-spacing: 0.03em; }
+
+/* s04: the second project row moved 2px down. */
+[data-visual-bug="s04"] .work-row:nth-child(2) a { position: relative; top: 2px; }
+
+/* s07: phone only: the project category disappears. */
+@media (max-width: 599px) {
+  [data-visual-bug="s07"] .page-eyebrow { display: none; }
+}
+
+/* s08: wide screens only: extra space above the footer. */
+@media (min-width: 1440px) {
+  [data-visual-bug="s08"] footer { margin-top: 12px; }
+}
+
+/* s09: the notice bar added by JavaScript. */
+.visual-bugs-notice { margin: 0; padding: 12px; background: #3b82f6; color: #fff; text-align: center; font-family: sans-serif; }
+
+/* s10: the article text a little lighter. */
+[data-visual-bug="s10"] .post-text { opacity: 0.85; }
+
+/* s11: the e-mail field loses its border. */
+[data-visual-bug="s11"] .contact-email { border-color: transparent; }
+
+/* s12: the second FAQ question is missing. */
+[data-visual-bug="s12"] #faq button:nth-of-type(2) { display: none; }

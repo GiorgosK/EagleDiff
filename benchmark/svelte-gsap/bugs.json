@@ -1,0 +1,40 @@
+{
+  "site": "Svelte 5 + GSAP + Lenis template (YusufCeng1z/svelte-gsap-template @ a6648f6) with the pages in site/, served by serve.js",
+  "baseURL": "http://localhost:4173",
+  "enable": "VISUAL_BUGS=1 node benchmark/svelte-gsap/serve.js <site folder> (without VISUAL_BUGS for the clean site)",
+  "viewports": [
+    {
+      "label": "phone",
+      "width": 360,
+      "height": 640
+    },
+    {
+      "label": "tablet",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "label": "pc",
+      "width": 1920,
+      "height": 1080
+    }
+  ],
+  "pages": [
+    { "id": "s01", "url": "/", "kind": "missing", "bug": "\"Stripe\" invisible in the scrolling logo marquee", "visibleAt": ["pc"] },
+    { "id": "s02", "url": "/studio", "kind": "content", "bug": "One-letter typo in the footer heading (projcet)", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "s03", "url": "/services", "kind": "text", "bug": "Service card descriptions letter-spacing 0.03em", "visibleAt": ["phone"] },
+    { "id": "s04", "url": "/work", "kind": "layout", "bug": "Second project row moved 2px down", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "s05", "url": "/work/nike-forward", "kind": "image", "bug": "Project cover image broken (HTTP 404)", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "s06", "url": "/work/ozone-webgl", "kind": "content", "bug": "One-letter typo in the \"Next project\" label (poject)", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "s07", "url": "/work/lumina-app", "kind": "viewport", "bug": "Phone only (under 600px): project category missing", "visibleAt": ["phone"] },
+    { "id": "s08", "url": "/work/aura-engine", "kind": "viewport", "bug": "Wide screens only (1440px+): 12px extra space above the footer", "visibleAt": ["pc"] },
+    { "id": "s09", "url": "/journal", "kind": "late", "bug": "Notice bar added by JavaScript 2 seconds after load", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "s10", "url": "/journal/motion-budgets", "kind": "colour", "bug": "Article text slightly lighter (opacity 0.85)", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "s11", "url": "/contact", "kind": "missing", "bug": "E-mail field border missing", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "s12", "url": "/careers", "kind": "missing", "bug": "Second FAQ question missing", "visibleAt": ["phone", "tablet", "pc"] },
+    { "id": "c01", "url": "/awards", "kind": "control", "bug": null, "visibleAt": [] },
+    { "id": "c02", "url": "/journal/fonts-that-perform", "kind": "control", "bug": null, "visibleAt": [] },
+    { "id": "c03", "url": "/journal/scroll-as-narrative", "kind": "control", "bug": null, "visibleAt": [] },
+    { "id": "c04", "url": "/journal/small-teams", "kind": "control", "bug": null, "visibleAt": [] }
+  ]
+}

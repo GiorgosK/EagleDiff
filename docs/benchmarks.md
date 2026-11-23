@@ -5,13 +5,14 @@ flags a page that did not change (a false alarm). The benchmarks measure both on
 demo sites that anyone can install.
 
 Each benchmark adds known visual bugs to a clean site, one per page, and keeps
-some pages unchanged as controls. The bugs live in the site (a Drupal module or a
-WordPress plugin), not in Eaglediff, so any tool can be scored the same way.
+some pages unchanged as controls. The bugs live in the site (a Drupal module, a
+WordPress plugin, or the Svelte site's server), not in Eaglediff, so any tool can
+be scored the same way.
 
 ## Method
 
-1. Install the clean site with the benchmark's `setup.sh` (needs
-   [DDEV](https://ddev.com/)).
+1. Install the clean site with the benchmark's `setup.sh` (the Drupal and
+   WordPress sites need [DDEV](https://ddev.com/); the Svelte site needs Node.js).
 2. Take reference screenshots of every page in its `bugs.json` at three
    viewports (360×640, 1024×768, 1920×1080), full page.
 3. Compare the clean site with the references (calibration). It must flag
@@ -50,6 +51,7 @@ record where each bug changes pixels.
 | --- | --- | --- | --- |
 | [Drupal 11 Umami](../benchmark/drupal-umami/README.md) | 26 of 27 | 0 | 99/99, twice |
 | [WordPress with Elementor](../benchmark/wordpress-elementor/README.md) (JavaScript widgets and animations) | 15 of 18 | 0 | 66/66, twice |
+| [Svelte with GSAP](../benchmark/svelte-gsap/README.md) (scroll-driven animations, marquee, smooth scrolling) | 11 of 12 | 0 | 48/48, 20 times |
 
 Eaglediff 0.1.0 with default settings and no site-specific configuration,
 Chrome 157 on Linux, 2026-11-23.
@@ -58,15 +60,15 @@ Missed, because each changes fewer pixels or less colour than the default
 [comparison thresholds](configuration.md#comparison-thresholds) allow:
 
 - image corners rounded by 8px (about 80 pixels), on both sites;
-- one digit changed in small text (about 64 pixels);
+- one digit or letter changed in small text (about 64 to 176 pixels);
 - a button colour changed from `#61ce70` to `#57c266`.
 
 ## Settings for each benchmark
 
 Each benchmark's `setup.sh` writes `eaglediff/config.json` with
 [`benchmark/make-config.js`](../benchmark/make-config.js): Eaglediff's default
-settings plus the site URL, viewports and pages from `bugs.json`. Neither site
-needs any other setting.
+settings plus the site URL, viewports and pages from `bugs.json`. No site needs
+any other setting.
 
 ```bash
 node benchmark/make-config.js drupal-umami

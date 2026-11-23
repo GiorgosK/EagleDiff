@@ -74,8 +74,9 @@ Anyone can set them up and run them with any tool.
 | --- | --- | --- |
 | Drupal 11 Umami demo | 26 of 27 | 0 |
 | WordPress with Elementor (carousels, counters, animations) | 15 of 18 | 0 |
+| Svelte with GSAP (scroll-driven animations, marquee, smooth scrolling) | 11 of 12 | 0 |
 
-Both used Eaglediff's default settings, with no site-specific configuration.
+All used Eaglediff's default settings, with no site-specific configuration.
 
 ## Documentation
 
