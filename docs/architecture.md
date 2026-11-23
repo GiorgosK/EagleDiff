@@ -137,6 +137,12 @@ passes; custom hooks run once. Project-specific order matters:
 a selector initialized on `window.load`, for example, can depend on images
 finishing first.
 
+`pause-intervals` installs its timer wrapper before navigation, and
+`freeze-script-animations` runs once in the configured pass, after the carousel
+and Web Animation hooks. `scripts/capture-resize-guard.js` is not a hook: every
+capture installs it before navigation, because the full-page screenshot itself
+resizes the window and responsive scripts must not react to that.
+
 `readySelector` is empty by default: pages do not need a footer to be captured.
 Set it to a meaningful element when application content must appear before capture.
 A scenario's empty string disables an inherited selector wait; other readiness

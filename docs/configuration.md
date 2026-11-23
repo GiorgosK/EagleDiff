@@ -219,6 +219,9 @@ Nested names such as `browserVerification.timeout` belong inside that object's J
 | `stabilizeSVGAnimations` | Stop recognized SVGator players and native SVG animations at the start. Default `true`; `false` disables it. | `stabilize-svg-animations` |
 | `svgAnimationTimeout` | Maximum wait for embedded SVGs and supported players, default `15000` milliseconds. Timeouts can retry. | `stabilize-svg-animations` |
 | `freezeWebAnimations` | Freeze time-based browser animations at their first frame. Default `true`; `false` disables it. | `freeze-web-animations` |
+| `freezeScriptAnimations` | Wait for JavaScript animations to finish and stop endless ones (marquees, floating shapes). Default `true`; `false` disables it. See [Moving content](#moving-content). | `freeze-script-animations` |
+| `scriptAnimationTimeout` | Longest wait for JavaScript animations, default `5000`. Animations still starting after it give a warning. | `freeze-script-animations` |
+| `pauseIntervals` | Repeating timers (`setInterval`) with this period in milliseconds or longer do not run, so rotating quotes, tickers and auto-refresh stay on their first state. Default `2000`; `false` disables it. | `pause-intervals` |
 | `carouselSelectors` | Pause supported carousels and return them to the first slide. `null` detects known libraries; `[]` disables it. | `stabilize-carousels` |
 | `carouselSettleDelayMs` | Pause after resetting carousels. | `stabilize-carousels` |
 | `counterSelectors` | Wait until count-up numbers stop changing. `null` detects known widgets; `[]` disables it. See [Count-up counters](#count-up-counters). | `wait-for-counters` |
@@ -321,6 +324,7 @@ default hooks back; use a documented disabling setting to keep a feature off.
     "hooks/handle-cookie-consent",
     "hooks/hide-dynamic-elements",
     "hooks/disable-animations",
+    "hooks/pause-intervals",
     "hooks/apply-css-overrides"
   ],
   "onReadyScript": [
@@ -348,6 +352,7 @@ default hooks back; use a documented disabling setting to keep a feature off.
     "hooks/wait-for-network-idle",
     "hooks/stabilize-carousels",
     "hooks/freeze-web-animations",
+    "hooks/freeze-script-animations",
     "hooks/stabilize-svg-animations",
     "hooks/prepare-iframes"
   ]
@@ -504,8 +509,28 @@ animations started or replayed later.
 Set `"freezeWebAnimations": false` in `defaults` or a scenario, or remove
 `hooks/freeze-web-animations`, to disable it. Pausing can hide entrance content
 or hold animation-finished callbacks; disable this hook when that is unsuitable.
-Animations driven by timers, direct style updates, scrolling, or iframe players
-may need a custom hook. Browser timers and animation-frame callbacks keep running.
+
+JavaScript animation libraries (GSAP, anime.js, Motion, hand-written
+`requestAnimationFrame` loops) move elements by rewriting their inline style on
+every frame. The `freeze-script-animations` hook waits until animations that
+started recently have finished, up to `scriptAnimationTimeout`. Elements that
+keep moving after that, such as logo marquees, are shown at their untransformed
+position. Script-animated elements also lose `will-change`, so their final state
+renders the same way every time. Set `"freezeScriptAnimations": false` to
+disable it.
+
+The `pause-intervals` hook keeps repeating timers of `pauseIntervals`
+milliseconds (default `2000`) or longer from running. Testimonial rotators,
+news tickers and auto-refreshing widgets then stay on their first state instead
+of changing during the capture. Shorter intervals and one-off `setTimeout`
+calls run normally, so content that appears after a delay is still captured.
+Set `"pauseIntervals": false` to disable it.
+
+During full-page screenshots Chrome briefly resizes the window. Eaglediff keeps
+those resize and media query change events from page scripts, so responsive
+scripts (GSAP `matchMedia`, ScrollTrigger, sliders) do not restart their
+animations just before the capture. Animations driven by recursive
+`setTimeout`, scrolling, or iframe players may still need a custom hook.
 
 The `stabilize-svg-animations` hook also stops recognized SVGator players and
 native SVG (SMIL) animations, including SVG documents loaded through `<object>` or
