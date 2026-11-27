@@ -13,6 +13,14 @@
     "cli"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GiorgosK/EagleDiff.git"
+  },
+  "homepage": "https://github.com/GiorgosK/EagleDiff#readme",
+  "bugs": {
+    "url": "https://github.com/GiorgosK/EagleDiff/issues"
+  },
   "bin": {
     "eaglediff": "bin/eaglediff.js"
   },

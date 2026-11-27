@@ -18,6 +18,7 @@ For development, or to try unreleased changes, clone the repository and install
 it from inside its folder. This also needs Git and pnpm **9.0.0 or newer**.
 
 ```bash
+git clone https://github.com/GiorgosK/EagleDiff.git eaglediff
 cd eaglediff
 
 # Install dependencies

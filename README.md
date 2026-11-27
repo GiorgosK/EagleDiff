@@ -8,7 +8,7 @@ web fonts and page scripts, and steadies carousels, animations, videos and
 cookie banners before each screenshot. Comparison uses
 [reg-suit](https://github.com/reg-viz/reg-suit).
 
-![A one-letter typo found by Eaglediff: reference, test and difference](docs/images/typo-comparison.png)
+![A one-letter typo found by Eaglediff: reference, test and difference](https://raw.githubusercontent.com/GiorgosK/EagleDiff/main/docs/images/typo-comparison.png)
 
 *A one-letter typo ("supermaket") in a heading, found on a phone-sized
 screenshot of a long page.*
