@@ -16,14 +16,15 @@ async function setup(t, workers) {
   f.config.viewports.push({ label: 'wide', width: 140, height: 120 });
   f.config.scenarios = ['/one', '/two', '/three'].map(url => ({ url, readyTimeout: 1000 }));
   f.pages['/three'] = '<h1>Three</h1>';
-  const state = { counts: new Map(), events: [], behavior: 'once', active: 0, maxInitial: 0, maxRetry: 0 };
+  const state = { counts: new Map(), events: [], behavior: 'once', active: 0, maxRetry: 0, initialWorkers: new Set() };
   const server = http.createServer(async (request, response) => {
     const url = new URL(request.url, 'http://fixture.test');
     const key = url.searchParams.get('path') + '@' + url.searchParams.get('width');
     const attempt = (state.counts.get(key) || 0) + 1;
     state.counts.set(key, attempt);
     state.active++;
-    if (attempt === 1) state.maxInitial = Math.max(state.maxInitial, state.active);
+    // Which worker process captured each first attempt; timing-independent.
+    if (attempt === 1) state.initialWorkers.add(url.searchParams.get('pid'));
     else state.maxRetry = Math.max(state.maxRetry, state.active);
     const files = await fs.readdir(path.join(f.directory, '.reg/actual')).catch(error => {
       if (error.code === 'ENOENT') return [];
@@ -46,7 +47,7 @@ async function setup(t, workers) {
   await fs.writeFile(hook, `module.exports = async (page, context) => {
     const cookie = await page.evaluate(() => { const previous = document.cookie; document.cookie='attempt=present; path=/'; return previous; });
     const query = new URLSearchParams({ path: new URL(page.url()).pathname,
-      width: String(page.viewport().width), cookie, timeout: String(context.scenario.readyTimeout) });
+      width: String(page.viewport().width), cookie, timeout: String(context.scenario.readyTimeout), pid: String(process.pid) });
     const result = await fetch('http://127.0.0.1:${server.address().port}/?' + query).then(response => response.json());
     if(result.fail || result.challenge) {
       const error = new Error(result.challenge ? 'Fixture security challenge' : 'Temporary fixture network failure');
@@ -59,7 +60,8 @@ async function setup(t, workers) {
   await f.save();
   const reset = behavior => {
     state.counts.clear(); state.events = []; state.behavior = behavior;
-    state.active = state.maxInitial = state.maxRetry = 0;
+    state.active = state.maxRetry = 0;
+    state.initialWorkers.clear();
   };
   const references = async () => {
     const names = await f.files();
@@ -87,7 +89,7 @@ test('deferred reference, test and calibrate complete the first pass then recove
       f.reset(command === 'reference' ? 'twice' : 'once');
       const result = await f.run([command]);
       assertDeferredPass(f, 6, 2, command === 'reference' ? 2 : 1);
-      if (workers > 1) assert(f.state.maxInitial > 1, 'The initial pass really uses parallel workers');
+      if (workers > 1) assert(f.state.initialWorkers.size > 1, 'The initial pass really uses parallel workers');
       assert.match(result.stdout, /Retrying 2 failed capture\(s\) one at a time/);
       assert.match(result.stdout, /\[retry 1\/2\]/);
       assert.match(result.stdout, /\[retry 2\/2\]/);
