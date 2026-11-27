@@ -3,6 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const fsp = require('fs/promises');
 const path = require('path');
+const { createRequire } = require('module');
 const { createHash } = require('crypto');
 const { transliterate } = require('transliteration');
 const { execFileSync, fork, spawn } = require('child_process');
@@ -40,7 +41,6 @@ const { getConfigPath, helperDir, rootDir } = require('./config-path');
 const configPath = getConfigPath();
 const generatedRegConfigPath = path.join(rootDir, '.reg', 'regconfig.generated.json');
 const resultsPath = path.join(rootDir, 'results.json');
-const regSuitBin = path.join(helperDir, 'node_modules', 'reg-suit', 'lib', 'cli.js');
 const controlledRootDir = path.join(rootDir, '.reg');
 const actualCacheDir = path.join(controlledRootDir, 'actual');
 const stagingRootDir = path.join(controlledRootDir, 'staging');
@@ -1356,9 +1356,15 @@ function resolveScriptPath(scriptSpec) {
   return resolveHookPath(scriptSpec, { helperDir, rootDir });
 }
 
+// Resolve reg-suit the way Node resolves Eaglediff's own dependencies: inside
+// its node_modules in a checkout, next to it when npm installed it.
+function resolveRegSuitBin(dir = helperDir) {
+  return createRequire(path.join(dir, 'package.json')).resolve('reg-suit/lib/cli.js');
+}
+
 function runRegSuit(args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [regSuitBin, ...args], { stdio: ['inherit', 'pipe', 'inherit'], cwd: rootDir, shell: false });
+    const child = spawn(process.execPath, [resolveRegSuitBin(), ...args], { stdio: ['inherit', 'pipe', 'inherit'], cwd: rootDir, shell: false });
     const output = createInterface({ input: child.stdout, crlfDelay: Infinity });
     output.on('line', (line) => {
       // Eaglediff supplies local references directly; snapshot-key discovery is unused.
@@ -1386,6 +1392,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  resolveRegSuitBin,
   filterScenarios,
   captureScreenshots,
   resolveChromePath,
