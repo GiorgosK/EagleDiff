@@ -30,7 +30,11 @@ rules such as preserving references; also run the tests for the area you change.
 
 GitHub Actions runs the complete suite on every push and pull request
 ([.github/workflows/test.yml](../.github/workflows/test.yml)), on Ubuntu with
-the Node version in `.nvmrc` and the runner's Google Chrome.
+the Node version in `.nvmrc` and the runner's Google Chrome. A second job packs
+Eaglediff as npm would publish it, installs it globally and into a project, and
+runs a real `reference`, `calibrate` and `test`
+([.github/package-smoke.sh](../.github/package-smoke.sh)); run that script
+locally before a release.
 
 Add regression tests for changed behavior, overrides, failures, and cleanup.
 Assert resulting screenshots, reports, exit codes, or saved files. Code running

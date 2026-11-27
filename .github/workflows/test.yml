@@ -28,3 +28,17 @@ jobs:
           CHROME_BIN: /usr/bin/google-chrome
       - if: failure()
         run: node .github/annotate-test-failures.js test-results.tap
+
+  package:
+    # Installs the packed package with npm, globally and into a project, and
+    # runs reference, calibrate and test against a local page.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - run: .github/package-smoke.sh
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
