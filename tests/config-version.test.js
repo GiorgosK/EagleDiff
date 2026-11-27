@@ -94,3 +94,20 @@ test('CLI blocks newer configs before destructive commands; explicit override co
   await run('clean', '--allow-newer-config');
   await assert.rejects(fs.access(cache), { code: 'ENOENT' });
 });
+
+test('the config warning names the defaults revision and the release; --version prints both', async t => {
+  const options = await fixture(t);
+  await fs.writeFile(options.configPath, JSON.stringify({ version: '2099.01.01.01' }));
+  const release = require('../package.json').version;
+  const warnings = [];
+  await checkConfigVersion(options, { interactive: true, warn: m => warnings.push(m), ask: async () => false });
+  assert.match(warnings[0], new RegExp(`Eaglediff defaults: ${template.version.replace(/\./g, '\\.')} \\(eaglediff ${release.replace(/\./g, '\\.')}\\)`));
+  assert.doesNotMatch(warnings[0], /Eaglediff version/);
+
+  const cli = path.join(__dirname, '../bin/eaglediff.js');
+  const expected = `eaglediff ${release} (default settings ${template.version})\n`;
+  for (const args of [['--version'], ['-v'], ['version']]) {
+    const { stdout } = await promisify(execFile)(process.execPath, [cli, ...args], { timeout: 5000 });
+    assert.equal(stdout, expected, args.join(' '));
+  }
+});

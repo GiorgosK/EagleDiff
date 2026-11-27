@@ -28,6 +28,7 @@ Screenshots and reports are saved in `.reg/`; run history is in `results.json`.
 | `results` | Show pass counts, timings, workers, and recent history. |
 | `clean` | Delete captures, references, reports, and caches. |
 | `help` | Show commands and CLI options. |
+| `--version` | Show the Eaglediff release and the default-settings revision, for example `eaglediff 0.1.0 (default settings 2026.11.23.01)`. The revision is the `version` that `config-update` compares with a project's config. |
 
 ```bash
 # Test matching pages with up to 15 workers

@@ -9,7 +9,7 @@ these tools.
 
 ```bash
 npm install -g eaglediff
-eaglediff help
+eaglediff --version
 ```
 
 ### From a source checkout

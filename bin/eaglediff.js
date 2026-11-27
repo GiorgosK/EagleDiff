@@ -29,6 +29,11 @@ async function main() {
     return;
   }
 
+  if (command === 'version' || (!command && forwardedArgs.some(arg => arg === '--version' || arg === '-v'))) {
+    console.log(require('../scripts/version').describeVersions());
+    return;
+  }
+
   if (!command) {
     reportError('No command specified.');
     printUsage();
@@ -238,6 +243,7 @@ Commands and examples:
   eaglediff report --all                                    Show the latest saved result for every available screenshot.
   eaglediff clean                                           Delete screenshots, references, reports, and legacy caches.
   eaglediff help                                            Show this help (also --help or -h).
+  eaglediff --version                                       Show the release and default-settings versions (also -v).
 
 Options:
   --dir <path>         Project folder; defaults to the current directory.

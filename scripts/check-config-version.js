@@ -39,10 +39,11 @@ async function checkConfigVersion({ configPath, scriptDir, command, allowNewer =
   const comparison = Object.hasOwn(current, 'version') ? compareVersions(current.version, defaults.version) : -1;
   if (comparison === 0) return true;
   const relativePath = path.relative(process.env.INIT_CWD || process.cwd(), configPath);
+  const release = JSON.parse(await fs.readFile(path.join(scriptDir, 'package.json'), 'utf8')).version;
   const versionDetails = [
     `  Config: ${relativePath}`,
-    `  Config version: ${current.version || 'unversioned'}`,
-    `  Eaglediff version:    ${defaults.version}`
+    `  Config version:     ${current.version || 'unversioned'}`,
+    `  Eaglediff defaults: ${defaults.version} (eaglediff ${release})`
   ].join('\n');
   if (comparison > 0) {
     warn(`Config is newer than this Eaglediff.\n${versionDetails}\n\n  The operation may be incompatible.\n`);
