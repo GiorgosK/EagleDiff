@@ -9,15 +9,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Uses the pnpm version in package.json (packageManager).
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The same tests as `pnpm run test:unit`, with a TAP copy for annotations.
       # GitHub's Ubuntu runners come with Google Chrome installed.
-      - run: pnpm run test:unit
+      - run: >-
+          node --test --test-concurrency=4
+          --test-reporter=spec --test-reporter-destination=stdout
+          --test-reporter=tap --test-reporter-destination=test-results.tap
+          tests/*.test.js
         env:
           CHROME_BIN: /usr/bin/google-chrome
+      - if: failure()
+        run: node .github/annotate-test-failures.js test-results.tap
