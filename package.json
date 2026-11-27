@@ -1,6 +1,6 @@
 {
   "name": "eaglediff",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Visual regression testing for modern websites: consistent screenshots, sensible defaults and extensible capture rules.",
   "keywords": [
     "visual-regression",
