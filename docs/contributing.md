@@ -22,6 +22,16 @@ git diff --check
 pnpm run test:coverage
 ```
 
+To run your checkout next to the published package, link it under another
+command name and keep `eaglediff` for the npm install:
+
+```sh
+ln -s "$PWD/bin/eaglediff.js" ~/.local/bin/eaglediff-local   # any folder on PATH
+eaglediff-local --version     # your checkout
+npm install -g eaglediff      # the published package
+eaglediff --version
+```
+
 `pnpm test` runs a project's visual comparison; `test:unit` tests Eaglediff itself.
 The automated suite uses local fixtures and temporary directories, with at most
 four test files in parallel. It needs no production website or project config.
